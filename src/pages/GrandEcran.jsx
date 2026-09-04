@@ -137,6 +137,15 @@ export default function GrandEcran() {
   const [prevRanks, setPrevRanks] = useState({});
   const [recentEvent, setRecentEvent] = useState(null);
 
+  // Demo mode: ?demo=jour1 | ?demo=jour2 | ?demo=ventes
+  const demoMode = useMemo(() => {
+    const p = new URLSearchParams(window.location.search).get('demo');
+    if (p === 'jour1') return { key: 'jour1', phase: 'sprint', date: new Date('2026-10-13T09:30:00') };
+    if (p === 'jour2') return { key: 'jour2', phase: 'sprint', date: new Date('2026-10-14T14:00:00') };
+    if (p === 'ventes') return { key: 'ventes', phase: 'ventes', date: new Date('2026-10-16T10:00:00') };
+    return null;
+  }, []);
+
   const load = useCallback(async () => {
     try {
       const [p, r, v, u, bo] = await Promise.all([
@@ -179,11 +188,20 @@ export default function GrandEcran() {
     return unsubscribe;
   }, [load]);
 
-  // Clock
+  // Clock (demo mode ticks from simulated date)
   useEffect(() => {
+    if (demoMode) {
+      const startReal = Date.now();
+      const startSim = demoMode.date.getTime();
+      setNow(new Date(startSim));
+      const timer = setInterval(() => {
+        setNow(new Date(startSim + (Date.now() - startReal)));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [demoMode]);
 
   // Clear recent event after 5s
   useEffect(() => {
@@ -201,6 +219,7 @@ export default function GrandEcran() {
 
   // Phase detection
   const phase = useMemo(() => {
+    if (demoMode) return demoMode.phase;
     if (!params?.date_debut_prise_rdv) return 'countdown';
     const debut = new Date(params.date_debut_prise_rdv + 'T00:00:00');
     const fin = new Date(params.date_fin_prise_rdv + 'T23:59:59');
@@ -209,7 +228,7 @@ export default function GrandEcran() {
     if (now <= fin) return 'sprint';
     if (now < ventesStart) return 'transition';
     return 'ventes';
-  }, [params, now]);
+  }, [params, now, demoMode]);
 
   // Countdown to sprint
   const countdownSprint = useMemo(() => {
@@ -333,6 +352,11 @@ export default function GrandEcran() {
             <PhaseIcon className={`h-5 w-5 ${phaseLabel.color}`} />
             <span className={`text-sm font-bold uppercase tracking-wider ${phaseLabel.color}`}>{phaseLabel.text}</span>
           </div>
+          {demoMode && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/20 border border-purple-400/40">
+              <span className="text-sm font-bold uppercase tracking-wider text-purple-300">Démo</span>
+            </div>
+          )}
           {sprintDay && (
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
               <span className="text-sm font-bold uppercase tracking-wider text-white">Jour {sprintDay.num}</span>
@@ -532,6 +556,28 @@ export default function GrandEcran() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Demo switcher */}
+      {demoMode && (
+        <div className="fixed bottom-4 left-4 z-50 flex items-center gap-1 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 p-1.5">
+          <span className="text-xs text-white/50 px-2 font-medium">Démo :</span>
+          {[
+            { key: 'jour1', label: 'Jour 1' },
+            { key: 'jour2', label: 'Jour 2' },
+            { key: 'ventes', label: 'Ventes' }
+          ].map(m => (
+            <a key={m.key} href={`/grand-ecran?demo=${m.key}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                demoMode.key === m.key ? 'bg-gd-orange text-gd-navy-dark' : 'text-white/60 hover:bg-white/10'
+              }`}>
+              {m.label}
+            </a>
+          ))}
+          <a href="/grand-ecran" className="px-3 py-1.5 rounded-lg text-xs font-bold text-white/40 hover:bg-white/10 transition-colors">
+            Quitter
+          </a>
+        </div>
+      )}
     </div>
   );
 }
