@@ -1,0 +1,52 @@
+{
+  "name": "base",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string",
+      "description": "Nom du site"
+    },
+    "zone": {
+      "type": "string",
+      "enum": [
+        "Centre",
+        "Ouest"
+      ],
+      "description": "Zone g\u00e9ographique"
+    },
+    "entite": {
+      "type": "string",
+      "enum": [
+        "DBS",
+        "Quitte",
+        "Gonnin Duris"
+      ],
+      "description": "Entit\u00e9 juridique"
+    },
+    "responsable_id": {
+      "type": "string",
+      "description": "Responsable commercial du site (User)"
+    }
+  },
+  "required": [
+    "nom"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "badge",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string",
+      "description": "Nom du badge"
+    },
+    "description": {
+      "type": "string",
+      "description": "Condition d'obtention"
+    },
+    "icone": {
+      "type": "string",
+      "description": "Emoji ou nom d'ic\u00f4ne"
+    },
+    "condition_type": {
+      "type": "string",
+      "enum": [
+        "premier_rdv",
+        "sprint_13_14",
+        "closeur",
+        "portefeuille_nettoye",
+        "chasseur_reprises",
+        "premier_devis",
+        "serie_active"
+      ],
+      "description": "Type de condition"
+    },
+    "condition_seuil": {
+      "type": "number",
+      "default": 1,
+      "description": "Seuil d\u00e9clencheur"
+    }
+  },
+  "required": [
+    "nom",
+    "condition_type"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

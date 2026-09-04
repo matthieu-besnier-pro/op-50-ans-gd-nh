@@ -1,0 +1,238 @@
+{
+  "name": "client",
+  "type": "object",
+  "properties": {
+    "siren": {
+      "type": "string",
+      "description": "Identifiant unique (cl\u00e9 de rapprochement)"
+    },
+    "raison_sociale": {
+      "type": "string",
+      "description": "Nom de l'exploitation"
+    },
+    "base_id": {
+      "type": "string",
+      "description": "Base de rattachement (Base)"
+    },
+    "tel_mobile": {
+      "type": "string",
+      "description": "T\u00e9l\u00e9phone mobile (export SIV)"
+    },
+    "tel_fixe": {
+      "type": "string",
+      "description": "T\u00e9l\u00e9phone fixe (export SIV)"
+    },
+    "adresse_complete": {
+      "type": "string",
+      "description": "Adresse compl\u00e8te (export SIV)"
+    },
+    "code_commune": {
+      "type": "string",
+      "description": "Code commune (export SIV)"
+    },
+    "activite_naf": {
+      "type": "string",
+      "description": "Libell\u00e9 d'activit\u00e9 (export SIV)"
+    },
+    "type_structure": {
+      "type": "string",
+      "enum": [
+        "Exploitation",
+        "CUMA",
+        "ETA",
+        "Autre soci\u00e9t\u00e9"
+      ],
+      "description": "Type de structure (calcul\u00e9 \u00e0 l'import)"
+    },
+    "commerciaux_assignes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Commerciaux assign\u00e9s (User IDs) \u2014 un client peut \u00eatre partag\u00e9"
+    },
+    "base_responsable_id": {
+      "type": "string",
+      "description": "Responsable de la base de rattachement (User ID, d\u00e9normalis\u00e9 pour le filtrage RLS)"
+    },
+    "sources_donnees": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "MISTRA",
+          "SIV",
+          "PAC"
+        ]
+      },
+      "description": "Sources de donn\u00e9es"
+    },
+    "type_client_mistra": {
+      "type": "string",
+      "enum": [
+        "Client",
+        "Prospect"
+      ],
+      "description": "Client ou Prospect (export MISTRA)"
+    },
+    "ca_total_12m": {
+      "type": "number",
+      "description": "CA total sur 12 mois (MISTRA)"
+    },
+    "ca_pieces_12m": {
+      "type": "number",
+      "description": "CA pi\u00e8ces sur 12 mois (MISTRA)"
+    },
+    "ca_sav_12m": {
+      "type": "number",
+      "description": "CA SAV sur 12 mois (MISTRA)"
+    },
+    "panier_moyen": {
+      "type": "number",
+      "description": "Panier moyen (MISTRA)"
+    },
+    "nb_factures": {
+      "type": "number",
+      "description": "Nombre de factures (MISTRA)"
+    },
+    "segment_rfm": {
+      "type": "string",
+      "description": "Segment RFM MISTRA"
+    },
+    "date_derniere_facture": {
+      "type": "string",
+      "format": "date",
+      "description": "Derni\u00e8re facture (MISTRA)"
+    },
+    "nb_ot_ouverts": {
+      "type": "number",
+      "description": "Ordres de travail atelier ouverts"
+    },
+    "montant_pac": {
+      "type": "number",
+      "description": "Montant PAC per\u00e7u (r\u00e9serv\u00e9 Direction/Marketing)"
+    },
+    "usage_pac_autorise": {
+      "type": "boolean",
+      "default": false,
+      "description": "Autorisation d'usage commercial de la donn\u00e9e PAC"
+    },
+    "beneficiaire_pac_certain": {
+      "type": "boolean",
+      "description": "Vrai si CUMA ou ETA (calcul\u00e9)"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "\u00c0 contacter",
+        "Injoignable",
+        "\u00c0 rappeler",
+        "Contact\u00e9 sans suite",
+        "RDV obtenu",
+        "Prise de RDV atelier",
+        "Devis en cours",
+        "Offre magasin \u00e0 proposer",
+        "Vente conclue",
+        "Refus"
+      ],
+      "default": "\u00c0 contacter",
+      "description": "Statut du client dans l'op\u00e9ration"
+    },
+    "nb_tentatives_contact": {
+      "type": "number",
+      "default": 0,
+      "description": "Tentatives infructueuses"
+    },
+    "date_rappel": {
+      "type": "string",
+      "format": "date",
+      "description": "Date de rappel (obligatoire si statut = \u00c0 rappeler)"
+    },
+    "motif_refus": {
+      "type": "string",
+      "enum": [
+        "Pas de besoin",
+        "Concurrent",
+        "Budget",
+        "Autre"
+      ],
+      "description": "Motif de refus"
+    },
+    "montant_devis": {
+      "type": "number",
+      "description": "Montant du devis (statut Devis en cours)"
+    },
+    "score_appetence": {
+      "type": "number",
+      "description": "Score d'app\u00e9tence 0\u2013100 (calcul\u00e9)"
+    },
+    "niveau_appetence": {
+      "type": "string",
+      "enum": [
+        "Faible",
+        "Moyen",
+        "Fort"
+      ],
+      "description": "Niveau d'app\u00e9tence (calcul\u00e9)"
+    },
+    "date_dernier_contact": {
+      "type": "string",
+      "format": "date",
+      "description": "Dernier contact (auto)"
+    },
+    "date_prochain_rdv": {
+      "type": "string",
+      "format": "date",
+      "description": "Prochain RDV"
+    }
+  },
+  "required": [
+    "raison_sociale"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.commerciaux_assignes": "{{user.id}}"
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "$or": [
+        {
+          "data.commerciaux_assignes": {
+            "$in": [
+              "{{user.id}}"
+            ]
+          }
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

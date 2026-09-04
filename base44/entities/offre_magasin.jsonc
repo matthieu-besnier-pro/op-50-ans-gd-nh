@@ -1,0 +1,48 @@
+{
+  "name": "offre_magasin",
+  "type": "object",
+  "properties": {
+    "titre": {
+      "type": "string",
+      "description": "Titre de l'offre"
+    },
+    "date_debut": {
+      "type": "string",
+      "format": "date",
+      "description": "Date de d\u00e9but"
+    },
+    "date_fin": {
+      "type": "string",
+      "format": "date",
+      "description": "Date de fin"
+    },
+    "ca_realise": {
+      "type": "number",
+      "default": 0,
+      "description": "CA r\u00e9alis\u00e9"
+    }
+  },
+  "required": [
+    "titre",
+    "date_debut",
+    "date_fin"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

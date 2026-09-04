@@ -1,0 +1,133 @@
+{
+  "name": "vente",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Client (Client)"
+    },
+    "commercial_id": {
+      "type": "string",
+      "description": "Commercial (User)"
+    },
+    "base_responsable_id": {
+      "type": "string",
+      "description": "Responsable du commercial (d\u00e9normalis\u00e9 pour RLS)"
+    },
+    "date_vente": {
+      "type": "string",
+      "format": "date",
+      "description": "Date de vente"
+    },
+    "type_machine": {
+      "type": "string",
+      "enum": [
+        "Tracteur",
+        "Moissonneuse",
+        "Big Baler",
+        "Round Baler",
+        "T\u00e9lescopique",
+        "Ensileuse",
+        "Machine \u00e0 vendanger"
+      ],
+      "description": "Type de machine"
+    },
+    "type_vente": {
+      "type": "string",
+      "enum": [
+        "Nouvelle commande",
+        "Stock NH",
+        "Stock Gonnin-Duris"
+      ],
+      "description": "Type de vente"
+    },
+    "reprise": {
+      "type": "string",
+      "enum": [
+        "Sans reprise",
+        "Reprise NH",
+        "Reprise autre marque"
+      ],
+      "default": "Sans reprise",
+      "description": "Reprise"
+    },
+    "marque_reprise": {
+      "type": "string",
+      "description": "Marque reprise (si Reprise autre marque)"
+    },
+    "source_declaration": {
+      "type": "string",
+      "enum": [
+        "Saisie manuelle",
+        "Import WhatsApp"
+      ],
+      "default": "Saisie manuelle",
+      "description": "Source de d\u00e9claration"
+    },
+    "statut_validation": {
+      "type": "string",
+      "enum": [
+        "\u00c0 valider",
+        "Valid\u00e9"
+      ],
+      "default": "\u00c0 valider",
+      "description": "Statut de validation"
+    }
+  },
+  "required": [
+    "client_id",
+    "commercial_id",
+    "date_vente",
+    "type_machine",
+    "type_vente"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.commercial_id": "{{user.id}}"
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.commercial_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.commercial_id": "{{user.id}}"
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

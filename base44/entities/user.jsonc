@@ -1,0 +1,36 @@
+{
+  "name": "user",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user",
+      "description": "R\u00f4le plateforme (admin = Direction/Marketing)"
+    },
+    "app_role": {
+      "type": "string",
+      "enum": [
+        "commercial",
+        "responsable",
+        "direction",
+        "collaborateur"
+      ],
+      "default": "collaborateur",
+      "enumNames": [
+        "Commercial",
+        "Responsable commercial",
+        "Direction / Marketing",
+        "Collaborateur"
+      ],
+      "description": "Fonction dans l'op\u00e9ration"
+    },
+    "base_id": {
+      "type": "string",
+      "description": "Base de rattachement (r\u00f4le Commercial)"
+    }
+  }
+}

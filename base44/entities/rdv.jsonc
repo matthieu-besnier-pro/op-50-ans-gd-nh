@@ -1,0 +1,113 @@
+{
+  "name": "rdv",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Client concern\u00e9 (Client)"
+    },
+    "commercial_id": {
+      "type": "string",
+      "description": "Commercial (User)"
+    },
+    "base_responsable_id": {
+      "type": "string",
+      "description": "Responsable du commercial (d\u00e9normalis\u00e9 pour RLS)"
+    },
+    "date_heure": {
+      "type": "string",
+      "format": "date-time",
+      "description": "D\u00e9but du cr\u00e9neau"
+    },
+    "duree_minutes": {
+      "type": "number",
+      "default": 30,
+      "description": "Dur\u00e9e du cr\u00e9neau (30 min par d\u00e9faut)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "RDV commercial",
+        "RDV atelier hivernage"
+      ],
+      "description": "Type de RDV"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "Planifi\u00e9",
+        "R\u00e9alis\u00e9",
+        "Annul\u00e9"
+      ],
+      "default": "Planifi\u00e9",
+      "description": "Statut du RDV"
+    },
+    "notes": {
+      "type": "string",
+      "format": "richtext",
+      "description": "Notes"
+    }
+  },
+  "required": [
+    "client_id",
+    "commercial_id",
+    "date_heure",
+    "type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.commercial_id": "{{user.id}}"
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.commercial_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.commercial_id": "{{user.id}}"
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.commercial_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

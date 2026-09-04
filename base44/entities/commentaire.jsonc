@@ -1,0 +1,79 @@
+{
+  "name": "commentaire",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Client concern\u00e9 (Client)"
+    },
+    "base_responsable_id": {
+      "type": "string",
+      "description": "Responsable du client (d\u00e9normalis\u00e9 pour RLS)"
+    },
+    "commerciaux_assignes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Commerciaux du client (d\u00e9normalis\u00e9 pour RLS)"
+    },
+    "auteur_id": {
+      "type": "string",
+      "description": "Auteur (User)"
+    },
+    "texte": {
+      "type": "string",
+      "format": "richtext",
+      "description": "Texte du commentaire"
+    }
+  },
+  "required": [
+    "client_id",
+    "texte"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.auteur_id": "{{user.id}}"
+        },
+        {
+          "data.commerciaux_assignes": "{{user.id}}"
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.commerciaux_assignes": {
+            "$in": [
+              "{{user.id}}"
+            ]
+          }
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "data.auteur_id": "{{user.id}}"
+    },
+    "delete": {
+      "data.auteur_id": "{{user.id}}"
+    }
+  }
+}

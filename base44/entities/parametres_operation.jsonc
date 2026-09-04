@@ -1,0 +1,67 @@
+{
+  "name": "parametres_operation",
+  "type": "object",
+  "properties": {
+    "nom_operation": {
+      "type": "string",
+      "default": "50 ans New Holland",
+      "description": "Nom de l'op\u00e9ration"
+    },
+    "date_debut_operation": {
+      "type": "string",
+      "format": "date",
+      "description": "D\u00e9but de l'op\u00e9ration"
+    },
+    "date_fin_operation": {
+      "type": "string",
+      "format": "date",
+      "description": "Fin de l'op\u00e9ration (modifiable en cours)"
+    },
+    "date_debut_prise_rdv": {
+      "type": "string",
+      "format": "date",
+      "description": "D\u00e9but prise de RDV"
+    },
+    "date_fin_prise_rdv": {
+      "type": "string",
+      "format": "date",
+      "description": "Fin prise de RDV"
+    },
+    "objectif_rdv": {
+      "type": "number",
+      "default": 0,
+      "description": "Objectif RDV"
+    },
+    "objectif_ventes": {
+      "type": "number",
+      "default": 0,
+      "description": "Objectif ventes"
+    },
+    "objectif_ca_magasin": {
+      "type": "number",
+      "default": 0,
+      "description": "Objectif CA magasin"
+    }
+  },
+  "required": [
+    "nom_operation"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

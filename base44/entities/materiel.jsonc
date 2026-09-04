@@ -1,0 +1,183 @@
+{
+  "name": "materiel",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Client propri\u00e9taire (Client)"
+    },
+    "base_responsable_id": {
+      "type": "string",
+      "description": "Responsable du client (d\u00e9normalis\u00e9 pour RLS)"
+    },
+    "commerciaux_assignes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Commerciaux du client (d\u00e9normalis\u00e9 pour RLS)"
+    },
+    "num_plaque": {
+      "type": "string",
+      "description": "Num\u00e9ro de plaque"
+    },
+    "marque": {
+      "type": "string",
+      "description": "Marque"
+    },
+    "modele": {
+      "type": "string",
+      "description": "Mod\u00e8le"
+    },
+    "categorie_1": {
+      "type": "string",
+      "description": "Cat\u00e9gorie SIV niveau 1"
+    },
+    "categorie_2": {
+      "type": "string",
+      "description": "Cat\u00e9gorie SIV niveau 2"
+    },
+    "categorie_3": {
+      "type": "string",
+      "description": "Cat\u00e9gorie SIV niveau 3"
+    },
+    "occasion_neuf": {
+      "type": "string",
+      "enum": [
+        "Neuf",
+        "Occasion",
+        "Inconnu"
+      ],
+      "description": "Neuf ou occasion"
+    },
+    "premiere_immat": {
+      "type": "string",
+      "format": "date",
+      "description": "Premi\u00e8re immatriculation"
+    },
+    "derniere_immat": {
+      "type": "string",
+      "format": "date",
+      "description": "Derni\u00e8re immatriculation"
+    },
+    "vin": {
+      "type": "string",
+      "description": "VIN"
+    },
+    "puissance_fiscale": {
+      "type": "number",
+      "description": "Puissance fiscale"
+    },
+    "puissance": {
+      "type": "number",
+      "description": "Puissance"
+    },
+    "propriete": {
+      "type": "string",
+      "enum": [
+        "Propri\u00e9taire",
+        "Locataire"
+      ],
+      "description": "Propri\u00e9taire ou locataire"
+    },
+    "genre_complet": {
+      "type": "string",
+      "description": "Genre complet"
+    },
+    "date_achat": {
+      "type": "string",
+      "format": "date",
+      "description": "Date d'achat"
+    },
+    "temps_moyen_entre_deux_achats": {
+      "type": "number",
+      "description": "Temps moyen entre deux achats (ann\u00e9es)"
+    },
+    "prochain_achat": {
+      "type": "string",
+      "format": "date",
+      "description": "Pr\u00e9diction de renouvellement (SIV)"
+    },
+    "date_fin_vie": {
+      "type": "string",
+      "format": "date",
+      "description": "Fin de vie estim\u00e9e (SIV)"
+    },
+    "heures_moteur": {
+      "type": "number",
+      "description": "Heures moteur (MISTRA)"
+    },
+    "age_estime": {
+      "type": "number",
+      "description": "\u00c2ge estim\u00e9 (MISTRA)"
+    },
+    "prix_materiel": {
+      "type": "number",
+      "description": "Prix du mat\u00e9riel (MISTRA)"
+    },
+    "famille_materiel": {
+      "type": "string",
+      "description": "Famille mat\u00e9riel (MISTRA)"
+    }
+  },
+  "required": [
+    "client_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.commerciaux_assignes": "{{user.id}}"
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.commerciaux_assignes": {
+            "$in": [
+              "{{user.id}}"
+            ]
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.commerciaux_assignes": {
+            "$in": [
+              "{{user.id}}"
+            ]
+          }
+        },
+        {
+          "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

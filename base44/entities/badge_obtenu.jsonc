@@ -1,0 +1,36 @@
+{
+  "name": "badge_obtenu",
+  "type": "object",
+  "properties": {
+    "badge_id": {
+      "type": "string",
+      "description": "Badge obtenu (Badge)"
+    },
+    "utilisateur_id": {
+      "type": "string",
+      "description": "Commercial qui l'a obtenu (User)"
+    }
+  },
+  "required": [
+    "badge_id",
+    "utilisateur_id"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
