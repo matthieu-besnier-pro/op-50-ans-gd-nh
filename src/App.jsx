@@ -21,6 +21,7 @@ import Magasin from '@/pages/Magasin';
 import Administration from '@/pages/Administration';
 import ClientDetail from '@/pages/ClientDetail';
 import EspaceCollaborateur from '@/pages/EspaceCollaborateur';
+import GestionUtilisateurs from '@/pages/GestionUtilisateurs';
 import { getAppRole } from '@/lib/permissions';
 
 const HomeRedirect = () => {
@@ -66,6 +67,7 @@ const AuthenticatedApp = () => {
         <Route path="/atelier" element={<Atelier />} />
         <Route path="/magasin" element={<Magasin />} />
         <Route path="/administration" element={<Administration />} />
+        <Route path="/utilisateurs" element={<GestionUtilisateurs />} />
         <Route path="/client/:id" element={<ClientDetail />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

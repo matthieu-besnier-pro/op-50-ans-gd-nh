@@ -25,6 +25,7 @@ const navItems = [
   { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'direction', 'collaborateur'] },
   { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'direction'] },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['commercial', 'responsable', 'direction', 'collaborateur'] },
+  { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'] },
   { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'] }
 ];
 
