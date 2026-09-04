@@ -5,11 +5,17 @@ export function useCurrentUser() {
   return user;
 }
 
-export function getAppRole(user) {
+export function getAppRole(user, viewAsRole = null) {
+  if (viewAsRole && (user?.role === 'admin' || user?.app_role === 'direction')) {
+    return viewAsRole;
+  }
   return user?.app_role || 'collaborateur';
 }
 
-export function isDirection(user) {
+export function isDirection(user, viewAsRole = null) {
+  if (viewAsRole) {
+    return viewAsRole === 'direction';
+  }
   return user?.role === 'admin' || getAppRole(user) === 'direction';
 }
 
@@ -42,6 +48,6 @@ export function canEditOperation(user) {
   return isDirection(user);
 }
 
-export function canSeePac(user) {
-  return isDirection(user);
+export function canSeePac(user, viewAsRole = null) {
+  return isDirection(user, viewAsRole);
 }

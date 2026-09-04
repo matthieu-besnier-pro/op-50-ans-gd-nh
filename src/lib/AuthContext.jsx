@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const [viewAsRole, setViewAsRole] = useState(null); // "Voir en tant que" — admin role simulation
 
   useEffect(() => {
     checkAppState();
@@ -129,6 +130,8 @@ export const AuthProvider = ({ children }) => {
       authError,
       appPublicSettings,
       authChecked,
+      viewAsRole,
+      setViewAsRole,
       logout,
       navigateToLogin,
       checkUserAuth,

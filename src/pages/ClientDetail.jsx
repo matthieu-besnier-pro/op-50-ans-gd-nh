@@ -27,7 +27,7 @@ const MOTIFS_REFUS = ['Pas de besoin', 'Concurrent', 'Budget', 'Autre'];
 export default function ClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, viewAsRole } = useAuth();
   const [client, setClient] = useState(null);
   const [materiels, setMateriels] = useState([]);
   const [commentaires, setCommentaires] = useState([]);
@@ -121,7 +121,7 @@ export default function ClientDetail() {
     return <Layout><p className="text-center text-muted-foreground py-24">Client introuvable.</p></Layout>;
   }
 
-  const showPac = canSeePac(user);
+  const showPac = canSeePac(user, viewAsRole);
 
   return (
     <Layout>

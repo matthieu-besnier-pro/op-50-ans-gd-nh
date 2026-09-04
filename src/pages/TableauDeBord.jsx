@@ -26,13 +26,13 @@ function daysBetween(dateStr) {
 }
 
 export default function TableauDeBord() {
-  const { user } = useAuth();
+  const { user, viewAsRole } = useAuth();
   const [params, setParams] = useState(null);
   const [rdvs, setRdvs] = useState([]);
   const [ventes, setVentes] = useState([]);
   const [offres, setOffres] = useState([]);
   const [loading, setLoading] = useState(true);
-  const direction = isDirection(user);
+  const direction = isDirection(user, viewAsRole);
 
   const load = useCallback(async () => {
     try {

@@ -3,9 +3,12 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
-  Store, Settings, LogOut, Menu, X
+  Store, Settings, LogOut, Menu, X, Eye
 } from 'lucide-react';
-import { getAppRole } from '@/lib/permissions';
+import { getAppRole, isDirection } from '@/lib/permissions';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 
 const ROLE_LABELS = {
   commercial: 'Commercial',
@@ -25,10 +28,11 @@ const navItems = [
 ];
 
 export default function Layout({ children }) {
-  const { user, logout } = useAuth();
+  const { user, logout, viewAsRole, setViewAsRole } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const role = getAppRole(user);
+  const role = getAppRole(user, viewAsRole);
+  const canViewAs = isDirection(user);
 
   const visibleItems = navItems.filter((item) => item.roles.includes(role));
 
@@ -72,6 +76,24 @@ export default function Layout({ children }) {
           );
         })}
       </nav>
+      {canViewAs && (
+        <div className="px-3 pb-2">
+          <label className="px-1 mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
+            <Eye className="mr-1 inline h-3 w-3" /> Voir en tant que
+          </label>
+          <Select value={viewAsRole || 'admin'} onValueChange={(v) => setViewAsRole(v === 'admin' ? null : v)}>
+            <SelectTrigger className="h-8 border-white/10 bg-white/5 text-xs text-sidebar-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="admin">Vue admin (tout)</SelectItem>
+              <SelectItem value="commercial">Commercial</SelectItem>
+              <SelectItem value="responsable">Responsable</SelectItem>
+              <SelectItem value="collaborateur">Collaborateur</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="px-3 py-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 px-3 py-2">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gd-orange text-gd-navy-dark font-bold text-sm">
@@ -126,6 +148,17 @@ export default function Layout({ children }) {
 
       {/* Main */}
       <div className="lg:ml-64 flex flex-col min-w-0">
+        {viewAsRole && (
+          <div className="flex items-center justify-between border-b border-gd-orange/30 bg-gd-orange/10 px-4 py-2">
+            <p className="flex items-center text-sm text-gd-navy">
+              <Eye className="mr-1.5 h-4 w-4" />
+              Vous visionnez en tant que : <span className="ml-1 font-semibold">{ROLE_LABELS[viewAsRole]}</span>
+            </p>
+            <button onClick={() => setViewAsRole(null)} className="text-sm text-gd-navy/70 underline hover:text-gd-navy">
+              Revenir en vue admin
+            </button>
+          </div>
+        )}
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </div>
     </div>
