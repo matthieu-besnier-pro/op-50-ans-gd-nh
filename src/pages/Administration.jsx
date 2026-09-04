@@ -16,6 +16,7 @@ import AdminUsers from '@/components/AdminUsers';
 import AdminBadges from '@/components/AdminBadges';
 import AdminBases from '@/components/AdminBases';
 import AdminAffectationManuelle from '@/components/AdminAffectationManuelle';
+import AdminAffectationImport from '@/components/AdminAffectationImport';
 import AdminOffres from '@/components/AdminOffres';
 
 export default function Administration() {
@@ -31,6 +32,7 @@ export default function Administration() {
   const [applying, setApplying] = useState(null);
   const [applyMsg, setApplyMsg] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
+  const [clientsList, setClientsList] = useState([]);
   const [globalStats, setGlobalStats] = useState({ clients: 0, materiels: 0, rdvs: 0, ventes: 0, users: 0, badges: 0 });
 
   const load = async () => {
@@ -54,6 +56,7 @@ export default function Administration() {
       const codesMap = {};
       comms.forEach((c) => { codesMap[c.id] = c.codes_communes || []; });
       setEditCodes(codesMap);
+      setClientsList(allClients);
       setGlobalStats({
         clients: allClients.length, materiels: allMateriels.length,
         rdvs: allRdvs.length, ventes: allVentes.length,
@@ -167,6 +170,7 @@ export default function Administration() {
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           <TabsTrigger value="affectation">Affectation (communes)</TabsTrigger>
           <TabsTrigger value="affectation-manuelle">Affectation manuelle</TabsTrigger>
+          <TabsTrigger value="import-affectation">Import affectation</TabsTrigger>
           <TabsTrigger value="offres">Offres magasin</TabsTrigger>
           <TabsTrigger value="badges">Badges</TabsTrigger>
           <TabsTrigger value="bases">Bases</TabsTrigger>
@@ -336,6 +340,15 @@ export default function Administration() {
             <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><Users className="h-4 w-4 text-gd-orange" /> Affectation manuelle des clients</h2>
             <p className="text-sm text-muted-foreground mb-4">Assignez ou retirez des commerciaux client par client. Utilisez la recherche et les filtres pour cibler les clients non assignés.</p>
             <AdminAffectationManuelle commerciaux={commerciaux} />
+          </div>
+        </TabsContent>
+
+        {/* Import d'affectation en masse */}
+        <TabsContent value="import-affectation">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><Upload className="h-4 w-4 text-gd-orange" /> Import d'affectation en masse</h2>
+            <p className="text-sm text-muted-foreground mb-4">Importez un fichier Excel ou CSV pour affecter en masse les clients aux commerciaux. Le fichier doit contenir le SIREN (ou code commune) du client et l'email du commercial.</p>
+            <AdminAffectationImport commerciaux={commerciaux} clients={clientsList} onReload={load} />
           </div>
         </TabsContent>
 
