@@ -15,6 +15,8 @@ import { Settings, Upload, CheckCircle2, MapPin, X, Plus, Zap, Users, Award, Tra
 import AdminUsers from '@/components/AdminUsers';
 import AdminBadges from '@/components/AdminBadges';
 import AdminBases from '@/components/AdminBases';
+import AdminAffectationManuelle from '@/components/AdminAffectationManuelle';
+import AdminOffres from '@/components/AdminOffres';
 
 export default function Administration() {
   const { user } = useAuth();
@@ -163,7 +165,9 @@ export default function Administration() {
           <TabsTrigger value="params">Paramètres</TabsTrigger>
           <TabsTrigger value="ventes">Ventes à valider ({ventesAValider.length})</TabsTrigger>
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
-          <TabsTrigger value="affectation">Affectation</TabsTrigger>
+          <TabsTrigger value="affectation">Affectation (communes)</TabsTrigger>
+          <TabsTrigger value="affectation-manuelle">Affectation manuelle</TabsTrigger>
+          <TabsTrigger value="offres">Offres magasin</TabsTrigger>
           <TabsTrigger value="badges">Badges</TabsTrigger>
           <TabsTrigger value="bases">Bases</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
@@ -323,6 +327,23 @@ export default function Administration() {
                 ))}
               </div>
             )}
+          </div>
+        </TabsContent>
+
+        {/* Affectation manuelle client par client */}
+        <TabsContent value="affectation-manuelle">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><Users className="h-4 w-4 text-gd-orange" /> Affectation manuelle des clients</h2>
+            <p className="text-sm text-muted-foreground mb-4">Assignez ou retirez des commerciaux client par client. Utilisez la recherche et les filtres pour cibler les clients non assignés.</p>
+            <AdminAffectationManuelle commerciaux={commerciaux} />
+          </div>
+        </TabsContent>
+
+        {/* Offres magasin */}
+        <TabsContent value="offres">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><ShoppingBag className="h-4 w-4 text-gd-orange" /> Offres magasin</h2>
+            <AdminOffres />
           </div>
         </TabsContent>
 
