@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
-  Store, Settings, LogOut, Menu, X, Eye, Zap
+  Store, Settings, LogOut, Menu, X, Eye, Zap, Monitor
 } from 'lucide-react';
 import { getAppRole, isDirection } from '@/lib/permissions';
 import {
@@ -29,6 +29,7 @@ const navItems = [
   { to: '/espace-collaborateur', label: 'Mon espace', icon: Zap, roles: ['collaborateur'], section: 'espace' },
   { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
   { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
+  { to: '/grand-ecran', label: 'Grand Écran', icon: Monitor, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
   { to: '/portefeuille', label: 'Mon portefeuille', icon: Briefcase, roles: ['commercial', 'responsable', 'direction'], section: 'activite' },
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'activite' },
