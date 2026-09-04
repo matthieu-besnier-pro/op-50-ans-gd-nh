@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils';
 import { Flame, TrendingUp, TrendingDown } from 'lucide-react';
 
 const NIVEAU_CONFIG = {
-  'Fort': { icon: Flame, classes: 'bg-gd-navy text-white', dot: 'bg-gd-orange' },
-  'Moyen': { icon: TrendingUp, classes: 'bg-gd-orange/15 text-gd-navy', dot: 'bg-gd-orange' },
+  'Fort': { icon: Flame, classes: 'bg-emerald-500 text-white', dot: 'bg-emerald-300' },
+  'Moyen': { icon: TrendingUp, classes: 'bg-gd-orange/15 text-gd-orange', dot: 'bg-gd-orange' },
   'Faible': { icon: TrendingDown, classes: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' }
 };
 

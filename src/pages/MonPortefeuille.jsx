@@ -38,8 +38,8 @@ export function priorityScore(client) {
 }
 
 export function priorityLabel(score) {
-  if (score >= 80) return { label: 'Haute', className: 'bg-gd-orange/15 text-gd-orange border-gd-orange/30' };
-  if (score >= 40) return { label: 'Moyenne', className: 'bg-amber-100 text-amber-700 border-amber-200' };
+  if (score >= 80) return { label: 'Haute', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+  if (score >= 40) return { label: 'Moyenne', className: 'bg-gd-orange/15 text-gd-orange border-gd-orange/30' };
   return { label: 'Normale', className: 'bg-muted text-muted-foreground border-border' };
 }
 
