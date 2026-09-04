@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
 import StatusBadge from '@/components/StatusBadge';
@@ -10,25 +11,37 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Upload, CheckCircle2, Users, Target } from 'lucide-react';
+import { Settings, Upload, CheckCircle2, MapPin, X, Plus, Zap } from 'lucide-react';
 
 export default function Administration() {
+  const { user } = useAuth();
   const [params, setParams] = useState(null);
   const [ventesAValider, setVentesAValider] = useState([]);
   const [bases, setBases] = useState([]);
+  const [commerciaux, setCommerciaux] = useState([]);
+  const [editCodes, setEditCodes] = useState({});
+  const [newCode, setNewCode] = useState({});
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
+  const [applying, setApplying] = useState(null);
+  const [applyMsg, setApplyMsg] = useState('');
 
   const load = async () => {
     try {
-      const [p, v, b] = await Promise.all([
+      const [p, v, b, users] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.vente.filter({ statut_validation: 'À valider' }, '-date_vente', 100),
-        base44.entities.base.list('-nom', 100)
+        base44.entities.base.list('-nom', 100),
+        base44.entities.User.list('-created_date', 200)
       ]);
       setParams(p[0] || { nom_operation: '50 ans New Holland', date_debut_operation: '2026-10-01', date_fin_operation: '2026-10-31', date_debut_prise_rdv: '2026-10-13', date_fin_prise_rdv: '2026-10-14', objectif_rdv: 0, objectif_ventes: 0, objectif_ca_magasin: 0 });
       setVentesAValider(v);
       setBases(b);
+      const comms = users.filter((u) => u.app_role === 'commercial');
+      setCommerciaux(comms);
+      const codesMap = {};
+      comms.forEach((c) => { codesMap[c.id] = c.codes_communes || []; });
+      setEditCodes(codesMap);
     } catch (e) {
       console.error(e);
     }
@@ -60,6 +73,68 @@ export default function Administration() {
     load();
   };
 
+  // Affectation par codes communes
+  const addCode = (commercialId) => {
+    const code = (newCode[commercialId] || '').trim();
+    if (!code) return;
+    setEditCodes((prev) => ({
+      ...prev,
+      [commercialId]: [...(prev[commercialId] || []), code]
+    }));
+    setNewCode((prev) => ({ ...prev, [commercialId]: '' }));
+  };
+
+  const removeCode = (commercialId, code) => {
+    setEditCodes((prev) => ({
+      ...prev,
+      [commercialId]: (prev[commercialId] || []).filter((c) => c !== code)
+    }));
+  };
+
+  const saveCodes = async (commercialId) => {
+    setSaving(true);
+    try {
+      await base44.entities.User.update(commercialId, { codes_communes: editCodes[commercialId] || [] });
+      setSavedMsg('Codes communes enregistrés.');
+      setTimeout(() => setSavedMsg(''), 3000);
+    } catch (e) {
+      console.error(e);
+      setSavedMsg('Erreur lors de l\'enregistrement.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const applyAffectation = async (commercialId) => {
+    setApplying(commercialId);
+    setApplyMsg('');
+    try {
+      const codes = editCodes[commercialId] || [];
+      if (codes.length === 0) {
+        setApplyMsg('Aucun code commune à appliquer.');
+        setTimeout(() => setApplyMsg(''), 3000);
+        return;
+      }
+      let totalAssigned = 0;
+      for (const code of codes) {
+        await base44.entities.client.updateMany(
+          { code_commune: code },
+          { $addToSet: { commerciaux_assignes: commercialId } }
+        );
+        totalAssigned += 1;
+      }
+      const comm = commerciaux.find((c) => c.id === commercialId);
+      setApplyMsg(`${totalAssigned} client(s) mis à jour pour ${comm?.full_name || comm?.email || 'ce commercial'}.`);
+      setTimeout(() => setApplyMsg(''), 5000);
+    } catch (e) {
+      console.error(e);
+      setApplyMsg('Erreur lors de l\'affectation. Vérifiez les permissions.');
+      setTimeout(() => setApplyMsg(''), 5000);
+    } finally {
+      setApplying(null);
+    }
+  };
+
   return (
     <Layout>
       <div className="mb-6">
@@ -71,6 +146,7 @@ export default function Administration() {
         <TabsList className="mb-4">
           <TabsTrigger value="params">Paramètres</TabsTrigger>
           <TabsTrigger value="ventes">Ventes à valider ({ventesAValider.length})</TabsTrigger>
+          <TabsTrigger value="affectation">Affectation</TabsTrigger>
           <TabsTrigger value="bases">Bases</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
         </TabsList>
@@ -117,6 +193,77 @@ export default function Administration() {
                     <Button onClick={() => validerVente(v.id)} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
                       <CheckCircle2 className="h-4 w-4 mr-1.5" /> Valider
                     </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Affectation par codes communes */}
+        <TabsContent value="affectation">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><MapPin className="h-4 w-4 text-gd-orange" /> Affectation par codes communes</h2>
+            <p className="text-sm text-muted-foreground mb-4">Assignez des codes communes à chaque commercial. Au clic sur « Appliquer », tous les clients dont le code commune correspond seront automatiquement affectés à ce commercial.</p>
+            {applyMsg && <p className="mb-3 text-sm text-emerald-600">{applyMsg}</p>}
+            {commerciaux.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Aucun commercial créé. Les comptes commerciaux seront créés à la réception de la liste.</p>
+            ) : (
+              <div className="space-y-4">
+                {commerciaux.map((c) => (
+                  <div key={c.id} className="rounded-lg border border-border p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-sm text-foreground">{c.full_name || c.email}</p>
+                        <p className="text-xs text-muted-foreground">{c.base_id ? `Base : ${c.base_id}` : 'Sans base'}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => saveCodes(c.id)}
+                          disabled={saving}
+                          className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white"
+                        >
+                          Enregistrer
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => applyAffectation(c.id)}
+                          disabled={applying === c.id}
+                          className="bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark"
+                        >
+                          <Zap className="h-3.5 w-3.5 mr-1.5" />
+                          {applying === c.id ? 'Affectation…' : 'Appliquer'}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {(editCodes[c.id] || []).map((code) => (
+                        <span key={code} className="inline-flex items-center gap-1 rounded-full bg-gd-navy/10 px-2.5 py-1 text-xs font-medium text-gd-navy">
+                          <MapPin className="h-3 w-3" />
+                          {code}
+                          <button onClick={() => removeCode(c.id, code)} className="ml-0.5 text-gd-navy/50 hover:text-gd-red">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                      {(editCodes[c.id] || []).length === 0 && (
+                        <span className="text-xs text-muted-foreground">Aucun code commune assigné.</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Ajouter un code commune (ex. 87000)…"
+                        value={newCode[c.id] || ''}
+                        onChange={(e) => setNewCode((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCode(c.id); } }}
+                        className="text-sm"
+                      />
+                      <Button size="sm" variant="outline" onClick={() => addCode(c.id)} className="shrink-0">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

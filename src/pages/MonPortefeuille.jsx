@@ -5,32 +5,77 @@ import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatusBadge from '@/components/StatusBadge';
 import AppetenceBadge from '@/components/AppetenceBadge';
+import StatCard from '@/components/StatCard';
+import ProgressBar from '@/components/ProgressBar';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { Search, Award, Phone, Calendar, ChevronRight, Trophy } from 'lucide-react';
+import { Search, Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, ListFilter } from 'lucide-react';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
+const STATUTS_TERMINAUX = ['Vente conclue', 'Refus', 'Contacté sans suite'];
+
+export function priorityScore(client) {
+  if (STATUTS_TERMINAUX.includes(client.statut)) return 0;
+  let score = client.score_appetence || 0;
+  if (client.statut === 'À contacter') score += 30;
+  if (!client.date_dernier_contact) {
+    score += 30;
+  } else {
+    const days = Math.floor((Date.now() - new Date(client.date_dernier_contact).getTime()) / 86400000);
+    if (days > 7) score += 15;
+    else if (days > 3) score += 8;
+  }
+  if (client.statut === 'À rappeler' && client.date_rappel) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const rappel = new Date(client.date_rappel);
+    if (rappel <= today) score += 40;
+  }
+  return Math.round(Math.min(score, 150));
+}
+
+export function priorityLabel(score) {
+  if (score >= 80) return { label: 'Haute', className: 'bg-gd-orange/15 text-gd-orange border-gd-orange/30' };
+  if (score >= 40) return { label: 'Moyenne', className: 'bg-amber-100 text-amber-700 border-amber-200' };
+  return { label: 'Normale', className: 'bg-muted text-muted-foreground border-border' };
+}
 
 export default function MonPortefeuille() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [clients, setClients] = useState([]);
+  const [rdvs, setRdvs] = useState([]);
+  const [ventes, setVentes] = useState([]);
+  const [params, setParams] = useState(null);
+  const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statutFilter, setStatutFilter] = useState('all');
-  const [badges, setBadges] = useState([]);
+  const [sortByPriority, setSortByPriority] = useState(true);
 
-  const loadClients = async () => {
+  const loadAll = async () => {
     setLoading(true);
     try {
-      const list = await base44.entities.client.filter(
-        { commerciaux_assignes: user.id },
-        '-date_dernier_contact',
-        500
-      );
-      setClients(list);
+      const [clientList, rdvList, venteList, paramList] = await Promise.all([
+        base44.entities.client.filter({ commerciaux_assignes: user.id }, '-date_dernier_contact', 500),
+        base44.entities.rdv.filter({ commercial_id: user.id }, '-date_heure', 500),
+        base44.entities.vente.filter({ commercial_id: user.id }, '-date_vente', 500),
+        base44.entities.parametres_operation.list('-created_date', 1)
+      ]);
+      setClients(clientList);
+      setRdvs(rdvList);
+      setVentes(venteList);
+      setParams(paramList[0] || null);
+
+      const obtenus = await base44.entities.badge_obtenu.filter({ utilisateur_id: user.id }, '-created_date', 50);
+      if (obtenus.length > 0) {
+        const badgeIds = obtenus.map((o) => o.badge_id);
+        const allBadges = await base44.entities.badge.list('-created_date', 50);
+        setBadges(allBadges.filter((b) => badgeIds.includes(b.id)));
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -38,31 +83,31 @@ export default function MonPortefeuille() {
     }
   };
 
-  const loadBadges = async () => {
-    try {
-      const obtenus = await base44.entities.badge_obtenu.filter({ utilisateur_id: user.id }, '-created_date', 50);
-      if (obtenus.length === 0) return;
-      const badgeIds = obtenus.map((o) => o.badge_id);
-      const allBadges = await base44.entities.badge.list('-created_date', 50);
-      const mine = allBadges.filter((b) => badgeIds.includes(b.id));
-      setBadges(mine);
-    } catch (e) { /* ignore */ }
-  };
-
   useEffect(() => {
-    if (user?.id) {
-      loadClients();
-      loadBadges();
-    }
+    if (user?.id) loadAll();
   }, [user?.id]);
 
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+  const kpis = useMemo(() => {
+    const rdvMonth = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
+    const ventesValidees = ventes.filter((v) => v.statut_validation === 'Validé').length;
+    const txTransfo = rdvMonth > 0 ? Math.round((ventesValidees / rdvMonth) * 100) : 0;
+    const aContacter = clients.filter((c) => c.statut === 'À contacter').length;
+    return { rdvMonth, ventesValidees, txTransfo, aContacter };
+  }, [clients, rdvs, ventes]);
+
   const filtered = useMemo(() => {
-    return clients.filter((c) => {
+    let list = clients.filter((c) => {
       if (statutFilter !== 'all' && c.statut !== statutFilter) return false;
       if (search && !(c.raison_sociale || '').toLowerCase().includes(search.toLowerCase()) && !(c.siren || '').includes(search)) return false;
       return true;
     });
-  }, [clients, search, statutFilter]);
+    if (sortByPriority) {
+      list = [...list].sort((a, b) => priorityScore(b) - priorityScore(a));
+    }
+    return list;
+  }, [clients, search, statutFilter, sortByPriority]);
 
   const statutCounts = useMemo(() => {
     const counts = {};
@@ -71,14 +116,37 @@ export default function MonPortefeuille() {
     return counts;
   }, [clients]);
 
+  const objRdv = params?.objectif_rdv || 0;
+
   return (
     <Layout>
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mon portefeuille</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {clients.length} client{clients.length > 1 ? 's' : ''} assigné{clients.length > 1 ? 's' : ''} · {statutCounts['À contacter']} à contacter
+          {clients.length} client{clients.length > 1 ? 's' : ''} assigné{clients.length > 1 ? 's' : ''} · {kpis.aContacter} à contacter
         </p>
       </div>
+
+      {/* KPIs */}
+      <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="RDV réalisés (mois)" value={kpis.rdvMonth} icon={Calendar} />
+        <StatCard label="Ventes validées" value={kpis.ventesValidees} icon={TrendingUp} />
+        <StatCard label="Tx transformation" value={`${kpis.txTransfo}%`} icon={Percent} />
+        <StatCard label="Clients à contacter" value={kpis.aContacter} icon={PhoneCall} accent />
+      </div>
+
+      {/* Progress toward objective */}
+      {objRdv > 0 && (
+        <div className="mb-6 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+              <Target className="h-4 w-4 text-gd-orange" /> Progression vers l'objectif RDV
+            </p>
+            <p className="text-sm font-bold text-gd-navy">{kpis.rdvMonth} / {objRdv}</p>
+          </div>
+          <ProgressBar value={kpis.rdvMonth} max={objRdv} barClassName="bg-gd-orange" />
+        </div>
+      )}
 
       {/* Badges */}
       {badges.length > 0 && (
@@ -96,34 +164,33 @@ export default function MonPortefeuille() {
       <div className="mb-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher (raison sociale, SIREN)…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder="Rechercher (raison sociale, SIREN)…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={statutFilter} onValueChange={setStatutFilter}>
-          <SelectTrigger className="w-full sm:w-56">
-            <SelectValue placeholder="Tous les statuts" />
-          </SelectTrigger>
+          <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
-            {STATUTS.map((s) => (
-              <SelectItem key={s} value={s}>{s} ({statutCounts[s] || 0})</SelectItem>
-            ))}
+            {STATUTS.map((s) => (<SelectItem key={s} value={s}>{s} ({statutCounts[s] || 0})</SelectItem>))}
           </SelectContent>
         </Select>
+        <Button
+          variant={sortByPriority ? 'default' : 'outline'}
+          onClick={() => setSortByPriority(!sortByPriority)}
+          className={sortByPriority ? 'bg-gd-navy hover:bg-gd-navy-dark text-white' : 'border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white'}
+        >
+          <ListFilter className="h-4 w-4 mr-1.5" /> Priorité
+        </Button>
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Raison sociale</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Appétence</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Priorité</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dernier contact</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prochain RDV</th>
               <th className="px-4 py-3 w-8"></th>
@@ -131,26 +198,35 @@ export default function MonPortefeuille() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">Chargement…</td></tr>
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Chargement…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">Aucun client.</td></tr>
-            ) : filtered.map((c) => (
-              <tr
-                key={c.id}
-                onClick={() => navigate(`/client/${c.id}`)}
-                className="border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer transition-colors"
-              >
-                <td className="px-4 py-3">
-                  <p className="font-semibold text-foreground text-sm">{c.raison_sociale}</p>
-                  <p className="text-xs text-muted-foreground">{c.type_structure || 'Exploitation'} · {c.siren || '—'}</p>
-                </td>
-                <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
-                <td className="px-4 py-3"><AppetenceBadge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_dernier_contact || '—'}</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_prochain_rdv || '—'}</td>
-                <td className="px-4 py-3"><ChevronRight className="h-4 w-4 text-muted-foreground" /></td>
-              </tr>
-            ))}
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                {clients.length === 0
+                  ? 'Aucun client assigné. L\'affectation se fera par codes communes (en cours de paramétrage).'
+                  : 'Aucun client ne correspond aux filtres.'}
+              </td></tr>
+            ) : filtered.map((c) => {
+              const prio = priorityScore(c);
+              const pl = priorityLabel(prio);
+              return (
+                <tr key={c.id} onClick={() => navigate(`/client/${c.id}`)} className="border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer transition-colors">
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-foreground text-sm">{c.raison_sociale}</p>
+                    <p className="text-xs text-muted-foreground">{c.type_structure || 'Exploitation'} · {c.siren || '—'}</p>
+                  </td>
+                  <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
+                  <td className="px-4 py-3"><AppetenceBadge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${pl.className}`}>
+                      {pl.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_dernier_contact || '—'}</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_prochain_rdv || '—'}</td>
+                  <td className="px-4 py-3"><ChevronRight className="h-4 w-4 text-muted-foreground" /></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

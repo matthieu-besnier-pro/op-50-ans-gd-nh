@@ -1,17 +1,44 @@
 {
+  "name": "User",
+  "type": "object",
   "properties": {
     "role": {
       "type": "string",
-      "description": "The role of the user in the app",
       "enum": [
         "admin",
         "user"
-      ]
+      ],
+      "default": "user",
+      "description": "R\u00f4le plateforme (admin = Direction/Marketing)"
+    },
+    "app_role": {
+      "type": "string",
+      "enum": [
+        "commercial",
+        "responsable",
+        "direction",
+        "collaborateur"
+      ],
+      "default": "collaborateur",
+      "enumNames": [
+        "Commercial",
+        "Responsable commercial",
+        "Direction / Marketing",
+        "Collaborateur"
+      ],
+      "description": "Fonction dans l'op\u00e9ration"
+    },
+    "base_id": {
+      "type": "string",
+      "description": "Base de rattachement (r\u00f4le Commercial)"
+    },
+    "codes_communes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Codes communes g\u00e9r\u00e9s par le commercial (affectation g\u00e9ographique)"
     }
   },
-  "required": [
-    "role"
-  ],
-  "name": "User",
-  "type": "object"
+  "required": []
 }

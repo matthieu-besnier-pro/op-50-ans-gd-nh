@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
+import StatCard from '@/components/StatCard';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, AlertTriangle, Calendar, TrendingUp, Percent, Wallet } from 'lucide-react';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
 const STATUT_COLORS = ['bg-slate-300', 'bg-orange-400', 'bg-amber-400', 'bg-slate-400', 'bg-blue-400', 'bg-indigo-400', 'bg-violet-400', 'bg-cyan-400', 'bg-emerald-400', 'bg-red-400'];
@@ -27,7 +28,6 @@ export default function MonEquipe() {
       setCommerciaux(members);
       const memberIds = members.map((m) => m.id);
 
-      // RLS filtre déjà par base_responsable_id / commercial_id
       const [allClients, allRdvs, allVentes] = await Promise.all([
         base44.entities.client.list('-created_date', 500),
         base44.entities.rdv.list('-date_heure', 500),
@@ -79,12 +79,28 @@ export default function MonEquipe() {
     setPrevRanks(newRanks);
   }, [sorted.map((r) => r.id).join(','), sortBy]);
 
+  // KPIs agrégés de l'équipe
+  const teamKpis = useMemo(() => {
+    const totalRdv = rows.reduce((s, r) => s + r.rdvMonth, 0);
+    const totalVentes = rows.reduce((s, r) => s + r.ventes, 0);
+    const avgTransfo = rows.length > 0 ? Math.round(rows.reduce((s, r) => s + r.tauxTransfo, 0) / rows.length) : 0;
+    const totalPipe = rows.reduce((s, r) => s + r.pipeDevis, 0);
+    return { totalRdv, totalVentes, avgTransfo, totalPipe };
+  }, [rows]);
+
+  // Alertes
+  const alertes = useMemo(() => {
+    const sansRdv = rows.filter((r) => r.rdvMonth === 0).map((r) => r.nom);
+    const injoignables = clients.filter((c) => (c.nb_tentatives_contact || 0) >= 3);
+    return { sansRdv, injoignablesCount: injoignables.length };
+  }, [rows, clients]);
+
   return (
     <Layout>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mon équipe</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{commerciaux.length} commercial{commerciaux.length > 1 ? 'aux' : ''}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{commerciaux.length} commercial{commerciaux.length > 1 ? 'aux' : ''} · {clients.length} clients suivis</p>
         </div>
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
@@ -95,6 +111,36 @@ export default function MonEquipe() {
         </Select>
       </div>
 
+      {/* KPIs agrégés */}
+      <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="RDV équipe (mois)" value={teamKpis.totalRdv} icon={Calendar} />
+        <StatCard label="Ventes validées" value={teamKpis.totalVentes} icon={TrendingUp} />
+        <StatCard label="Tx transfo moyen" value={`${teamKpis.avgTransfo}%`} icon={Percent} />
+        <StatCard label="Pipe devis" value={`${teamKpis.totalPipe.toLocaleString('fr-FR')} €`} icon={Wallet} />
+      </div>
+
+      {/* Alertes */}
+      {(alertes.sansRdv.length > 0 || alertes.injoignablesCount > 0) && (
+        <div className="mb-6 rounded-xl border border-orange-200 bg-orange-50 p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-orange-800">
+            <AlertTriangle className="h-4 w-4" /> Alertes
+          </h2>
+          <div className="space-y-2">
+            {alertes.sansRdv.length > 0 && (
+              <p className="text-sm text-orange-800">
+                <span className="font-semibold">{alertes.sansRdv.length}</span> commercial{alertes.sansRdv.length > 1 ? 'aux' : ''} sans RDV ce mois : {alertes.sansRdv.join(', ')}
+              </p>
+            )}
+            {alertes.injoignablesCount > 0 && (
+              <p className="text-sm text-orange-800">
+                <span className="font-semibold">{alertes.injoignablesCount}</span> client{alertes.injoignablesCount > 1 ? 's' : ''} injoignable{alertes.injoignablesCount > 1 ? 's' : ''} (3 tentatives +)
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tableau classement */}
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full">
           <thead>
