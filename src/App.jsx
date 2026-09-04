@@ -23,6 +23,7 @@ import ClientDetail from '@/pages/ClientDetail';
 import EspaceCollaborateur from '@/pages/EspaceCollaborateur';
 import GestionUtilisateurs from '@/pages/GestionUtilisateurs';
 import GrandEcran from '@/pages/GrandEcran';
+import BriefingAnimateur from '@/pages/BriefingAnimateur';
 import { getAppRole } from '@/lib/permissions';
 
 const HomeRedirect = () => {
@@ -71,6 +72,7 @@ const AuthenticatedApp = () => {
         <Route path="/utilisateurs" element={<GestionUtilisateurs />} />
         <Route path="/client/:id" element={<ClientDetail />} />
         <Route path="/grand-ecran" element={<GrandEcran />} />
+        <Route path="/briefing" element={<BriefingAnimateur />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
