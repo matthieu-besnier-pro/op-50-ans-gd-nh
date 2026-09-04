@@ -16,9 +16,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { canSeePac } from '@/lib/permissions';
+import ParcMaterielTable from '@/components/ParcMaterielTable';
 import {
   ArrowLeft, Phone, MapPin, Calendar, Wrench, ShoppingBag,
-  MessageSquare, Plus, Tractor, Mail
+  MessageSquare, Plus, Tractor, Mail, Euro, FileText
 } from 'lucide-react';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
@@ -173,24 +174,24 @@ export default function ClientDetail() {
             <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
               <Tractor className="h-4 w-4 text-gd-orange" /> Parc matériel ({materiels.length})
             </h2>
-            {materiels.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">Aucun matériel enregistré.</p>
-            ) : (
-              <div className="space-y-2">
-                {materiels.map((m) => (
-                  <div key={m.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2.5">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{m.marque} {m.modele}</p>
-                      <p className="text-xs text-muted-foreground">{m.categorie_2 || m.categorie_1 || '—'} · {m.occasion_neuf || ''}</p>
-                    </div>
-                    <div className="text-right text-xs text-muted-foreground">
-                      {m.prochain_achat && <p>Prochain achat : <span className="font-semibold text-gd-navy">{m.prochain_achat}</span></p>}
-                      {m.date_fin_vie && <p>Fin de vie : {m.date_fin_vie}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ParcMaterielTable materiels={materiels} />
+          </div>
+
+          {/* Données commerciales */}
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              <Euro className="h-4 w-4 text-gd-orange" /> Données commerciales
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
+              <DataLine label="CA total 12 mois" value={client.ca_total_12m != null ? client.ca_total_12m.toLocaleString('fr-FR') + ' €' : null} />
+              <DataLine label="CA pièces 12 mois" value={client.ca_pieces_12m != null ? client.ca_pieces_12m.toLocaleString('fr-FR') + ' €' : null} />
+              <DataLine label="CA SAV 12 mois" value={client.ca_sav_12m != null ? client.ca_sav_12m.toLocaleString('fr-FR') + ' €' : null} />
+              <DataLine label="Panier moyen" value={client.panier_moyen != null ? client.panier_moyen.toLocaleString('fr-FR') + ' €' : null} />
+              <DataLine label="Nb factures" value={client.nb_factures} />
+              <DataLine label="Segment RFM" value={client.segment_rfm} />
+              <DataLine label="Dernière facture" value={client.date_derniere_facture} />
+              <DataLine label="OT ouverts" value={client.nb_ot_ouverts} />
+            </div>
           </div>
 
           {/* Statut change */}
@@ -317,6 +318,15 @@ function InfoLine({ icon: Icon, label, value }) {
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="font-medium text-foreground">{value || '—'}</p>
       </div>
+    </div>
+  );
+}
+
+function DataLine({ label, value }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-medium text-foreground">{value || '—'}</p>
     </div>
   );
 }

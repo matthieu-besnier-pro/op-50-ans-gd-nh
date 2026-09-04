@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
@@ -8,6 +9,7 @@ import { Wrench, CalendarCheck, Clock } from 'lucide-react';
 
 export default function Atelier() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [rdvs, setRdvs] = useState([]);
   const [clients, setClients] = useState({});
   const [loading, setLoading] = useState(true);
@@ -60,7 +62,7 @@ export default function Atelier() {
             {aVenir.map((r) => {
               const client = clients[r.client_id];
               return (
-                <div key={r.id} className="flex items-center gap-4 px-5 py-3">
+                <div key={r.id} onClick={() => navigate(`/client/${r.client_id}`)} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/30 cursor-pointer transition-colors">
                   <div className="flex h-10 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-muted text-gd-navy">
                     <span className="text-xs font-bold">{new Date(r.date_heure).toLocaleDateString('fr-FR', { day: 'numeric' })}</span>
                     <span className="text-[10px] uppercase">{new Date(r.date_heure).toLocaleDateString('fr-FR', { month: 'short' })}</span>

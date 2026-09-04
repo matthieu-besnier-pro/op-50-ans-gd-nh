@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
@@ -8,6 +9,7 @@ import { Calendar, Wrench, User } from 'lucide-react';
 
 export default function Calendrier() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [rdvs, setRdvs] = useState([]);
   const [clients, setClients] = useState({});
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ export default function Calendrier() {
                 {items.map((r) => {
                   const client = clients[r.client_id];
                   return (
-                    <div key={r.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm">
+                    <div key={r.id} onClick={() => navigate(`/client/${r.client_id}`)} className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm hover:bg-muted/30 cursor-pointer transition-colors">
                       <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg gd-gradient text-white">
                         <span className="text-xs font-bold">{new Date(r.date_heure).getHours()}h</span>
                         <span className="text-[10px]">{new Date(r.date_heure).getMinutes().toString().padStart(2, '0')}</span>
