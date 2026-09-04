@@ -11,7 +11,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Upload, CheckCircle2, MapPin, X, Plus, Zap } from 'lucide-react';
+import { Settings, Upload, CheckCircle2, MapPin, X, Plus, Zap, Users, Award, Tractor, Briefcase, Calendar, ShoppingBag } from 'lucide-react';
+import AdminUsers from '@/components/AdminUsers';
+import AdminBadges from '@/components/AdminBadges';
+import AdminBases from '@/components/AdminBases';
 
 export default function Administration() {
   const { user } = useAuth();
@@ -25,14 +28,21 @@ export default function Administration() {
   const [savedMsg, setSavedMsg] = useState('');
   const [applying, setApplying] = useState(null);
   const [applyMsg, setApplyMsg] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [globalStats, setGlobalStats] = useState({ clients: 0, materiels: 0, rdvs: 0, ventes: 0, users: 0, badges: 0 });
 
   const load = async () => {
     try {
-      const [p, v, b, users] = await Promise.all([
+      const [p, v, b, users, allClients, allMateriels, allRdvs, allVentes, allBadges] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.vente.filter({ statut_validation: 'À valider' }, '-date_vente', 100),
         base44.entities.base.list('-nom', 100),
-        base44.entities.User.list('-created_date', 200)
+        base44.entities.User.list('-created_date', 200),
+        base44.entities.client.list('-created_date', 500),
+        base44.entities.materiel.list('-created_date', 500),
+        base44.entities.rdv.list('-date_heure', 500),
+        base44.entities.vente.list('-date_vente', 500),
+        base44.entities.badge.list('-created_date', 50)
       ]);
       setParams(p[0] || { nom_operation: '50 ans New Holland', date_debut_operation: '2026-10-01', date_fin_operation: '2026-10-31', date_debut_prise_rdv: '2026-10-13', date_fin_prise_rdv: '2026-10-14', objectif_rdv: 0, objectif_ventes: 0, objectif_ca_magasin: 0 });
       setVentesAValider(v);
@@ -42,6 +52,11 @@ export default function Administration() {
       const codesMap = {};
       comms.forEach((c) => { codesMap[c.id] = c.codes_communes || []; });
       setEditCodes(codesMap);
+      setGlobalStats({
+        clients: allClients.length, materiels: allMateriels.length,
+        rdvs: allRdvs.length, ventes: allVentes.length,
+        users: users.length, badges: allBadges.length
+      });
     } catch (e) {
       console.error(e);
     }
@@ -142,14 +157,49 @@ export default function Administration() {
         <p className="mt-1 text-sm text-muted-foreground">Direction / Marketing</p>
       </div>
 
-      <Tabs defaultValue="params">
-        <TabsList className="mb-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4 flex-wrap">
+          <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
           <TabsTrigger value="params">Paramètres</TabsTrigger>
           <TabsTrigger value="ventes">Ventes à valider ({ventesAValider.length})</TabsTrigger>
+          <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           <TabsTrigger value="affectation">Affectation</TabsTrigger>
+          <TabsTrigger value="badges">Badges</TabsTrigger>
           <TabsTrigger value="bases">Bases</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
         </TabsList>
+
+        {/* Vue d'ensemble */}
+        <TabsContent value="overview">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <StatCard label="Clients" value={globalStats.clients} icon={Briefcase} />
+            <StatCard label="Matériels" value={globalStats.materiels} icon={Tractor} />
+            <StatCard label="RDV" value={globalStats.rdvs} icon={Calendar} />
+            <StatCard label="Ventes" value={globalStats.ventes} icon={ShoppingBag} />
+            <StatCard label="Utilisateurs" value={globalStats.users} icon={Users} />
+            <StatCard label="Badges" value={globalStats.badges} icon={Award} accent />
+          </div>
+          <div className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Actions rapides</h2>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setActiveTab('ventes')} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white">
+                <CheckCircle2 className="h-4 w-4 mr-1.5" /> {ventesAValider.length} vente(s) à valider
+              </Button>
+              <Button onClick={() => setActiveTab('users')} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white">
+                <Users className="h-4 w-4 mr-1.5" /> Gérer les utilisateurs
+              </Button>
+              <Button onClick={() => setActiveTab('badges')} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white">
+                <Award className="h-4 w-4 mr-1.5" /> Gérer les badges
+              </Button>
+              <Button onClick={() => setActiveTab('bases')} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white">
+                <MapPin className="h-4 w-4 mr-1.5" /> Gérer les bases
+              </Button>
+              <Button onClick={() => setActiveTab('params')} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white">
+                <Settings className="h-4 w-4 mr-1.5" /> Paramètres opération
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
 
         {/* Paramètres */}
         <TabsContent value="params">
@@ -198,6 +248,11 @@ export default function Administration() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        {/* Utilisateurs */}
+        <TabsContent value="users">
+          <AdminUsers bases={bases} onReload={load} />
         </TabsContent>
 
         {/* Affectation par codes communes */}
@@ -271,29 +326,14 @@ export default function Administration() {
           </div>
         </TabsContent>
 
+        {/* Badges */}
+        <TabsContent value="badges">
+          <AdminBadges />
+        </TabsContent>
+
         {/* Bases */}
         <TabsContent value="bases">
-          <div className="rounded-xl border border-border bg-card shadow-sm">
-            <h2 className="px-5 py-4 border-b border-border text-sm font-bold uppercase tracking-wider text-muted-foreground">Bases de rattachement</h2>
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Base</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Zone</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Entité</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bases.map((b) => (
-                  <tr key={b.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3 text-sm font-semibold text-foreground">{b.nom}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{b.zone}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{b.entite}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AdminBases />
         </TabsContent>
 
         {/* Import */}

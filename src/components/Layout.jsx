@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
-  Store, Settings, LogOut, Menu, X, Eye
+  Store, Settings, LogOut, Menu, X, Eye, Zap
 } from 'lucide-react';
 import { getAppRole, isDirection } from '@/lib/permissions';
 import {
@@ -18,6 +18,7 @@ const ROLE_LABELS = {
 };
 
 const navItems = [
+  { to: '/espace-collaborateur', label: 'Mon espace', icon: Zap, roles: ['collaborateur'] },
   { to: '/portefeuille', label: 'Mon portefeuille', icon: Briefcase, roles: ['commercial', 'responsable', 'direction'] },
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'] },
   { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'direction', 'collaborateur'] },

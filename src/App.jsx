@@ -20,6 +20,15 @@ import Atelier from '@/pages/Atelier';
 import Magasin from '@/pages/Magasin';
 import Administration from '@/pages/Administration';
 import ClientDetail from '@/pages/ClientDetail';
+import EspaceCollaborateur from '@/pages/EspaceCollaborateur';
+import { getAppRole } from '@/lib/permissions';
+
+const HomeRedirect = () => {
+  const { user, viewAsRole } = useAuth();
+  const role = getAppRole(user, viewAsRole);
+  if (role === 'collaborateur') return <Navigate to="/espace-collaborateur" replace />;
+  return <Navigate to="/tableau-de-bord" replace />;
+};
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -48,7 +57,8 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route path="/" element={<Navigate to="/tableau-de-bord" replace />} />
+        <Route path="/" element={<HomeRedirect />} />
+        <Route path="/espace-collaborateur" element={<EspaceCollaborateur />} />
         <Route path="/portefeuille" element={<MonPortefeuille />} />
         <Route path="/equipe" element={<MonEquipe />} />
         <Route path="/calendrier" element={<Calendrier />} />
