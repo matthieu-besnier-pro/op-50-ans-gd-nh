@@ -23,7 +23,7 @@ function generateInsights(client, materiels, rdvs, ventes) {
     insights.push({
       priority: 'high',
       icon: Flame,
-      title: 'Appétence FORTE — appelez en priorité',
+      title: 'Opportunité à saisir — appelez en priorité',
       desc: `Score ${score}/100. Ce client est un potentiel élevé${!lastContact ? ' et n\'a jamais été contacté' : ''}. C\'est votre meilleure opportunité du jour.`,
       cta: 'Appeler maintenant'
     });
