@@ -17,16 +17,24 @@ const ROLE_LABELS = {
   collaborateur: 'Collaborateur'
 };
 
+const SECTION_LABELS = {
+  espace: 'Mon espace',
+  pilotage: 'Pilotage',
+  activite: 'Activité commerciale',
+  atelier: 'Atelier',
+  admin: 'Administration'
+};
+
 const navItems = [
-  { to: '/espace-collaborateur', label: 'Mon espace', icon: Zap, roles: ['collaborateur'] },
-  { to: '/portefeuille', label: 'Mon portefeuille', icon: Briefcase, roles: ['commercial', 'responsable', 'direction'] },
-  { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'] },
-  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'direction', 'collaborateur'] },
-  { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'direction', 'collaborateur'] },
-  { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'direction'] },
-  { to: '/magasin', label: 'Magasin', icon: Store, roles: ['commercial', 'responsable', 'direction', 'collaborateur'] },
-  { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'] },
-  { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'] }
+  { to: '/espace-collaborateur', label: 'Mon espace', icon: Zap, roles: ['collaborateur'], section: 'espace' },
+  { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
+  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
+  { to: '/portefeuille', label: 'Mon portefeuille', icon: Briefcase, roles: ['commercial', 'responsable', 'direction'], section: 'activite' },
+  { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
+  { to: '/magasin', label: 'Magasin', icon: Store, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'activite' },
+  { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'direction'], section: 'atelier' },
+  { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'], section: 'admin' },
+  { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'], section: 'admin' }
 ];
 
 export default function Layout({ children }) {
@@ -37,6 +45,7 @@ export default function Layout({ children }) {
   const canViewAs = isDirection(user);
 
   const visibleItems = navItems.filter((item) => item.roles.includes(role));
+  const sections = [...new Set(visibleItems.map((i) => i.section))];
 
   const handleLogout = () => {
     logout(false);
@@ -56,27 +65,36 @@ export default function Layout({ children }) {
           </span>
         </div>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {visibleItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                    : 'text-sidebar-foreground/80 hover:bg-white/5 hover:text-white'
-                }`
-              }
-            >
-              <Icon className="h-[18px] w-[18px] shrink-0" />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+        {sections.map((section) => (
+          <div key={section} className="mb-4">
+            <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">
+              {SECTION_LABELS[section]}
+            </p>
+            <div className="space-y-0.5">
+              {visibleItems.filter((i) => i.section === section).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                        isActive
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+                          : 'text-sidebar-foreground/80 hover:bg-white/5 hover:text-white'
+                      }`
+                    }
+                  >
+                    <Icon className="h-[18px] w-[18px] shrink-0" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
       {canViewAs && (
         <div className="px-3 pb-2">
