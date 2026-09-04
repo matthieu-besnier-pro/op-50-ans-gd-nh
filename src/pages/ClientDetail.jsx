@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { canSeePac } from '@/lib/permissions';
 import ParcMaterielTable from '@/components/ParcMaterielTable';
+import CoachCommercial from '@/components/CoachCommercial';
 import {
   ArrowLeft, Phone, MapPin, Calendar, Wrench, ShoppingBag,
   MessageSquare, Plus, Tractor, Mail, Euro, FileText
@@ -248,6 +249,9 @@ export default function ClientDetail() {
 
         {/* Right column */}
         <div className="space-y-6">
+          {/* Coach Commercial */}
+          <CoachCommercial client={client} materiels={materiels} rdvs={rdvs} ventes={ventes} />
+
           {/* RDV */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
