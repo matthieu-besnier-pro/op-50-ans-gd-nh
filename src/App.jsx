@@ -24,6 +24,7 @@ import EspaceCollaborateur from '@/pages/EspaceCollaborateur';
 import GestionUtilisateurs from '@/pages/GestionUtilisateurs';
 import GrandEcran from '@/pages/GrandEcran';
 import BriefingAnimateur from '@/pages/BriefingAnimateur';
+import Presentation from '@/pages/Presentation';
 import { getAppRole } from '@/lib/permissions';
 
 const HomeRedirect = () => {
@@ -73,6 +74,7 @@ const AuthenticatedApp = () => {
         <Route path="/client/:id" element={<ClientDetail />} />
         <Route path="/grand-ecran" element={<GrandEcran />} />
         <Route path="/briefing" element={<BriefingAnimateur />} />
+        <Route path="/presentation" element={<Presentation />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
