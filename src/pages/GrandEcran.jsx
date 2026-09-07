@@ -137,11 +137,10 @@ export default function GrandEcran() {
   const [prevRanks, setPrevRanks] = useState({});
   const [recentEvent, setRecentEvent] = useState(null);
 
-  // Demo mode: ?demo=jour1 | ?demo=jour2 | ?demo=ventes
+  // Demo mode: ?demo=sprint | ?demo=ventes
   const demoMode = useMemo(() => {
     const p = new URLSearchParams(window.location.search).get('demo');
-    if (p === 'jour1') return { key: 'jour1', phase: 'sprint', date: new Date('2026-10-13T09:30:00') };
-    if (p === 'jour2') return { key: 'jour2', phase: 'sprint', date: new Date('2026-10-14T14:00:00') };
+    if (p === 'sprint') return { key: 'sprint', phase: 'sprint', date: new Date('2026-10-14T14:00:00') };
     if (p === 'ventes') return { key: 'ventes', phase: 'ventes', date: new Date('2026-10-16T10:00:00') };
     return null;
   }, []);
@@ -227,17 +226,6 @@ export default function GrandEcran() {
     if (now < ventesStart) return 'transition';
     return 'ventes';
   }, [params, now, demoMode]);
-
-  // Sprint day indicator
-  const sprintDay = useMemo(() => {
-    if (!params?.date_debut_prise_rdv || phase !== 'sprint') return null;
-    const d1 = new Date(params.date_debut_prise_rdv + 'T00:00:00');
-    const d2 = new Date(params.date_fin_prise_rdv + 'T00:00:00');
-    const todayStr = now.toISOString().slice(0, 10);
-    if (todayStr === params.date_debut_prise_rdv) return { num: 1, isAtelierDay: params.date_debut_prise_rdv === params.date_fin_prise_rdv };
-    if (todayStr === params.date_fin_prise_rdv) return { num: 2, isAtelierDay: true };
-    return { num: 1, isAtelierDay: false };
-  }, [params, now, phase]);
 
   // Sprint RDV stats
   const sprintRdvs = useMemo(() => {
@@ -339,16 +327,6 @@ export default function GrandEcran() {
           {demoMode && (
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/20 border border-purple-400/40">
               <span className="text-sm font-bold uppercase tracking-wider text-purple-300">Démo</span>
-            </div>
-          )}
-          {sprintDay && (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-              <span className="text-sm font-bold uppercase tracking-wider text-white">Jour {sprintDay.num}</span>
-              {sprintDay.isAtelierDay && (
-                <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-gd-orange">
-                  <Wrench className="h-3.5 w-3.5" /> Atelier
-                </span>
-              )}
             </div>
           )}
           <div className="text-right">
@@ -512,8 +490,7 @@ export default function GrandEcran() {
         <div className="fixed bottom-4 left-4 z-50 flex items-center gap-1 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 p-1.5">
           <span className="text-xs text-white/50 px-2 font-medium">Démo :</span>
           {[
-            { key: 'jour1', label: 'Jour 1' },
-            { key: 'jour2', label: 'Jour 2' },
+            { key: 'sprint', label: 'Sprint RDV' },
             { key: 'ventes', label: 'Ventes' }
           ].map(m => (
             <a key={m.key} href={`/grand-ecran?demo=${m.key}`}
