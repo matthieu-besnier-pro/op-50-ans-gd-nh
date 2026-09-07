@@ -220,28 +220,13 @@ export default function GrandEcran() {
   // Phase detection
   const phase = useMemo(() => {
     if (demoMode) return demoMode.phase;
-    if (!params?.date_debut_prise_rdv) return 'countdown';
-    const debut = new Date(params.date_debut_prise_rdv + 'T00:00:00');
+    if (!params?.date_debut_prise_rdv) return 'sprint';
     const fin = new Date(params.date_fin_prise_rdv + 'T23:59:59');
     const ventesStart = new Date(fin); ventesStart.setDate(ventesStart.getDate() + 1);
-    if (now < debut) return 'countdown';
     if (now <= fin) return 'sprint';
     if (now < ventesStart) return 'transition';
     return 'ventes';
   }, [params, now, demoMode]);
-
-  // Countdown to sprint
-  const countdownSprint = useMemo(() => {
-    if (!params?.date_debut_prise_rdv) return null;
-    const debut = new Date(params.date_debut_prise_rdv + 'T08:00:00');
-    const diff = debut - now;
-    if (diff <= 0) return null;
-    const days = Math.floor(diff / 86400000);
-    const hours = Math.floor((diff % 86400000) / 3600000);
-    const mins = Math.floor((diff % 3600000) / 60000);
-    const secs = Math.floor((diff % 60000) / 1000);
-    return { days, hours, mins, secs };
-  }, [params, now]);
 
   // Sprint day indicator
   const sprintDay = useMemo(() => {
@@ -319,7 +304,6 @@ export default function GrandEcran() {
   }, [ventesValidees, userMap]);
 
   const phaseLabel = {
-    countdown: { text: 'COMpte à rebours', color: 'text-white/70', icon: Clock },
     sprint: { text: 'SPRINT RDV EN COURS', color: 'text-gd-orange', icon: Zap },
     transition: { text: 'Transition vers les ventes', color: 'text-white/70', icon: TrendingUp },
     ventes: { text: 'SPRINT VENTES', color: 'text-gd-orange', icon: TrendingUp }
@@ -378,41 +362,8 @@ export default function GrandEcran() {
         </div>
       </header>
 
-      {/* Countdown phase */}
-      {phase === 'countdown' && countdownSprint && (
-        <div className="relative z-10 flex flex-col items-center justify-center px-8 py-16">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-            <Zap className="h-20 w-20 mx-auto text-gd-orange mb-6" />
-            <h2 className="text-4xl font-bold text-white/80 mb-2">Le sprint RDV démarre dans</h2>
-            <p className="text-lg text-white/50 mb-10">13 & 14 octobre · Commerciaux cloisonnés · 14 octobre : les chefs d'atelier rejoignent</p>
-            <div className="flex items-center justify-center gap-6">
-              {[
-                { label: 'Jours', value: countdownSprint.days },
-                { label: 'Heures', value: countdownSprint.hours },
-                { label: 'Minutes', value: countdownSprint.mins },
-                { label: 'Secondes', value: countdownSprint.secs }
-              ].map((item) => (
-                <div key={item.label} className="flex flex-col items-center">
-                  <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-white/10 border border-white/10 backdrop-blur">
-                    <AnimatedCounter key={item.value} value={item.value} duration={500} className="text-5xl font-extrabold tabular-nums text-white" />
-                  </div>
-                  <span className="mt-3 text-sm font-bold uppercase tracking-widest text-white/50">{item.label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-12 flex items-center justify-center gap-8">
-              <div className="text-center">
-                <p className="text-4xl font-extrabold text-gd-orange">{objRdv}</p>
-                <p className="text-sm text-white/50 uppercase tracking-wider">Objectif RDV</p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
       {/* Sprint / Ventes phase */}
-      {phase !== 'countdown' && (
-        <div className="relative z-10 grid grid-cols-12 gap-6 px-8 py-6" style={{ minHeight: 'calc(100vh - 88px)' }}>
+      <div className="relative z-10 grid grid-cols-12 gap-6 px-8 py-6" style={{ minHeight: 'calc(100vh - 88px)' }}>
           {/* Left column - Rings & stats */}
           <div className="col-span-3 flex flex-col gap-6">
             <div className="flex flex-col items-center rounded-3xl bg-white/5 border border-white/10 p-6">
@@ -538,7 +489,6 @@ export default function GrandEcran() {
             </div>
           </div>
         </div>
-      )}
 
       {/* New RDV celebration banner */}
       <AnimatePresence>
