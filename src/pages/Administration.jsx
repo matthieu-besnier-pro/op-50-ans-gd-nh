@@ -17,6 +17,7 @@ import AdminBadges from '@/components/AdminBadges';
 import AdminBases from '@/components/AdminBases';
 import AdminAffectationManuelle from '@/components/AdminAffectationManuelle';
 import AdminAffectationImport from '@/components/AdminAffectationImport';
+import AdminAffectationCommunesImport from '@/components/AdminAffectationCommunesImport';
 import AdminOffres from '@/components/AdminOffres';
 
 export default function Administration() {
@@ -268,6 +269,12 @@ export default function Administration() {
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><MapPin className="h-4 w-4 text-gd-orange" /> Affectation par codes communes</h2>
             <p className="text-sm text-muted-foreground mb-4">Assignez des codes communes à chaque commercial. Au clic sur « Appliquer », tous les clients dont le code commune correspond seront automatiquement affectés à ce commercial.</p>
+
+            <div className="mb-4 rounded-lg border border-gd-orange/30 bg-gd-orange/5 p-4">
+              <p className="mb-3 text-sm font-semibold text-gd-navy">📥 Import en masse de la structure</p>
+              <AdminAffectationCommunesImport commerciaux={commerciaux} onReload={load} />
+            </div>
+
             {applyMsg && <p className="mb-3 text-sm text-emerald-600">{applyMsg}</p>}
             {commerciaux.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Aucun commercial créé. Les comptes commerciaux seront créés à la réception de la liste.</p>
