@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
-  Store, Settings, LogOut, Menu, X, Eye, Zap, Monitor
+  Store, Settings, LogOut, Menu, X, Eye, Zap, Monitor, Bot
 } from 'lucide-react';
 import { getAppRole, isDirection } from '@/lib/permissions';
 import {
@@ -35,7 +35,8 @@ const navItems = [
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'activite' },
   { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'direction'], section: 'atelier' },
   { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'], section: 'admin' },
-  { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'], section: 'admin' }
+  { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'], section: 'admin' },
+  { to: '/copilot', label: 'Copilot Admin', icon: Bot, roles: ['direction'], section: 'admin' }
 ];
 
 export default function Layout({ children }) {
