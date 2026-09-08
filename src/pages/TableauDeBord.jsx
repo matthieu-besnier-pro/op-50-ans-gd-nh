@@ -4,7 +4,8 @@ import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
-import { isDirection } from '@/lib/permissions';
+import ProspectsMap from '@/components/ProspectsMap';
+import { isDirection, getAppRole } from '@/lib/permissions';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
@@ -31,21 +32,33 @@ export default function TableauDeBord() {
   const [rdvs, setRdvs] = useState([]);
   const [ventes, setVentes] = useState([]);
   const [offres, setOffres] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [clients, setClients] = useState({});
   const [loading, setLoading] = useState(true);
   const direction = isDirection(user, viewAsRole);
+  const role = getAppRole(user, viewAsRole);
+  const canFilterMap = role === 'direction' || role === 'responsable';
 
   const load = useCallback(async () => {
     try {
-      const [p, r, v, o] = await Promise.all([
+      const [p, r, v, o, u] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.rdv.list('-date_heure', 500),
         base44.entities.vente.list('-date_vente', 500),
-        base44.entities.offre_magasin.list('-created_date', 200)
+        base44.entities.offre_magasin.list('-created_date', 200),
+        base44.entities.User.list('-created_date', 100)
       ]);
       setParams(p[0] || null);
       setRdvs(r);
       setVentes(v);
       setOffres(o);
+      setUsers(u);
+      // Load clients for map (those with RDV)
+      const clientIds = [...new Set(r.map((rd) => rd.client_id))].slice(0, 150);
+      const clientResults = await Promise.all(clientIds.map((id) => base44.entities.client.get(id).catch(() => null)));
+      const cmap = {};
+      clientResults.filter(Boolean).forEach((c) => { cmap[c.id] = c; });
+      setClients(cmap);
     } catch (e) {
       console.error(e);
     } finally {
@@ -210,6 +223,11 @@ export default function TableauDeBord() {
           </h2>
           <Podium rdvs={rdvs} />
         </div>
+      </div>
+
+      {/* Carte des prospects avec RDV */}
+      <div className="mt-6">
+        <ProspectsMap rdvs={rdvs} clients={clients} users={users} canFilter={canFilterMap} />
       </div>
 
       {lastWhatsapp && (
