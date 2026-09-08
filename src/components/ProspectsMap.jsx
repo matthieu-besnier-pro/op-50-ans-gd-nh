@@ -48,7 +48,7 @@ function FitBounds({ clients }) {
   return null;
 }
 
-export default function ProspectsMap({ rdvs, clients, users, canFilter, defaultCommercialId }) {
+export default function ProspectsMap({ rdvs, clients, users, canFilter }) {
   const navigate = useNavigate();
   const [coords, setCoords] = useState({});
   const [loading, setLoading] = useState(true);
