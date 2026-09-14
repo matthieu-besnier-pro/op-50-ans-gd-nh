@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { base44 } from '@/api/base44Client';
 import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
-  Store, Settings, LogOut, Menu, X, Eye, Zap, Monitor, Bot
+  Store, Settings, LogOut, Menu, X, Eye, Zap, Monitor, Bot, UserCircle
 } from 'lucide-react';
 import { getAppRole, isDirection } from '@/lib/permissions';
 import {
@@ -40,11 +41,20 @@ const navItems = [
 ];
 
 export default function Layout({ children }) {
-  const { user, logout, viewAsRole, setViewAsRole } = useAuth();
+  const { user, logout, viewAsRole, setViewAsRole, viewAsCommercial, setViewAsCommercial } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [commercials, setCommercials] = useState([]);
   const role = getAppRole(user, viewAsRole);
   const canViewAs = isDirection(user);
+
+  useEffect(() => {
+    if (canViewAs) {
+      base44.entities.structure_commerciale.list('-nom_commercial', 100)
+        .then(setCommercials)
+        .catch(() => {});
+    }
+  }, [canViewAs]);
 
   const visibleItems = navItems.filter((item) => item.roles.includes(role));
   const sections = [...new Set(visibleItems.map((i) => i.section))];
