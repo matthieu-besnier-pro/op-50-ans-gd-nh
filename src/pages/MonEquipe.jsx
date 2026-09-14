@@ -7,12 +7,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { ArrowUp, ArrowDown, AlertTriangle, Calendar, TrendingUp, Percent, Wallet } from 'lucide-react';
+import { useDemoPersona } from '@/lib/useDemoPersona';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
 const STATUT_COLORS = ['bg-slate-300', 'bg-orange-400', 'bg-amber-400', 'bg-slate-400', 'bg-blue-400', 'bg-indigo-400', 'bg-violet-400', 'bg-cyan-400', 'bg-emerald-400', 'bg-red-400'];
 
 export default function MonEquipe() {
   const { user } = useAuth();
+  const persona = useDemoPersona();
   const [commerciaux, setCommerciaux] = useState([]);
   const [clients, setClients] = useState([]);
   const [rdvs, setRdvs] = useState([]);
@@ -23,6 +25,23 @@ export default function MonEquipe() {
 
   const load = async () => {
     try {
+      // Demo mode (manager persona): use structure_commerciale instead of real users
+      if (persona.mode === 'manager') {
+        const teamRows = persona.structure.filter((s) => s.manager === persona.label?.replace('Équipe de ', ''));
+        const members = teamRows.map((s) => ({ id: s.id, full_name: s.nom_commercial, email: s.email || '', base_id: '' }));
+        setCommerciaux(members);
+        const memberIds = members.map((m) => m.id);
+        const [allClients, allRdvs, allVentes] = await Promise.all([
+          base44.entities.client.list('-created_date', 2000),
+          base44.entities.rdv.list('-date_heure', 1000),
+          base44.entities.vente.list('-date_vente', 1000)
+        ]);
+        setClients(allClients.filter((c) => (c.commerciaux_assignes || []).some((id) => memberIds.includes(id))));
+        setRdvs(allRdvs.filter((r) => memberIds.includes(r.commercial_id)));
+        setVentes(allVentes.filter((v) => memberIds.includes(v.commercial_id)));
+        return;
+      }
+
       const res = await base44.functions.invoke('lister_equipe', {});
       const members = res.data?.members || [];
       setCommerciaux(members);
@@ -43,7 +62,7 @@ export default function MonEquipe() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [persona.mode, persona.ids.join(',')]);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();

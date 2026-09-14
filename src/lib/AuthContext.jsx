@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
   const [viewAsRole, setViewAsRole] = useState(null); // "Voir en tant que" — admin role simulation
   const [viewAsCommercial, setViewAsCommercial] = useState(null); // Demo: simulate a specific commercial (structure_commerciale ID)
+  const [viewAsManager, setViewAsManager] = useState(null); // Demo: simulate a specific manager (manager name from structure_commerciale)
 
   useEffect(() => {
     checkAppState();
@@ -135,6 +136,8 @@ export const AuthProvider = ({ children }) => {
       setViewAsRole,
       viewAsCommercial,
       setViewAsCommercial,
+      viewAsManager,
+      setViewAsManager,
       logout,
       navigateToLogin,
       checkUserAuth,

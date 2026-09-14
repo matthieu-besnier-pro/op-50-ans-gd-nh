@@ -4,18 +4,22 @@ import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import OutlookCalendar from '@/components/OutlookCalendar';
 import { isDirection, isResponsable } from '@/lib/permissions';
+import { useDemoPersona } from '@/lib/useDemoPersona';
 import { Calendar } from 'lucide-react';
 
 export default function Calendrier() {
   const { user } = useAuth();
+  const persona = useDemoPersona();
   const [rdvs, setRdvs] = useState([]);
   const [clients, setClients] = useState({});
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
-      let list = await base44.entities.rdv.list('-date_heure', 500);
-      if (isDirection(user)) {
+      let list = await base44.entities.rdv.list('-date_heure', 1000);
+      if (persona.mode) {
+        list = list.filter((r) => persona.matchCommercialId(r.commercial_id));
+      } else if (isDirection(user)) {
         // all
       } else if (isResponsable(user)) {
         list = list.filter((r) => r.base_responsable_id === user.id);
@@ -35,7 +39,7 @@ export default function Calendrier() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [persona.mode, persona.ids.join(',')]);
 
   const upcomingCount = useMemo(() => {
     const todayStr = new Date().toISOString().slice(0, 10);

@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Search, Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, ListFilter } from 'lucide-react';
+import { useDemoPersona } from '@/lib/useDemoPersona';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
 const STATUTS_TERMINAUX = ['Vente conclue', 'Refus', 'Contacté sans suite'];
@@ -46,6 +47,7 @@ export function priorityLabel(score) {
 export default function MonPortefeuille() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const persona = useDemoPersona();
   const [clients, setClients] = useState([]);
   const [rdvs, setRdvs] = useState([]);
   const [ventes, setVentes] = useState([]);
@@ -56,25 +58,44 @@ export default function MonPortefeuille() {
   const [statutFilter, setStatutFilter] = useState('all');
   const [sortByPriority, setSortByPriority] = useState(true);
 
+  const effectiveId = persona.mode === 'commercial' ? persona.ids[0] : user?.id;
+
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [clientList, rdvList, venteList, paramList] = await Promise.all([
-        base44.entities.client.filter({ commerciaux_assignes: user.id }, '-date_dernier_contact', 500),
-        base44.entities.rdv.filter({ commercial_id: user.id }, '-date_heure', 500),
-        base44.entities.vente.filter({ commercial_id: user.id }, '-date_vente', 500),
+      let clientList;
+      if (persona.mode === 'commercial' && persona.clientFilter) {
+        clientList = await base44.entities.client.filter(persona.clientFilter, '-date_dernier_contact', 500);
+      } else if (persona.mode === 'manager') {
+        const all = await base44.entities.client.list('-date_dernier_contact', 2000);
+        clientList = all.filter(persona.matchClient);
+      } else {
+        clientList = await base44.entities.client.filter({ commerciaux_assignes: user.id }, '-date_dernier_contact', 500);
+      }
+      setClients(clientList);
+
+      const [rdvList, venteList, paramList] = await Promise.all([
+        base44.entities.rdv.list('-date_heure', 1000),
+        base44.entities.vente.list('-date_vente', 1000),
         base44.entities.parametres_operation.list('-created_date', 1)
       ]);
-      setClients(clientList);
-      setRdvs(rdvList);
-      setVentes(venteList);
+      const personaRdvs = persona.mode
+        ? rdvList.filter((r) => persona.matchCommercialId(r.commercial_id))
+        : rdvList.filter((r) => r.commercial_id === user.id);
+      const personaVentes = persona.mode
+        ? venteList.filter((v) => persona.matchCommercialId(v.commercial_id))
+        : venteList.filter((v) => v.commercial_id === user.id);
+      setRdvs(personaRdvs);
+      setVentes(personaVentes);
       setParams(paramList[0] || null);
 
-      const obtenus = await base44.entities.badge_obtenu.filter({ utilisateur_id: user.id }, '-created_date', 50);
-      if (obtenus.length > 0) {
-        const badgeIds = obtenus.map((o) => o.badge_id);
-        const allBadges = await base44.entities.badge.list('-created_date', 50);
-        setBadges(allBadges.filter((b) => badgeIds.includes(b.id)));
+      if (!persona.mode) {
+        const obtenus = await base44.entities.badge_obtenu.filter({ utilisateur_id: user.id }, '-created_date', 50);
+        if (obtenus.length > 0) {
+          const badgeIds = obtenus.map((o) => o.badge_id);
+          const allBadges = await base44.entities.badge.list('-created_date', 50);
+          setBadges(allBadges.filter((b) => badgeIds.includes(b.id)));
+        }
       }
     } catch (e) {
       console.error(e);
@@ -84,8 +105,8 @@ export default function MonPortefeuille() {
   };
 
   useEffect(() => {
-    if (user?.id) loadAll();
-  }, [user?.id]);
+    if (user?.id || persona.mode) loadAll();
+  }, [user?.id, persona.mode, persona.ids.join(',')]);
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 

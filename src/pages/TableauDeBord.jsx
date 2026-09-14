@@ -12,6 +12,7 @@ import {
 import {
   CalendarClock, Timer, CheckCircle2, Target, Store, TrendingUp, Trophy, AlertCircle
 } from 'lucide-react';
+import { useDemoPersona } from '@/lib/useDemoPersona';
 
 const CHART_COLORS = ['hsl(212 100% 21%)', 'hsl(45 100% 51%)', 'hsl(213 25% 66%)', 'hsl(0 64% 51%)', 'hsl(215 100% 28%)', 'hsl(45 100% 40%)', 'hsl(210 20% 50%)'];
 const TYPES_MACHINE = ['Tracteur', 'Moissonneuse', 'Big Baler', 'Round Baler', 'Télescopique', 'Ensileuse', 'Machine à vendanger'];
@@ -28,6 +29,7 @@ function daysBetween(dateStr) {
 
 export default function TableauDeBord() {
   const { user, viewAsRole } = useAuth();
+  const persona = useDemoPersona();
   const [params, setParams] = useState(null);
   const [rdvs, setRdvs] = useState([]);
   const [ventes, setVentes] = useState([]);
@@ -43,18 +45,21 @@ export default function TableauDeBord() {
     try {
       const [p, r, v, o, u] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
-        base44.entities.rdv.list('-date_heure', 500),
-        base44.entities.vente.list('-date_vente', 500),
+        base44.entities.rdv.list('-date_heure', 1000),
+        base44.entities.vente.list('-date_vente', 1000),
         base44.entities.offre_magasin.list('-created_date', 200),
         base44.entities.User.list('-created_date', 100)
       ]);
+      // Filter by demo persona
+      const personaRdvs = persona.mode ? r.filter((rd) => persona.matchCommercialId(rd.commercial_id)) : r;
+      const personaVentes = persona.mode ? v.filter((vd) => persona.matchCommercialId(vd.commercial_id)) : v;
       setParams(p[0] || null);
-      setRdvs(r);
-      setVentes(v);
+      setRdvs(personaRdvs);
+      setVentes(personaVentes);
       setOffres(o);
       setUsers(u);
       // Load clients for map (those with RDV)
-      const clientIds = [...new Set(r.map((rd) => rd.client_id))].slice(0, 150);
+      const clientIds = [...new Set(personaRdvs.map((rd) => rd.client_id))].slice(0, 150);
       const clientResults = await Promise.all(clientIds.map((id) => base44.entities.client.get(id).catch(() => null)));
       const cmap = {};
       clientResults.filter(Boolean).forEach((c) => { cmap[c.id] = c; });
@@ -64,7 +69,7 @@ export default function TableauDeBord() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [persona.mode, persona.ids.join(',')]);
 
   useEffect(() => {
     load();

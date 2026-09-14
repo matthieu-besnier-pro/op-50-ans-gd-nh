@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
@@ -41,20 +41,27 @@ const navItems = [
 ];
 
 export default function Layout({ children }) {
-  const { user, logout, viewAsRole, setViewAsRole, viewAsCommercial, setViewAsCommercial } = useAuth();
+  const { user, logout, viewAsRole, setViewAsRole, viewAsCommercial, setViewAsCommercial, viewAsManager, setViewAsManager } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [commercials, setCommercials] = useState([]);
+  const [structure, setStructure] = useState([]);
   const role = getAppRole(user, viewAsRole);
   const canViewAs = isDirection(user);
 
   useEffect(() => {
     if (canViewAs) {
-      base44.entities.structure_commerciale.list('-nom_commercial', 100)
-        .then(setCommercials)
+      base44.entities.structure_commerciale.list('-nom_commercial', 200)
+        .then(setStructure)
         .catch(() => {});
     }
   }, [canViewAs]);
+
+  const commercials = structure.filter((s) => s.entite !== 'Quitté');
+  const managers = useMemo(() => {
+    const set = new Set();
+    structure.forEach((s) => { if (s.manager) set.add(s.manager); });
+    return [...set].sort();
+  }, [structure]);
 
   const visibleItems = navItems.filter((item) => item.roles.includes(role));
   const sections = [...new Set(visibleItems.map((i) => i.section))];
@@ -109,21 +116,63 @@ export default function Layout({ children }) {
         ))}
       </nav>
       {canViewAs && (
-        <div className="px-3 pb-2">
-          <label className="px-1 mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
-            <Eye className="mr-1 inline h-3 w-3" /> Voir en tant que
-          </label>
-          <Select value={viewAsRole || 'admin'} onValueChange={(v) => setViewAsRole(v === 'admin' ? null : v)}>
-            <SelectTrigger className="h-8 border-white/10 bg-white/5 text-xs text-sidebar-foreground">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="admin">Vue admin (tout)</SelectItem>
-              <SelectItem value="commercial">Commercial</SelectItem>
-              <SelectItem value="responsable">Responsable</SelectItem>
-              <SelectItem value="collaborateur">Collaborateur</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="px-3 pb-2 space-y-2">
+          <div>
+            <label className="px-1 mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
+              <Eye className="mr-1 inline h-3 w-3" /> Voir en tant que
+            </label>
+            <Select value={viewAsRole || 'admin'} onValueChange={(v) => {
+              setViewAsRole(v === 'admin' ? null : v);
+              if (v !== 'commercial') setViewAsCommercial(null);
+              if (v !== 'responsable') setViewAsManager(null);
+            }}>
+              <SelectTrigger className="h-8 border-white/10 bg-white/5 text-xs text-sidebar-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Vue admin (tout)</SelectItem>
+                <SelectItem value="commercial">Commercial</SelectItem>
+                <SelectItem value="responsable">Manager / Responsable</SelectItem>
+                <SelectItem value="collaborateur">Collaborateur</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {viewAsRole === 'commercial' && commercials.length > 0 && (
+            <div>
+              <label className="px-1 mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
+                <UserCircle className="mr-1 inline h-3 w-3" /> Commercial (démo)
+              </label>
+              <Select value={viewAsCommercial || 'all'} onValueChange={(v) => setViewAsCommercial(v === 'all' ? null : v)}>
+                <SelectTrigger className="h-8 border-white/10 bg-white/5 text-xs text-sidebar-foreground">
+                  <SelectValue placeholder="Tous les commerciaux" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="all">Tous (vue globale)</SelectItem>
+                  {commercials.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nom_commercial}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {viewAsRole === 'responsable' && managers.length > 0 && (
+            <div>
+              <label className="px-1 mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
+                <UserCircle className="mr-1 inline h-3 w-3" /> Manager (démo)
+              </label>
+              <Select value={viewAsManager || 'all'} onValueChange={(v) => setViewAsManager(v === 'all' ? null : v)}>
+                <SelectTrigger className="h-8 border-white/10 bg-white/5 text-xs text-sidebar-foreground">
+                  <SelectValue placeholder="Tous les managers" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="all">Tous (vue globale)</SelectItem>
+                  {managers.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       )}
       <div className="px-3 py-4 border-t border-sidebar-border">
@@ -185,8 +234,18 @@ export default function Layout({ children }) {
             <p className="flex items-center text-sm text-gd-navy">
               <Eye className="mr-1.5 h-4 w-4" />
               Vous visionnez en tant que : <span className="ml-1 font-semibold">{ROLE_LABELS[viewAsRole]}</span>
+              {viewAsRole === 'commercial' && viewAsCommercial && (
+                <span className="ml-1.5 rounded-full bg-gd-navy px-2 py-0.5 text-xs font-bold text-white">
+                  {commercials.find((c) => c.id === viewAsCommercial)?.nom_commercial || ''}
+                </span>
+              )}
+              {viewAsRole === 'responsable' && viewAsManager && (
+                <span className="ml-1.5 rounded-full bg-gd-navy px-2 py-0.5 text-xs font-bold text-white">
+                  {viewAsManager}
+                </span>
+              )}
             </p>
-            <button onClick={() => setViewAsRole(null)} className="text-sm text-gd-navy/70 underline hover:text-gd-navy">
+            <button onClick={() => { setViewAsRole(null); setViewAsCommercial(null); setViewAsManager(null); }} className="text-sm text-gd-navy/70 underline hover:text-gd-navy">
               Revenir en vue admin
             </button>
           </div>
