@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
@@ -35,6 +35,7 @@ export default function TableauDeBord() {
   const [ventes, setVentes] = useState([]);
   const [offres, setOffres] = useState([]);
   const [users, setUsers] = useState([]);
+  const [structure, setStructure] = useState([]);
   const [clients, setClients] = useState({});
   const [loading, setLoading] = useState(true);
   const direction = isDirection(user, viewAsRole);
@@ -43,12 +44,13 @@ export default function TableauDeBord() {
 
   const load = useCallback(async () => {
     try {
-      const [p, r, v, o, u] = await Promise.all([
+      const [p, r, v, o, u, s] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.rdv.list('-date_heure', 1000),
         base44.entities.vente.list('-date_vente', 1000),
         base44.entities.offre_magasin.list('-created_date', 200),
-        base44.entities.User.list('-created_date', 100)
+        base44.entities.User.list('-created_date', 100),
+        base44.entities.structure_commerciale.list('-nom_commercial', 200)
       ]);
       // Filter by demo persona
       const personaRdvs = persona.mode ? r.filter((rd) => persona.matchCommercialId(rd.commercial_id)) : r;
@@ -58,11 +60,16 @@ export default function TableauDeBord() {
       setVentes(personaVentes);
       setOffres(o);
       setUsers(u);
-      // Load clients for map (those with RDV)
-      const clientIds = [...new Set(personaRdvs.map((rd) => rd.client_id))].slice(0, 150);
-      const clientResults = await Promise.all(clientIds.map((id) => base44.entities.client.get(id).catch(() => null)));
+      setStructure(s);
+      // Load clients for map (those with RDV) — batch via filter
+      const clientIds = [...new Set(personaRdvs.map((rd) => rd.client_id))].slice(0, 200);
       const cmap = {};
-      clientResults.filter(Boolean).forEach((c) => { cmap[c.id] = c; });
+      // Batch: filter by client_id in chunks of 50
+      for (let i = 0; i < clientIds.length; i += 50) {
+        const chunk = clientIds.slice(i, i + 50);
+        const results = await base44.entities.client.filter({ id: { $in: chunk } }, '-created_date', 50);
+        results.forEach((c) => { cmap[c.id] = c; });
+      }
       setClients(cmap);
     } catch (e) {
       console.error(e);
@@ -76,6 +83,14 @@ export default function TableauDeBord() {
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
   }, [load]);
+
+  // Build name map: User IDs + structure_commerciale IDs → display name
+  const nameMap = useMemo(() => {
+    const m = {};
+    users.forEach((u) => { m[u.id] = u.full_name || u.email; });
+    structure.forEach((s) => { m[s.id] = s.nom_commercial; });
+    return m;
+  }, [users, structure]);
 
   if (loading) {
     return <Layout><div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-4 border-muted border-t-gd-navy rounded-full animate-spin" /></div></Layout>;
@@ -226,7 +241,7 @@ export default function TableauDeBord() {
           <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
             <Trophy className="h-4 w-4 text-gd-orange" /> Podium (RDV réalisés)
           </h2>
-          <Podium rdvs={rdvs} />
+          <Podium rdvs={rdvs} nameMap={nameMap} />
         </div>
       </div>
 
@@ -244,7 +259,7 @@ export default function TableauDeBord() {
   );
 }
 
-function Podium({ rdvs }) {
+function Podium({ rdvs, nameMap = {} }) {
   const counts = {};
   rdvs.filter((r) => r.statut === 'Réalisé').forEach((r) => {
     counts[r.commercial_id] = (counts[r.commercial_id] || 0) + 1;
@@ -256,7 +271,7 @@ function Podium({ rdvs }) {
       {sorted.map(([cid, count], i) => (
         <div key={cid} className="flex items-center gap-3 rounded-lg bg-muted/40 px-3 py-2.5">
           <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${i === 0 ? 'bg-gd-orange text-gd-navy-dark' : 'bg-muted text-muted-foreground'}`}>{i + 1}</span>
-          <span className="flex-1 text-sm font-semibold text-foreground">Commercial</span>
+          <span className="flex-1 text-sm font-semibold text-foreground truncate">{nameMap[cid] || 'Commercial'}</span>
           <span className="text-sm font-bold text-gd-navy">{count} RDV</span>
         </div>
       ))}

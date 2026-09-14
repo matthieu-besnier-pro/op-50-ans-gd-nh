@@ -53,7 +53,7 @@ export default function ClientDetail() {
       setClient(c);
       setStatutEdit(c.statut || 'À contacter');
       const [mats, coms, rds, vts] = await Promise.all([
-        base44.entities.materiel.filter({ client_id: id }, '-created_date', 200),
+        base44.entities.materiel.filter({ client_id: id }, '-created_date', 500),
         base44.entities.commentaire.filter({ client_id: id }, '-created_date', 100),
         base44.entities.rdv.filter({ client_id: id }, '-date_heure', 100),
         base44.entities.vente.filter({ client_id: id }, '-date_vente', 100)

@@ -70,7 +70,7 @@ export default function MonPortefeuille() {
         const all = await base44.entities.client.list('-date_dernier_contact', 2000);
         clientList = all.filter(persona.matchClient);
       } else {
-        clientList = await base44.entities.client.filter({ commerciaux_assignes: user.id }, '-date_dernier_contact', 500);
+        clientList = await base44.entities.client.filter({ commerciaux_assignes: user.id }, '-date_dernier_contact', 2000);
       }
       setClients(clientList);
 

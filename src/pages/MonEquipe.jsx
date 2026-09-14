@@ -42,15 +42,26 @@ export default function MonEquipe() {
         return;
       }
 
-      const res = await base44.functions.invoke('lister_equipe', {});
-      const members = res.data?.members || [];
+      // Non-demo: load structure_commerciale for name resolution + lister_equipe
+      const [res, structRows] = await Promise.all([
+        base44.functions.invoke('lister_equipe', {}),
+        base44.entities.structure_commerciale.list('-nom_commercial', 200)
+      ]);
+      const equipeMembers = res.data?.members || [];
+      // Enrich with structure names if user names are missing
+      const structMap = {};
+      structRows.forEach((s) => { structMap[s.id] = s.nom_commercial; });
+      const members = equipeMembers.map((m) => ({
+        ...m,
+        full_name: m.full_name || structMap[m.id] || m.email || `Commercial ${m.id?.slice(-4) || ''}`
+      }));
       setCommerciaux(members);
       const memberIds = members.map((m) => m.id);
 
       const [allClients, allRdvs, allVentes] = await Promise.all([
-        base44.entities.client.list('-created_date', 500),
-        base44.entities.rdv.list('-date_heure', 500),
-        base44.entities.vente.list('-date_vente', 500)
+        base44.entities.client.list('-created_date', 2000),
+        base44.entities.rdv.list('-date_heure', 1000),
+        base44.entities.vente.list('-date_vente', 1000)
       ]);
       setClients(allClients);
       setRdvs(allRdvs.filter((r) => memberIds.includes(r.commercial_id)));

@@ -131,6 +131,7 @@ export default function GrandEcran() {
   const [rdvs, setRdvs] = useState([]);
   const [ventes, setVentes] = useState([]);
   const [users, setUsers] = useState([]);
+  const [structure, setStructure] = useState([]);
   const [clients, setClients] = useState({});
   const [badgeObtenus, setBadgeObtenus] = useState([]);
   const [now, setNow] = useState(new Date());
@@ -147,17 +148,19 @@ export default function GrandEcran() {
 
   const load = useCallback(async () => {
     try {
-      const [p, r, v, u, bo] = await Promise.all([
+      const [p, r, v, u, bo, st] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.rdv.list('-date_heure', 500),
         base44.entities.vente.list('-date_vente', 500),
         base44.entities.User.list('-created_date', 50),
-        base44.entities.badge_obtenu.list('-created_date', 100)
+        base44.entities.badge_obtenu.list('-created_date', 100),
+        base44.entities.structure_commerciale.list('-nom_commercial', 200)
       ]);
       setParams(p[0] || null);
       setRdvs(r);
       setVentes(v);
       setUsers(u);
+      setStructure(st);
       setBadgeObtenus(bo);
       const clientIds = [...new Set(r.map(rd => rd.client_id))].slice(0, 100);
       const clientResults = await Promise.all(clientIds.map(id => base44.entities.client.get(id).catch(() => null)));
@@ -210,11 +213,13 @@ export default function GrandEcran() {
     }
   }, [recentEvent]);
 
-  const userMap = useMemo(() => {
+  // Name resolver: User IDs + structure_commerciale IDs → display name
+  const nameMap = useMemo(() => {
     const m = {};
-    users.forEach(u => { m[u.id] = u; });
+    users.forEach(u => { m[u.id] = u.full_name || u.email; });
+    structure.forEach(s => { m[s.id] = s.nom_commercial; });
     return m;
-  }, [users]);
+  }, [users, structure]);
 
   // Phase detection
   const phase = useMemo(() => {
@@ -249,12 +254,12 @@ export default function GrandEcran() {
       counts[r.commercial_id] = (counts[r.commercial_id] || 0) + 1;
     });
     const entries = Object.entries(counts).map(([id, count]) => ({
-      id, count, name: userMap[id]?.full_name || userMap[id]?.email || `Commercial ${id.slice(-4)}`,
+      id, count, name: nameMap[id] || `Commercial ${id.slice(-4)}`,
       isAtelier: sprintRdvs.some(r => r.commercial_id === id && r.type === 'RDV atelier hivernage')
     }));
     entries.sort((a, b) => b.count - a.count);
     return entries;
-  }, [sprintRdvs, userMap]);
+  }, [sprintRdvs, nameMap]);
 
   // Track rank changes
   useEffect(() => {
@@ -287,9 +292,9 @@ export default function GrandEcran() {
       counts[v.commercial_id] = (counts[v.commercial_id] || 0) + 1;
     });
     return Object.entries(counts).map(([id, count]) => ({
-      id, count, name: userMap[id]?.full_name || userMap[id]?.email || `Commercial ${id.slice(-4)}`
+      id, count, name: nameMap[id] || `Commercial ${id.slice(-4)}`
     })).sort((a, b) => b.count - a.count).slice(0, 5);
-  }, [ventesValidees, userMap]);
+  }, [ventesValidees, nameMap]);
 
   const phaseLabel = {
     sprint: { text: 'SPRINT RDV EN COURS', color: 'text-gd-orange', icon: Zap },
@@ -390,12 +395,11 @@ export default function GrandEcran() {
                   <p className="text-sm text-white/40 py-4 text-center">Aucun badge encore — que le sprint commence !</p>
                 ) : (
                   badgeObtenus.slice(0, 5).map((bo, i) => {
-                    const u = userMap[bo.utilisateur_id];
                     return (
                       <motion.div key={bo.id || i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                         className="flex items-center gap-3 rounded-xl bg-gd-orange/10 border border-gd-orange/20 px-3 py-2">
                         <Star className="h-5 w-5 text-gd-orange" fill="currentColor" />
-                        <span className="text-sm font-semibold text-white truncate">{u?.full_name || 'Commercial'}</span>
+                        <span className="text-sm font-semibold text-white truncate">{nameMap[bo.utilisateur_id] || 'Commercial'}</span>
                       </motion.div>
                     );
                   })
@@ -457,7 +461,7 @@ export default function GrandEcran() {
                         key={rdv.id}
                         rdv={rdv}
                         clientName={clients[rdv.client_id]?.raison_sociale}
-                        userName={userMap[rdv.commercial_id]?.full_name}
+                        userName={nameMap[rdv.commercial_id]}
                         isNew={recentEvent?.data?.id === rdv.id}
                       />
                     ))
