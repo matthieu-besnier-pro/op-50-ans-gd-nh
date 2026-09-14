@@ -1,0 +1,71 @@
+{
+  "name": "structure_commerciale",
+  "type": "object",
+  "properties": {
+    "nom_commercial": {
+      "type": "string",
+      "description": "Nom du commercial"
+    },
+    "manager": {
+      "type": "string",
+      "description": "Nom du manager / responsable"
+    },
+    "entite": {
+      "type": "string",
+      "enum": [
+        "GONNIN",
+        "DURIS",
+        "DBS",
+        "Quitt\u00e9"
+      ],
+      "description": "Entit\u00e9 juridique"
+    },
+    "codes_communes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Codes communes assign\u00e9s \u00e0 ce commercial"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID du compte User li\u00e9 (rempli quand le compte est cr\u00e9\u00e9)"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "En attente",
+        "Invit\u00e9",
+        "Actif"
+      ],
+      "default": "En attente",
+      "description": "Statut du compte"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email d'invitation (rempli quand connu)"
+    }
+  },
+  "required": [
+    "nom_commercial",
+    "entite"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

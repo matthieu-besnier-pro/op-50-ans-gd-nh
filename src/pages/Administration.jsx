@@ -20,6 +20,7 @@ import AdminAffectationImport from '@/components/AdminAffectationImport';
 import AdminAffectationCommunesImport from '@/components/AdminAffectationCommunesImport';
 import AdminOffres from '@/components/AdminOffres';
 import AdminClientsListing from '@/components/AdminClientsListing';
+import AdminStructureCommerciale from '@/components/AdminStructureCommerciale';
 
 export default function Administration() {
   const { user } = useAuth();
@@ -172,6 +173,7 @@ export default function Administration() {
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           <TabsTrigger value="affectation">Affectation (communes)</TabsTrigger>
           <TabsTrigger value="clients-listing">Listing clients</TabsTrigger>
+          <TabsTrigger value="structure">Structure commerciale</TabsTrigger>
           <TabsTrigger value="affectation-manuelle">Affectation manuelle</TabsTrigger>
           <TabsTrigger value="import-affectation">Import affectation</TabsTrigger>
           <TabsTrigger value="offres">Offres magasin</TabsTrigger>
@@ -349,6 +351,15 @@ export default function Administration() {
             <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><Briefcase className="h-4 w-4 text-gd-orange" /> Listing des clients & attribution commerciale</h2>
             <p className="text-sm text-muted-foreground mb-4">Vue complète de tous les clients avec leur(s) commercial(aux) assigné(s). Filtrez par commercial, base ou statut d'affectation.</p>
             <AdminClientsListing commerciaux={commerciaux} bases={bases} />
+          </div>
+        </TabsContent>
+
+        {/* Structure commerciale */}
+        <TabsContent value="structure">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><Users className="h-4 w-4 text-gd-orange" /> Structure commerciale</h2>
+            <p className="text-sm text-muted-foreground mb-4">Liste des 23 commerciaux et 4 managers avec leurs codes communes. Les comptes seront créés dès réception des emails.</p>
+            <AdminStructureCommerciale />
           </div>
         </TabsContent>
 
