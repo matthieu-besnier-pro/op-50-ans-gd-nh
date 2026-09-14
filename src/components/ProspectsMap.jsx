@@ -48,6 +48,15 @@ function FitBounds({ clients }) {
   return null;
 }
 
+function InvalidateSize() {
+  const map = useMap();
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 100);
+    return () => clearTimeout(t);
+  }, [map]);
+  return null;
+}
+
 export default function ProspectsMap({ rdvs, clients, users, canFilter }) {
   const navigate = useNavigate();
   const [coords, setCoords] = useState({});
@@ -159,11 +168,12 @@ export default function ProspectsMap({ rdvs, clients, users, canFilter }) {
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-border" style={{ height: 400 }}>
-          <MapContainer center={[46.6, 2.5]} zoom={6} style={{ height: '100%', width: '100%' }} ref={mapRef}>
+          <MapContainer key={markers.length} center={[46.6, 2.5]} zoom={6} style={{ height: '100%', width: '100%' }} ref={mapRef}>
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; OpenStreetMap'
             />
+            <InvalidateSize />
             <FitBounds clients={markers} />
             {markers.map((m) => (
               <Marker key={m.id} position={[m.lat, m.lng]} icon={m.nextRdv?.type === 'RDV atelier hivernage' ? pinIconAtelier : pinIcon}>
