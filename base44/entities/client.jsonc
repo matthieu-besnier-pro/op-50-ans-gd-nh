@@ -42,6 +42,58 @@
       "type": "string",
       "description": "Libell\u00e9 d'activit\u00e9 (export SIV)"
     },
+    "naf_code": {
+      "type": "string",
+      "description": "Code NAF (export SIV)"
+    },
+    "siret": {
+      "type": "string",
+      "description": "SIRET (export MISTRA)"
+    },
+    "code_client": {
+      "type": "string",
+      "description": "Code client MISTRA"
+    },
+    "code_prospect": {
+      "type": "string",
+      "description": "Code prospect MISTRA"
+    },
+    "id_compte_rcu": {
+      "type": "string",
+      "description": "Identifiant compte RCU"
+    },
+    "identite_juridique": {
+      "type": "string",
+      "description": "Identit\u00e9 juridique (Soci\u00e9t\u00e9 / Particulier)"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email principal (export MISTRA)"
+    },
+    "departement": {
+      "type": "string",
+      "description": "D\u00e9partement"
+    },
+    "filiale": {
+      "type": "string",
+      "description": "Filiale de rattachement (export MISTRA)"
+    },
+    "nb_interlocuteurs": {
+      "type": "number",
+      "description": "Nombre d'interlocuteurs"
+    },
+    "consent_tel": {
+      "type": "string",
+      "description": "Consentement t\u00e9l\u00e9phone (RGPD)"
+    },
+    "consent_email": {
+      "type": "string",
+      "description": "Consentement email (RGPD)"
+    },
+    "consent_courrier": {
+      "type": "string",
+      "description": "Consentement courrier (RGPD)"
+    },
     "type_structure": {
       "type": "string",
       "enum": [

@@ -118,6 +118,32 @@
     "famille_materiel": {
       "type": "string",
       "description": "Famille mat\u00e9riel (MISTRA)"
+    },
+    "id_vehicule": {
+      "type": "string",
+      "description": "Identifiant v\u00e9hicule source (MISTRA/SIV)"
+    },
+    "combustible": {
+      "type": "string",
+      "description": "Combustible (export SIV)"
+    },
+    "mode_achat": {
+      "type": "string",
+      "description": "Mode d'achat (Achat neuf / Achat occasion)"
+    },
+    "statut_possession": {
+      "type": "string",
+      "enum": [
+        "Propri\u00e9taire",
+        "Locataire",
+        "Vendu",
+        "En stock",
+        "A reprendre",
+        "Depot vente",
+        "En commande fournisseur",
+        "Autre"
+      ],
+      "description": "Statut de possession (export MISTRA) \u2014 conserve toute la donn\u00e9e source"
     }
   },
   "required": [

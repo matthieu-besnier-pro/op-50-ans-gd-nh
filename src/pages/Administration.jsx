@@ -20,6 +20,7 @@ import AdminAffectationImport from '@/components/AdminAffectationImport';
 import AdminAffectationCommunesImport from '@/components/AdminAffectationCommunesImport';
 import AdminOffres from '@/components/AdminOffres';
 import AdminClientsListing from '@/components/AdminClientsListing';
+import AdminImportDonnees from '@/components/AdminImportDonnees';
 import AdminStructureCommerciale from '@/components/AdminStructureCommerciale';
 
 export default function Administration() {
@@ -401,17 +402,11 @@ export default function Administration() {
 
         {/* Import */}
         <TabsContent value="import">
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm max-w-2xl">
-            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><Upload className="h-4 w-4 text-gd-orange" /> Import de données</h2>
-            <p className="text-sm text-muted-foreground mb-4">Importez les exports MISTRA, SIV et PAC pour créer ou mettre à jour les clients et le matériel. L'import exclut automatiquement les points de vente hors périmètre et les SIREN internes au groupe.</p>
-            <div className="space-y-3">
-              <div className="rounded-lg border border-dashed border-border p-6 text-center">
-                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">Import CSV MISTRA / SIV / PAC</p>
-                <p className="text-xs text-muted-foreground mt-1">Fonctionnalité d'import à configurer avec les fichiers reçus.</p>
-              </div>
-            </div>
+          <div className="mb-4">
+            <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><Upload className="h-4 w-4 text-gd-orange" /> Import de données</h2>
+            <p className="text-sm text-muted-foreground">Importez les exports MISTRA / SIV puis PAC pour créer les clients, leur matériel et calculer les scores d'appétence.</p>
           </div>
+          <AdminImportDonnees onReload={load} />
         </TabsContent>
       </Tabs>
     </Layout>
