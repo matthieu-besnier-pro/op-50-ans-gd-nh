@@ -11,6 +11,18 @@ async function uploadFile(file) {
   return url;
 }
 
+// Extrait le message d'erreur réel renvoyé par la fonction backend (sinon on ne voit que « status 500 »)
+function extractError(e) {
+  const d = e?.response?.data ?? e?.data;
+  const detail =
+    (d && (d.error || d.message)) ||
+    (typeof d === 'string' ? d : null) ||
+    e?.message ||
+    'Erreur inconnue';
+  const status = e?.response?.status || e?.status;
+  return status ? `${detail} (HTTP ${status})` : detail;
+}
+
 function ResultCard({ icon: Icon, value, label, tone = 'emerald' }) {
   const tones = {
     emerald: 'bg-emerald-50 text-emerald-700',
@@ -53,7 +65,8 @@ export default function AdminImportDonnees({ onReload }) {
       setClientsRes(data);
       onReload?.();
     } catch (e) {
-      setClientsErr(e?.message || "Erreur pendant l'import");
+      console.error('[import clients]', e?.response?.data || e);
+      setClientsErr(extractError(e));
     } finally {
       setClientsBusy(false);
     }
@@ -70,7 +83,8 @@ export default function AdminImportDonnees({ onReload }) {
       setPacRes(data);
       onReload?.();
     } catch (e) {
-      setPacErr(e?.message || "Erreur pendant l'import PAC");
+      console.error('[import pac]', e?.response?.data || e);
+      setPacErr(extractError(e));
     } finally {
       setPacBusy(false);
     }

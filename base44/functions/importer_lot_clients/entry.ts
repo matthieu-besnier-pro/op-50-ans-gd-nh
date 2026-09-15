@@ -13,11 +13,24 @@ export default async function(req) {
     if (!file_url) return Response.json({ error: 'file_url requis' }, { status: 400 });
 
     // Download
-    const resp = await fetch(file_url);
+    let resp;
+    try {
+      resp = await fetch(file_url);
+    } catch (e) {
+      return Response.json({ error: `Téléchargement impossible (fetch a échoué) — file_url=${String(file_url).slice(0, 140)} — ${e?.message || e}` }, { status: 500 });
+    }
+    if (!resp.ok) {
+      return Response.json({ error: `Téléchargement du fichier échoué (HTTP ${resp.status}) — file_url=${String(file_url).slice(0, 140)}` }, { status: 500 });
+    }
     const buf = await resp.arrayBuffer();
 
     // Parse — SheetJS détecte le séparateur (le CSV source utilise « ; »)
-    const wb = XLSX.read(buf, { type: 'array', raw: false });
+    let wb;
+    try {
+      wb = XLSX.read(buf, { type: 'array', raw: false });
+    } catch (e) {
+      return Response.json({ error: `Lecture du fichier impossible (format inattendu ?) — ${e?.message || e}` }, { status: 500 });
+    }
     const rawRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: null });
 
     // Normalise les clés : retire le BOM éventuel (﻿) en tête de la 1re colonne + trim
@@ -199,6 +212,6 @@ export default async function(req) {
       materiel_created: materielCreated
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: `[importer_lot_clients] ${error?.message || String(error)}` }, { status: 500 });
   }
 }

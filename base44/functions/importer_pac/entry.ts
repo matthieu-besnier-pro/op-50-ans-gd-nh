@@ -13,7 +13,15 @@ export default async function(req) {
     if (!file_url) return Response.json({ error: 'file_url requis' }, { status: 400 });
 
     // 1. Fetch HTML and extract DATA array
-    const resp = await fetch(file_url);
+    let resp;
+    try {
+      resp = await fetch(file_url);
+    } catch (e) {
+      return Response.json({ error: `Téléchargement impossible (fetch a échoué) — file_url=${String(file_url).slice(0, 140)} — ${e?.message || e}` }, { status: 500 });
+    }
+    if (!resp.ok) {
+      return Response.json({ error: `Téléchargement du fichier PAC échoué (HTTP ${resp.status}) — file_url=${String(file_url).slice(0, 140)}` }, { status: 500 });
+    }
     const html = await resp.text();
     const dataMatch = html.match(/const DATA=(\[[\s\S]*?\]);/);
     if (!dataMatch) return Response.json({ error: 'Array DATA introuvable dans le HTML' }, { status: 400 });
@@ -102,6 +110,6 @@ export default async function(req) {
       total_machines: allMachines.length
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: `[importer_pac] ${error?.message || String(error)}` }, { status: 500 });
   }
 }
