@@ -146,7 +146,7 @@ export default function BriefingAnimateur() {
                 <Zap className="h-5 w-5 text-gd-orange" />
                 <p className="font-bold text-gd-navy-dark">Collaborateur</p>
               </div>
-              <p className="text-sm text-muted-foreground">Écran unique gamifié, sans défilement. Anneaux de progression, badges, classement. Actions directes : créer un RDV, déclarer une vente.</p>
+              <p className="text-sm text-muted-foreground">Écran unique gamifié, sans défilement. Anneaux de progression, badges, classement. Les RDV et les ventes (déclarées sur WhatsApp) y remontent en direct.</p>
               <p className="text-xs text-muted-foreground mt-1">→ Page d'accueil : <code className="bg-muted px-1.5 py-0.5 rounded">/espace-collaborateur</code></p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4">
@@ -226,10 +226,11 @@ export default function BriefingAnimateur() {
                 <Trophy className="h-6 w-6" />
               </div>
               <div>
-                <p className="font-bold text-gd-navy-dark text-lg">2 · Déclarer une vente</p>
+                <p className="font-bold text-gd-navy-dark text-lg">2 · Déclarer une vente — sur WhatsApp, comme d'habitude</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Bouton <strong>« Déclarer une vente »</strong> : type de machine, type de vente, reprise éventuelle.
-                  La vente est « À valider » jusqu'à validation par la Direction.
+                  <strong>Rien ne change pour le commercial</strong> : il déclare sa vente sur le groupe WhatsApp, comme toujours.
+                  Le message est repris automatiquement dans l'outil (type de machine, type de vente, reprise) et arrive en
+                  « À valider » jusqu'à validation par la Direction — <strong>aucune ressaisie</strong>.
                 </p>
               </div>
             </div>

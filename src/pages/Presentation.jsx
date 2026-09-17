@@ -212,7 +212,7 @@ function CollaborateurSlide() {
         <div className="space-y-4">
           <FeatureRow icon={Flame} title="Appétence motivante" desc="À saisir · À cultiver · À explorer — jamais négatif" />
           <FeatureRow icon={Trophy} title="Classement & badges" desc="Émulation entre commerciaux, badges débloqués" />
-          <FeatureRow icon={Zap} title="Action directe" desc="Création de RDV et vente en 1 clic depuis l'écran" />
+          <FeatureRow icon={Zap} title="Action directe" desc="RDV en 1 clic · ventes reprises automatiquement de WhatsApp" />
         </div>
       </div>
     </div>
