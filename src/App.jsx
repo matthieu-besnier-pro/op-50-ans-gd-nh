@@ -26,6 +26,7 @@ import GrandEcran from '@/pages/GrandEcran';
 import BriefingAnimateur from '@/pages/BriefingAnimateur';
 import Presentation from '@/pages/Presentation';
 import CopilotAdmin from '@/pages/CopilotAdmin';
+import Lancement from '@/pages/Lancement';
 import { getAppRole } from '@/lib/permissions';
 
 const HomeRedirect = () => {
@@ -77,6 +78,7 @@ const AuthenticatedApp = () => {
         <Route path="/briefing" element={<BriefingAnimateur />} />
         <Route path="/presentation" element={<Presentation />} />
         <Route path="/copilot" element={<CopilotAdmin />} />
+        <Route path="/lancement" element={<Lancement />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

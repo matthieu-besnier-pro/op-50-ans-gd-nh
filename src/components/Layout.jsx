@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
-  Store, Settings, LogOut, Menu, X, Eye, Zap, Monitor, Bot, UserCircle
+  Store, Settings, LogOut, Menu, X, Eye, Zap, Monitor, Bot, UserCircle, Rocket
 } from 'lucide-react';
 import { getAppRole, isDirection } from '@/lib/permissions';
 import {
@@ -35,6 +35,7 @@ const navItems = [
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'activite' },
   { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'direction'], section: 'atelier' },
+  { to: '/lancement', label: 'Lancement', icon: Rocket, roles: ['direction'], section: 'admin' },
   { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'], section: 'admin' },
   { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'], section: 'admin' },
   { to: '/copilot', label: 'Copilot Admin', icon: Bot, roles: ['direction'], section: 'admin' }
