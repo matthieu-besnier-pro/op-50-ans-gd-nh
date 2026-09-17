@@ -27,12 +27,14 @@ import BriefingAnimateur from '@/pages/BriefingAnimateur';
 import Presentation from '@/pages/Presentation';
 import CopilotAdmin from '@/pages/CopilotAdmin';
 import Lancement from '@/pages/Lancement';
+import EspaceCommercial from '@/pages/EspaceCommercial';
 import { getAppRole } from '@/lib/permissions';
 
 const HomeRedirect = () => {
   const { user, viewAsRole } = useAuth();
   const role = getAppRole(user, viewAsRole);
   if (role === 'collaborateur') return <Navigate to="/espace-collaborateur" replace />;
+  if (role === 'commercial') return <Navigate to="/mon-espace" replace />;
   return <Navigate to="/tableau-de-bord" replace />;
 };
 
@@ -65,6 +67,7 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/espace-collaborateur" element={<EspaceCollaborateur />} />
+        <Route path="/mon-espace" element={<EspaceCommercial />} />
         <Route path="/portefeuille" element={<MonPortefeuille />} />
         <Route path="/equipe" element={<MonEquipe />} />
         <Route path="/calendrier" element={<Calendrier />} />

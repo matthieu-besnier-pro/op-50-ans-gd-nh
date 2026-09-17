@@ -27,6 +27,7 @@ const SECTION_LABELS = {
 };
 
 const navItems = [
+  { to: '/mon-espace', label: 'Mon espace', icon: Zap, roles: ['commercial'], section: 'espace' },
   { to: '/espace-collaborateur', label: 'Mon espace', icon: Zap, roles: ['collaborateur'], section: 'espace' },
   { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
   { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
