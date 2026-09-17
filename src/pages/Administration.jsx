@@ -22,6 +22,7 @@ import AdminOffres from '@/components/AdminOffres';
 import AdminClientsListing from '@/components/AdminClientsListing';
 import AdminImportDonnees from '@/components/AdminImportDonnees';
 import AdminComptesDemo from '@/components/AdminComptesDemo';
+import AdminImportVentesWhatsapp from '@/components/AdminImportVentesWhatsapp';
 import AdminStructureCommerciale from '@/components/AdminStructureCommerciale';
 
 export default function Administration() {
@@ -172,6 +173,7 @@ export default function Administration() {
           <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
           <TabsTrigger value="params">Paramètres</TabsTrigger>
           <TabsTrigger value="ventes">Ventes à valider ({ventesAValider.length})</TabsTrigger>
+          <TabsTrigger value="ventes-whatsapp">Ventes WhatsApp</TabsTrigger>
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           <TabsTrigger value="affectation">Affectation (communes)</TabsTrigger>
           <TabsTrigger value="clients-listing">Listing clients</TabsTrigger>
@@ -354,6 +356,11 @@ export default function Administration() {
             <p className="text-sm text-muted-foreground mb-4">Vue complète de tous les clients avec leur(s) commercial(aux) assigné(s). Filtrez par commercial, base ou statut d'affectation.</p>
             <AdminClientsListing commerciaux={commerciaux} bases={bases} />
           </div>
+        </TabsContent>
+
+        {/* Ventes WhatsApp */}
+        <TabsContent value="ventes-whatsapp">
+          <AdminImportVentesWhatsapp commerciaux={commerciaux} onReload={load} />
         </TabsContent>
 
         {/* Structure commerciale */}
