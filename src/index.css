@@ -99,4 +99,11 @@
   .text-balance {
     text-wrap: balance;
   }
+  /* Leaflet : contenir la carte et ses contrôles (z-index natif jusqu'à 1000)
+     sous les menus/filtres/dialogues de l'app, sinon ils se superposent à la carte. */
+  .leaflet-container { z-index: 0; }
+  .leaflet-pane,
+  .leaflet-top,
+  .leaflet-bottom,
+  .leaflet-control { z-index: 1 !important; }
 }
