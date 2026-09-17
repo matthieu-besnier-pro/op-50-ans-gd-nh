@@ -28,7 +28,7 @@ export default function MonEquipe() {
       // Demo mode (manager persona): use structure_commerciale instead of real users
       if (persona.mode === 'manager') {
         const teamRows = persona.structure.filter((s) => s.manager === persona.label?.replace('Équipe de ', ''));
-        const members = teamRows.map((s) => ({ id: s.id, full_name: s.nom_commercial, email: s.email || '', base_id: '' }));
+        const members = teamRows.map((s) => ({ id: s.user_id || s.id, full_name: s.nom_commercial, email: s.email || '', base_id: '' }));
         setCommerciaux(members);
         const memberIds = members.map((m) => m.id);
         const [allClients, allRdvs, allVentes] = await Promise.all([

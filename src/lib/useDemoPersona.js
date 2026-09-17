@@ -28,23 +28,25 @@ export function useDemoPersona() {
   }, []);
 
   const persona = useMemo(() => {
-    // Commercial spécifique
+    // Commercial spécifique — on filtre par l'ID utilisateur lié (les affectations
+    // et les RDV portent le user_id, pas l'ID de la fiche structure_commerciale).
     if (viewAsRole === 'commercial' && viewAsCommercial) {
       const record = structure.find((s) => s.id === viewAsCommercial);
+      const uid = record?.user_id || viewAsCommercial;
       return {
         mode: 'commercial',
         label: record?.nom_commercial || 'Commercial',
-        ids: [viewAsCommercial],
-        clientFilter: { commerciaux_assignes: viewAsCommercial },
-        matchClient: (c) => (c.commerciaux_assignes || []).includes(viewAsCommercial),
-        matchCommercialId: (id) => id === viewAsCommercial,
+        ids: [uid],
+        clientFilter: { commerciaux_assignes: uid },
+        matchClient: (c) => (c.commerciaux_assignes || []).includes(uid),
+        matchCommercialId: (id) => id === uid,
       };
     }
-    // Manager spécifique
+    // Manager spécifique — équipe résolue en IDs utilisateurs
     if (viewAsRole === 'responsable' && viewAsManager) {
       const teamIds = structure
         .filter((s) => s.manager === viewAsManager)
-        .map((s) => s.id);
+        .map((s) => s.user_id || s.id);
       return {
         mode: 'manager',
         label: `Équipe de ${viewAsManager}`,
