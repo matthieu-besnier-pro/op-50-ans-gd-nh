@@ -28,6 +28,7 @@ import Presentation from '@/pages/Presentation';
 import CopilotAdmin from '@/pages/CopilotAdmin';
 import Lancement from '@/pages/Lancement';
 import EspaceCommercial from '@/pages/EspaceCommercial';
+import Loader from '@/components/Loader';
 import { getAppRole } from '@/lib/permissions';
 
 const HomeRedirect = () => {
@@ -43,8 +44,8 @@ const AuthenticatedApp = () => {
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <Loader label="Démarrage de CockpitOP…" />
       </div>
     );
   }

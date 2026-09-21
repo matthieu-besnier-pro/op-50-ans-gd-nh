@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
+import Loader from '@/components/Loader';
 import RdvExpress from '@/components/RdvExpress';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -144,7 +145,7 @@ export default function EspaceCommercial() {
   };
 
   if (loading) {
-    return <Layout><div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-4 border-muted border-t-gd-navy rounded-full animate-spin" /></div></Layout>;
+    return <Layout><Loader /></Layout>;
   }
 
   const prenom = (user.full_name || '').split(' ')[0] || 'à vous';

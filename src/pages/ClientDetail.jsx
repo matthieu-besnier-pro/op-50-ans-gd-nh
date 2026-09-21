@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
+import Loader from '@/components/Loader';
 import StatusBadge from '@/components/StatusBadge';
 import AppetenceBadge from '@/components/AppetenceBadge';
 import RdvExpress from '@/components/RdvExpress';
@@ -126,7 +127,7 @@ export default function ClientDetail() {
   };
 
   if (loading) {
-    return <Layout><div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-4 border-muted border-t-gd-navy rounded-full animate-spin" /></div></Layout>;
+    return <Layout><Loader /></Layout>;
   }
   if (!client) {
     return <Layout><p className="text-center text-muted-foreground py-24">Client introuvable.</p></Layout>;

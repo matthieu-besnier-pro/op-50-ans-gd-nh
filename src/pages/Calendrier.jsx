@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
+import Loader from '@/components/Loader';
 import OutlookCalendar from '@/components/OutlookCalendar';
 import { isDirection, isResponsable } from '@/lib/permissions';
 import { useDemoPersona } from '@/lib/useDemoPersona';
@@ -99,7 +100,7 @@ export default function Calendrier() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-4 border-muted border-t-gd-navy rounded-full animate-spin" /></div>
+        <Loader />
       ) : rdvsFiltres.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground py-24">Aucun rendez-vous.</p>
       ) : (

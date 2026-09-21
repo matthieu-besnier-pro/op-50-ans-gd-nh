@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
+import Loader from '@/components/Loader';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
 import ProspectsMap from '@/components/ProspectsMap';
@@ -104,7 +105,7 @@ export default function TableauDeBord() {
   }, [users, structure]);
 
   if (loading) {
-    return <Layout><div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-4 border-muted border-t-gd-navy rounded-full animate-spin" /></div></Layout>;
+    return <Layout><Loader /></Layout>;
   }
 
   const now = new Date();
