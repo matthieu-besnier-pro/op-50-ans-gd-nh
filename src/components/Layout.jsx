@@ -29,15 +29,14 @@ const SECTION_LABELS = {
 
 const navItems = [
   { to: '/mon-espace', label: 'Mon espace', icon: Zap, roles: ['commercial'], section: 'espace' },
-  { to: '/espace-collaborateur', label: 'Mon espace', icon: Zap, roles: ['collaborateur'], section: 'espace' },
   { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
-  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
+  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'direction'], section: 'pilotage' },
   { to: '/grand-ecran', label: 'Grand Écran', icon: Monitor, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
   { to: '/briefing', label: 'Briefing animateur', icon: Megaphone, roles: ['direction'], section: 'pilotage' },
   { to: '/presentation', label: 'Présentation', icon: Presentation, roles: ['direction'], section: 'pilotage' },
   { to: '/portefeuille', label: 'Mon portefeuille', icon: Briefcase, roles: ['commercial', 'responsable', 'direction'], section: 'activite' },
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
-  { to: '/magasin', label: 'Magasin', icon: Store, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'activite' },
+  { to: '/magasin', label: 'Magasin', icon: Store, roles: ['commercial', 'responsable', 'direction'], section: 'activite' },
   { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'direction'], section: 'atelier' },
   { to: '/lancement', label: 'Lancement', icon: Rocket, roles: ['direction'], section: 'admin' },
   { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'], section: 'admin' },

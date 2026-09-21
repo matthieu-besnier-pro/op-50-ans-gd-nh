@@ -55,21 +55,7 @@
     "type"
   ],
   "rls": {
-    "read": {
-      "$or": [
-        {
-          "data.commercial_id": "{{user.id}}"
-        },
-        {
-          "data.base_responsable_id": "{{user.id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
+    "read": {},
     "create": {
       "$or": [
         {

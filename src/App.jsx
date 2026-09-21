@@ -33,7 +33,7 @@ import { getAppRole } from '@/lib/permissions';
 const HomeRedirect = () => {
   const { user, viewAsRole } = useAuth();
   const role = getAppRole(user, viewAsRole);
-  if (role === 'collaborateur') return <Navigate to="/espace-collaborateur" replace />;
+  if (role === 'collaborateur') return <Navigate to="/tableau-de-bord" replace />;
   if (role === 'commercial') return <Navigate to="/mon-espace" replace />;
   return <Navigate to="/tableau-de-bord" replace />;
 };
