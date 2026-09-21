@@ -5,13 +5,17 @@ import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
 import StatusBadge from '@/components/StatusBadge';
-import { Wrench } from 'lucide-react';
+import RdvExpress from '@/components/RdvExpress';
+import { Button } from '@/components/ui/button';
+import { Wrench, Plus } from 'lucide-react';
 
 export default function Atelier() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [rdvs, setRdvs] = useState([]);
   const [clients, setClients] = useState({});
+  const [allClients, setAllClients] = useState([]);
+  const [rdvOpen, setRdvOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -19,10 +23,14 @@ export default function Atelier() {
       let list = await base44.entities.rdv.filter({ type: 'RDV atelier hivernage' }, '-date_heure', 500);
       setRdvs(list);
       const clientIds = [...new Set(list.map((r) => r.client_id))];
-      const clientList = await Promise.all(clientIds.slice(0, 50).map((id) => base44.entities.client.get(id).catch(() => null)));
+      const [clientList, all] = await Promise.all([
+        Promise.all(clientIds.slice(0, 50).map((id) => base44.entities.client.get(id).catch(() => null))),
+        base44.entities.client.list('-raison_sociale', 2000).catch(() => [])
+      ]);
       const map = {};
       clientList.filter(Boolean).forEach((c) => { map[c.id] = c; });
       setClients(map);
+      setAllClients(all);
     } catch (e) {
       console.error(e);
     } finally {
@@ -38,9 +46,14 @@ export default function Atelier() {
 
   return (
     <Layout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-gd-navy-dark">Atelier</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Suivi des RDV hivernage</p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-gd-navy-dark">Atelier</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Suivi des RDV hivernage</p>
+        </div>
+        <Button onClick={() => setRdvOpen(true)} className="bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark shrink-0">
+          <Plus className="h-4 w-4 mr-1.5" /> RDV hivernage
+        </Button>
       </div>
 
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -74,6 +87,8 @@ export default function Atelier() {
           </div>
         )}
       </div>
+
+      <RdvExpress open={rdvOpen} onOpenChange={setRdvOpen} clients={allClients} commercialId={user.id} defaultType="RDV atelier hivernage" onSaved={load} />
     </Layout>
   );
 }

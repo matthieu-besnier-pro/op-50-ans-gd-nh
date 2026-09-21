@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
-import RdvDialog from '@/components/RdvDialog';
+import RdvExpress from '@/components/RdvExpress';
 import VenteDialog from '@/components/VenteDialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -180,7 +180,6 @@ export default function EspaceCollaborateur() {
             </SelectContent>
           </Select>
           <button
-            disabled={!selectedClient}
             onClick={() => setRdvOpen(true)}
             className="flex items-center gap-1.5 rounded-lg bg-gd-orange px-3 py-1.5 text-xs font-bold text-gd-navy-dark disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all"
           >
@@ -307,7 +306,7 @@ export default function EspaceCollaborateur() {
         </div>
       </div>
 
-      <RdvDialog open={rdvOpen} onOpenChange={setRdvOpen} client={selectedClient} commercialId={user.id} onSaved={reloadRdvs} />
+      <RdvExpress open={rdvOpen} onOpenChange={setRdvOpen} client={selectedClient} clients={clients} commercialId={user.id} onSaved={reloadRdvs} />
       <VenteDialog open={venteOpen} onOpenChange={setVenteOpen} client={selectedClient} commercialId={user.id} onSaved={reloadRdvs} />
     </Layout>
   );

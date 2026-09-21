@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatusBadge from '@/components/StatusBadge';
 import AppetenceBadge from '@/components/AppetenceBadge';
-import RdvDialog from '@/components/RdvDialog';
+import RdvExpress from '@/components/RdvExpress';
 import VenteDialog from '@/components/VenteDialog';
 import ScriptAppel from '@/components/ScriptAppel';
 import { Button } from '@/components/ui/button';
@@ -311,7 +311,7 @@ export default function ClientDetail() {
         </div>
       </div>
 
-      <RdvDialog open={rdvOpen} onOpenChange={setRdvOpen} client={client} commercialId={user.id} onSaved={loadAll} />
+      <RdvExpress open={rdvOpen} onOpenChange={setRdvOpen} client={client} commercialId={user.id} onSaved={loadAll} />
       <VenteDialog open={venteOpen} onOpenChange={setVenteOpen} client={client} commercialId={user.id} onSaved={loadAll} />
     </Layout>
   );

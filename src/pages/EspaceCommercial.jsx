@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
-import RdvDialog from '@/components/RdvDialog';
+import RdvExpress from '@/components/RdvExpress';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
@@ -194,8 +194,8 @@ export default function EspaceCommercial() {
               {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.raison_sociale}</SelectItem>)}
             </SelectContent>
           </Select>
-          <button disabled={!selectedClient} onClick={() => setRdvOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-gd-orange px-3 py-1.5 text-xs font-bold text-gd-navy-dark disabled:opacity-40 hover:brightness-110 transition-all">
+          <button onClick={() => setRdvOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-gd-orange px-3 py-1.5 text-xs font-bold text-gd-navy-dark hover:brightness-110 transition-all">
             <CalendarPlus className="h-3.5 w-3.5" /> Prendre un RDV
           </button>
           <button onClick={() => navigate('/portefeuille')}
@@ -293,7 +293,7 @@ export default function EspaceCommercial() {
         </div>
       </div>
 
-      <RdvDialog open={rdvOpen} onOpenChange={setRdvOpen} client={selectedClient} commercialId={user.id} onSaved={reloadRdvs} />
+      <RdvExpress open={rdvOpen} onOpenChange={setRdvOpen} client={selectedClient} clients={clients} commercialId={user.id} onSaved={reloadRdvs} />
     </Layout>
   );
 }
