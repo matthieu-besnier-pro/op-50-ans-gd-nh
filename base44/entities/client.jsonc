@@ -262,13 +262,27 @@
           "user_condition": {
             "role": "admin"
           }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
         }
       ]
     },
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
+        }
+      ]
     },
     "update": {
       "$or": [
@@ -286,13 +300,27 @@
           "user_condition": {
             "role": "admin"
           }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
+        }
+      ]
     }
   }
 }

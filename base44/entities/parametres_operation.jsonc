@@ -4,7 +4,7 @@
   "properties": {
     "nom_operation": {
       "type": "string",
-      "default": "50 ans Gonnin Duris × New Holland",
+      "default": "50 ans Gonnin Duris \u00d7 New Holland",
       "description": "Nom de l'op\u00e9ration"
     },
     "date_debut_operation": {
@@ -49,19 +49,46 @@
   "rls": {
     "read": {},
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
+        }
+      ]
     }
   }
 }
