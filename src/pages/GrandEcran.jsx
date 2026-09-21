@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import {
   Zap, Trophy, Wrench, Flame, Award, Clock, Target,
-  Users, Star, CalendarCheck, TrendingUp, Sparkles
+  Users, Star, CalendarCheck, TrendingUp, Sparkles, X
 } from 'lucide-react';
 
 /* ---------- Animated counter ---------- */
@@ -306,6 +307,14 @@ export default function GrandEcran() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gd-navy-dark via-gd-navy to-gd-navy-dark text-white overflow-hidden">
+      {/* Bouton de sortie — toujours visible pour revenir à l'app */}
+      <Link
+        to="/tableau-de-bord"
+        title="Quitter le Grand Écran"
+        className="fixed top-4 right-4 z-50 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 text-xs font-semibold text-white/80 backdrop-blur hover:bg-black/50 hover:text-white transition-colors"
+      >
+        <X className="h-4 w-4" /> Quitter
+      </Link>
       {/* Decorative glow */}
       <div className="pointer-events-none fixed inset-0 opacity-20">
         <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-gd-orange/20 blur-[120px]" />
@@ -505,7 +514,7 @@ export default function GrandEcran() {
             </a>
           ))}
           <a href="/grand-ecran" className="px-3 py-1.5 rounded-lg text-xs font-bold text-white/40 hover:bg-white/10 transition-colors">
-            Quitter
+            Arrêter la démo
           </a>
         </div>
       )}
