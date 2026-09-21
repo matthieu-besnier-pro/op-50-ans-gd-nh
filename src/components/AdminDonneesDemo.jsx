@@ -5,24 +5,24 @@ import { Sparkles, Loader2, CheckCircle2, AlertTriangle, Trash2 } from 'lucide-r
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Appelle la fonction ; en cas de « Rate limit », patiente et réessaie le même palier.
+// Appelle la fonction ; en cas de « Rate limit », patiente longuement et réessaie.
 async function callStep(payload, onRateLimit) {
-  for (let attempt = 0; attempt < 6; attempt++) {
+  for (let attempt = 0; attempt < 12; attempt++) {
     try {
       const res = await base44.functions.invoke('generer_donnees_demo', payload);
       const data = res?.data ?? res;
       if (data?.error) {
-        if (/rate limit/i.test(data.error)) { onRateLimit?.(); await wait(4000); continue; }
+        if (/rate limit/i.test(data.error)) { onRateLimit?.(attempt); await wait(8000); continue; }
         throw new Error(data.error);
       }
       return data;
     } catch (e) {
       const msg = e?.response?.data?.error || e?.message || '';
-      if (/rate limit/i.test(msg)) { onRateLimit?.(); await wait(4000); continue; }
+      if (/rate limit/i.test(msg)) { onRateLimit?.(attempt); await wait(8000); continue; }
       throw e;
     }
   }
-  throw new Error('Trop de tentatives (limite de débit). Réessayez dans une minute.');
+  throw new Error('Limite de débit persistante. Attendez 1 minute complète puis réessayez (sans multiplier les clics).');
 }
 
 export default function AdminDonneesDemo({ onReload }) {
@@ -31,25 +31,23 @@ export default function AdminDonneesDemo({ onReload }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  // Boucle de nettoyage jusqu'à done
+  // Boucle de nettoyage patiente jusqu'à done
   const nettoyerTout = async () => {
     let total = 0;
-    for (let i = 0; i < 60; i++) {
-      const d = await callStep({ action: 'nettoyer' }, () => setStatus('Limite de débit atteinte — reprise dans quelques secondes…'));
+    for (let i = 0; i < 80; i++) {
+      const d = await callStep({ action: 'nettoyer' }, () => setStatus('Limite de débit — pause de quelques secondes…'));
       total += d.supprimes_ce_palier || 0;
       if (d.done) return total;
       setStatus(`Nettoyage des anciennes données de démo… (${d.restant} restant)`);
-      await wait(300);
+      await wait(2500);
     }
-    throw new Error('Nettoyage trop long — relancez.');
+    throw new Error('Nettoyage trop long — relancez « Supprimer la démo ».');
   };
 
+  // Générer = création seule (ne nettoie pas). Idempotent côté serveur : ne recrée pas si déjà présent.
   const generer = async () => {
-    if (!window.confirm("Générer un jeu de données de démonstration ? Un éventuel jeu précédent est d'abord nettoyé. Les vraies données ne sont pas touchées.")) return;
-    setBusy('gen'); setError(null); setResult(null); setStatus('Nettoyage…');
+    setBusy('gen'); setError(null); setResult(null); setStatus('Création des données de démo…');
     try {
-      await nettoyerTout();
-      setStatus('Création des données de démo…');
       const d = await callStep({ action: 'creer' }, () => setStatus('Limite de débit — reprise…'));
       setResult({ action: 'creer', ...d });
       setStatus('');
@@ -62,7 +60,7 @@ export default function AdminDonneesDemo({ onReload }) {
   };
 
   const supprimer = async () => {
-    if (!window.confirm("Supprimer toutes les données de démonstration (taguées « DÉMO — ») ?")) return;
+    if (!window.confirm("Supprimer toutes les données de démonstration (taguées « DÉMO — ») ? Cela peut prendre une à deux minutes (par petits lots).")) return;
     setBusy('del'); setError(null); setResult(null); setStatus('Suppression…');
     try {
       const total = await nettoyerTout();
@@ -107,13 +105,14 @@ export default function AdminDonneesDemo({ onReload }) {
       )}
       {result && (
         <div className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
-          <div className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> {result.action === 'supprimer' ? 'Données de démo supprimées' : 'Données de démo générées'}</div>
-          {result.action !== 'supprimer' && (
+          <div className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> {result.action === 'supprimer' ? 'Données de démo supprimées' : result.deja_present ? 'Données de démo déjà en place' : 'Données de démo générées'}</div>
+          {result.action !== 'supprimer' && !result.deja_present && (
             <p className="mt-1 text-xs">
               {result.clients} clients · {result.materiels} matériels · {result.rdv} RDV · {result.ventes} ventes · {result.offres} offres
               {typeof result.commerciaux_utilises === 'number' ? ` · ${result.commerciaux_utilises} commerciaux` : ''}
             </p>
           )}
+          {result.deja_present && <p className="mt-1 text-xs">{result.clients} clients de démo déjà présents dans l'application.</p>}
           {result.supprimes != null && <p className="mt-1 text-xs">{result.supprimes} enregistrement(s) de démo supprimé(s).</p>}
           {result.note && <p className="mt-1 text-xs text-amber-700">{result.note}</p>}
         </div>

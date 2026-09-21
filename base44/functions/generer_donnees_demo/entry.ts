@@ -76,6 +76,12 @@ export default async function(req) {
 
     // ---------- CREATION (un seul appel, volume modéré) ----------
     if (action === 'creer') {
+      // Idempotent : si un jeu de démo existe déjà, on ne recrée rien (évite les doublons et le rate limit).
+      const dejaClients = (await listAll('client', sr)).filter((c) => (c.raison_sociale || '').startsWith(PREFIX));
+      if (dejaClients.length > 0 && !body.force) {
+        return Response.json({ ok: true, deja_present: true, clients: dejaClients.length, note: 'Données de démo déjà présentes — rien recréé. Utilisez « Supprimer la démo » puis régénérez pour repartir de zéro.' });
+      }
+
       const users = await listAll('User', sr);
       const commercials = users.filter((u) => u.app_role === 'commercial');
       const structure = await listAll('structure_commerciale', sr);
