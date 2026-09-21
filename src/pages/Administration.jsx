@@ -23,6 +23,7 @@ import AdminClientsListing from '@/components/AdminClientsListing';
 import AdminImportDonnees from '@/components/AdminImportDonnees';
 import AdminComptesDemo from '@/components/AdminComptesDemo';
 import AdminDonneesDemo from '@/components/AdminDonneesDemo';
+import AdminDiagnostic from '@/components/AdminDiagnostic';
 import AdminImportVentesWhatsapp from '@/components/AdminImportVentesWhatsapp';
 import AdminStructureCommerciale from '@/components/AdminStructureCommerciale';
 
@@ -185,6 +186,7 @@ export default function Administration() {
           <TabsTrigger value="badges">Badges</TabsTrigger>
           <TabsTrigger value="bases">Bases</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
+          <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
         </TabsList>
 
         {/* Vue d'ensemble */}
@@ -357,6 +359,11 @@ export default function Administration() {
             <p className="text-sm text-muted-foreground mb-4">Vue complète de tous les clients avec leur(s) commercial(aux) assigné(s). Filtrez par commercial, base ou statut d'affectation.</p>
             <AdminClientsListing commerciaux={commerciaux} bases={bases} />
           </div>
+        </TabsContent>
+
+        {/* Diagnostic */}
+        <TabsContent value="diagnostic">
+          <AdminDiagnostic />
         </TabsContent>
 
         {/* Ventes WhatsApp */}
