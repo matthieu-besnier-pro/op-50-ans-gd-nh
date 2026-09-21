@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import OpLogo from '@/components/OpLogo';
 import {
   Zap, Trophy, Wrench, Flame, Award, Clock, Target,
   Users, Star, CalendarCheck, TrendingUp, Sparkles, X
@@ -330,9 +331,14 @@ export default function GrandEcran() {
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-white/10">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gd-orange text-gd-navy-dark">
-            <Zap className="h-7 w-7" fill="currentColor" />
-          </div>
+          <OpLogo
+            className="h-14 w-14 rounded-full object-contain"
+            fallback={(
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gd-orange text-gd-navy-dark">
+                <Zap className="h-7 w-7" fill="currentColor" />
+              </div>
+            )}
+          />
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight leading-none">CockpitOP</h1>
             <p className="text-xs font-medium uppercase tracking-widest text-gd-orange">50 ans Gonnin Duris × New Holland</p>

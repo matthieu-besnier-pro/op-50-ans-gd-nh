@@ -7,6 +7,7 @@ import {
   Store, Settings, LogOut, Menu, X, Eye, Zap, Monitor, Bot, UserCircle, Rocket, Megaphone, Presentation
 } from 'lucide-react';
 import { getAppRole, isDirection } from '@/lib/permissions';
+import OpLogo from '@/components/OpLogo';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
@@ -79,6 +80,7 @@ export default function Layout({ children }) {
     <>
       <div className="px-6 py-6 border-b border-sidebar-border">
         <div className="flex flex-col">
+          <OpLogo className="mb-3 h-16 w-16 rounded-full object-contain" fallback={null} />
           <span className="text-xl font-extrabold tracking-tight text-white leading-none">
             CockpitOP
           </span>

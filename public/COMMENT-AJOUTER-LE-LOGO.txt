@@ -1,0 +1,13 @@
+Déposez le logo de l'opération dans ce dossier sous le nom EXACT :
+
+    logo-op.png
+
+Il sera servi à l'adresse /logo-op.png et apparaîtra automatiquement :
+- sur l'écran de connexion,
+- dans la barre latérale (sous « CockpitOP »),
+- dans l'en-tête du Grand Écran,
+- comme icône d'onglet du navigateur (favicon).
+
+Format conseillé : PNG carré (fond transparent idéalement), 512x512 px ou plus.
+Tant que le fichier n'est pas présent, l'application affiche l'habillage texte/icône
+par défaut (rien n'est cassé).
