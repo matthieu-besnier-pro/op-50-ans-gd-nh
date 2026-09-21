@@ -57,6 +57,21 @@ function InvalidateSize() {
   return null;
 }
 
+// Guard against Leaflet crash when a CSS zoom transition's transitionend
+// fires after the map pane has been removed (unmount / re-render).
+function SafeMapCleanup() {
+  const map = useMap();
+  useEffect(() => {
+    const origGetMapPanePos = map._getMapPanePos;
+    map._getMapPanePos = function () {
+      if (!this._mapPane) return new L.Point(0, 0);
+      return origGetMapPanePos.call(this);
+    };
+    return () => { map._getMapPanePos = origGetMapPanePos; };
+  }, [map]);
+  return null;
+}
+
 export default function ProspectsMap({ rdvs, clients, users, canFilter }) {
   const navigate = useNavigate();
   const [coords, setCoords] = useState({});
@@ -174,6 +189,7 @@ export default function ProspectsMap({ rdvs, clients, users, canFilter }) {
               attribution='&copy; OpenStreetMap'
             />
             <InvalidateSize />
+            <SafeMapCleanup />
             <FitBounds clients={markers} />
             {markers.map((m) => (
               <Marker key={m.id} position={[m.lat, m.lng]} icon={m.nextRdv?.type === 'RDV atelier hivernage' ? pinIconAtelier : pinIcon}>
