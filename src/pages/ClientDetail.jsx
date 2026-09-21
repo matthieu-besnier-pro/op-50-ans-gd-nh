@@ -49,7 +49,13 @@ export default function ClientDetail() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const c = await base44.entities.client.get(id);
+      let c = await base44.entities.client.get(id).catch(() => null);
+      if (!c) {
+        // Repli Direction/admin : via la fonction backend (asServiceRole) si le RLS bloque le get direct
+        const res = await base44.functions.invoke('lister_clients', {}).catch(() => null);
+        c = (res?.data?.clients || []).find((x) => x.id === id) || null;
+      }
+      if (!c) { setLoading(false); return; }
       setClient(c);
       setStatutEdit(c.statut || 'À contacter');
       const [mats, coms, rds, vts] = await Promise.all([
