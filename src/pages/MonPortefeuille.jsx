@@ -167,7 +167,7 @@ export default function MonPortefeuille() {
   return (
     <Layout>
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mon portefeuille</h1>
+        <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mes clients</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {clients.length} client{clients.length > 1 ? 's' : ''} assigné{clients.length > 1 ? 's' : ''} · {kpis.aContacter} à contacter
         </p>
@@ -249,7 +249,7 @@ export default function MonPortefeuille() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={showCommercial ? 8 : 7} className="px-4 py-12 text-center text-sm text-muted-foreground">
                 {clients.length === 0
-                  ? 'Aucun client assigné. L\'affectation se fera par codes communes (en cours de paramétrage).'
+                  ? 'Aucun client ne vous est affecté pour l\'instant. L\'affectation est gérée par la Direction (Administration → Affectation).'
                   : 'Aucun client ne correspond aux filtres.'}
               </td></tr>
             ) : filtered.map((c) => {
