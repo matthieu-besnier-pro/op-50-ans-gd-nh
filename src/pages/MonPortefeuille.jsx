@@ -54,6 +54,7 @@ export default function MonPortefeuille() {
   const [ventes, setVentes] = useState([]);
   const [params, setParams] = useState(null);
   const [badges, setBadges] = useState([]);
+  const [structure, setStructure] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statutFilter, setStatutFilter] = useState('all');
@@ -84,11 +85,13 @@ export default function MonPortefeuille() {
       }
       setClients(clientList);
 
-      const [rdvList, venteList, paramList] = await Promise.all([
+      const [rdvList, venteList, paramList, structList] = await Promise.all([
         base44.entities.rdv.list('-date_heure', 1000),
         base44.entities.vente.list('-date_vente', 1000),
-        base44.entities.parametres_operation.list('-created_date', 1)
+        base44.entities.parametres_operation.list('-created_date', 1),
+        base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
       ]);
+      setStructure(structList);
       const scopeRdv = (r) => {
         if (persona.mode) return persona.matchCommercialId(r.commercial_id);
         if (direction) return true;
@@ -119,6 +122,18 @@ export default function MonPortefeuille() {
   }, [user?.id, persona.mode, persona.ids.join(',')]);
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+  // Colonne « Commercial » affichée en vue manager/direction (pas pour un commercial sur son propre portefeuille)
+  const showCommercial = persona.mode === 'manager' || (!persona.mode && (isDirection(user) || getAppRole(user) === 'responsable'));
+  const commByUser = useMemo(() => {
+    const m = {};
+    structure.forEach((s) => { if (s.user_id) m[s.user_id] = s.nom_commercial; });
+    return m;
+  }, [structure]);
+  const commercialNames = (c) => {
+    const noms = (c.commerciaux_assignes || []).map((id) => commByUser[id]).filter(Boolean);
+    return noms.length ? noms.join(', ') : '—';
+  };
 
   const kpis = useMemo(() => {
     const rdvMonth = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
@@ -224,14 +239,15 @@ export default function MonPortefeuille() {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Priorité</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dernier contact</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prochain RDV</th>
+              {showCommercial && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Commercial</th>}
               <th className="px-4 py-3 w-8"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Chargement…</td></tr>
+              <tr><td colSpan={showCommercial ? 8 : 7} className="px-4 py-12 text-center text-sm text-muted-foreground">Chargement…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">
+              <tr><td colSpan={showCommercial ? 8 : 7} className="px-4 py-12 text-center text-sm text-muted-foreground">
                 {clients.length === 0
                   ? 'Aucun client assigné. L\'affectation se fera par codes communes (en cours de paramétrage).'
                   : 'Aucun client ne correspond aux filtres.'}
@@ -254,6 +270,7 @@ export default function MonPortefeuille() {
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_dernier_contact || '—'}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_prochain_rdv || '—'}</td>
+                  {showCommercial && <td className="px-4 py-3 text-sm text-foreground">{commercialNames(c)}</td>}
                   <td className="px-4 py-3"><ChevronRight className="h-4 w-4 text-muted-foreground" /></td>
                 </tr>
               );
