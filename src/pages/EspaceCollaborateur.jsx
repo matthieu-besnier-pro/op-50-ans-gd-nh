@@ -47,6 +47,7 @@ export default function EspaceCollaborateur() {
   const [badges, setBadges] = useState([]);
   const [obtenus, setObtenus] = useState([]);
   const [users, setUsers] = useState([]);
+  const [structure, setStructure] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,14 +59,15 @@ export default function EspaceCollaborateur() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [p, r, v, o, b, u, c] = await Promise.all([
+        const [p, r, v, o, b, u, c, st] = await Promise.all([
           base44.entities.parametres_operation.list('-created_date', 1),
           base44.entities.rdv.list('-date_heure', 500),
           base44.entities.vente.list('-date_vente', 500),
           base44.entities.offre_magasin.list('-date_debut', 200),
           base44.entities.badge.list('-created_date', 50),
           base44.entities.User.list('-created_date', 200).catch(() => []),
-          base44.entities.client.list('-created_date', 200)
+          base44.entities.client.list('-created_date', 200),
+          base44.entities.structure_commerciale.list('-nom_commercial', 200).catch(() => [])
         ]);
         setParams(p[0] || null);
         setRdvs(r);
@@ -74,6 +76,7 @@ export default function EspaceCollaborateur() {
         setBadges(b);
         setUsers(u);
         setClients(c);
+        setStructure(st);
         try {
           const ob = await base44.entities.badge_obtenu.list('-created_date', 200);
           setObtenus(ob);
@@ -104,15 +107,20 @@ export default function EspaceCollaborateur() {
   }, [rdvs]);
 
   const leaderboard = useMemo(() => {
+    const nameFor = (uid) => {
+      const u = users.find((x) => x.id === uid);
+      if (u) return u.full_name || u.email;
+      const s = structure.find((x) => x.user_id === uid);
+      return s ? s.nom_commercial : 'Commercial';
+    };
     const byUser = {};
-    rdvs.forEach((r) => { if (r.statut === 'Réalisé') byUser[r.commercial_id] = (byUser[r.commercial_id] || 0) + 1; });
-    ventes.forEach((v) => { if (v.statut_validation === 'Validé') byUser[v.commercial_id] = (byUser[v.commercial_id] || 0) + 3; });
+    rdvs.forEach((r) => { if (r.statut === 'Réalisé' && r.commercial_id) byUser[r.commercial_id] = (byUser[r.commercial_id] || 0) + 1; });
+    ventes.forEach((v) => { if (v.statut_validation === 'Validé' && v.commercial_id) byUser[v.commercial_id] = (byUser[v.commercial_id] || 0) + 3; });
     return Object.entries(byUser)
-      .map(([uid, score]) => ({ user: users.find((u) => u.id === uid), score }))
-      .filter((e) => e.user)
+      .map(([uid, score]) => ({ id: uid, name: nameFor(uid), score }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
-  }, [rdvs, ventes, users]);
+  }, [rdvs, ventes, users, structure]);
 
   const obtainedIds = useMemo(() => new Set(obtenus.map((o) => o.badge_id)), [obtenus]);
 
@@ -275,13 +283,13 @@ export default function EspaceCollaborateur() {
                   const Med = [Crown, Medal, Medal][i];
                   const colors = ['text-gd-orange', 'text-white/70', 'text-orange-700'];
                   return (
-                    <div key={entry.user.id} className="flex items-center gap-2 flex-1 rounded-lg bg-white/5 px-2 py-1.5">
+                    <div key={entry.id} className="flex items-center gap-2 flex-1 rounded-lg bg-white/5 px-2 py-1.5">
                       <Med className={`h-4 w-4 ${colors[i]}`} />
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gd-orange text-gd-navy-dark font-bold text-xs">
-                        {(entry.user.full_name || entry.user.email || '?').charAt(0).toUpperCase()}
+                        {(entry.name || '?').charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-semibold text-white truncate">{entry.user.full_name || entry.user.email}</p>
+                        <p className="text-[11px] font-semibold text-white truncate">{entry.name}</p>
                         <p className="text-[10px] text-white/50">{entry.score} pts</p>
                       </div>
                     </div>

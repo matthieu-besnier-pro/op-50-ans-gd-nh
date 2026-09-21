@@ -135,6 +135,7 @@ export default function GrandEcran() {
   const [structure, setStructure] = useState([]);
   const [clients, setClients] = useState({});
   const [badgeObtenus, setBadgeObtenus] = useState([]);
+  const [badges, setBadges] = useState([]);
   const [now, setNow] = useState(new Date());
   const [prevRanks, setPrevRanks] = useState({});
   const [recentEvent, setRecentEvent] = useState(null);
@@ -149,13 +150,14 @@ export default function GrandEcran() {
 
   const load = useCallback(async () => {
     try {
-      const [p, r, v, u, bo, st] = await Promise.all([
+      const [p, r, v, u, bo, st, bdg] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.rdv.list('-date_heure', 500),
         base44.entities.vente.list('-date_vente', 500),
         base44.entities.User.list('-created_date', 50).catch(() => []),
         base44.entities.badge_obtenu.list('-created_date', 100),
-        base44.entities.structure_commerciale.list('-nom_commercial', 200)
+        base44.entities.structure_commerciale.list('-nom_commercial', 200),
+        base44.entities.badge.list('-created_date', 50).catch(() => [])
       ]);
       setParams(p[0] || null);
       setRdvs(r);
@@ -163,6 +165,7 @@ export default function GrandEcran() {
       setUsers(u);
       setStructure(st);
       setBadgeObtenus(bo);
+      setBadges(bdg);
       const clientIds = [...new Set(r.map(rd => rd.client_id))].slice(0, 100);
       const clientResults = await Promise.all(clientIds.map(id => base44.entities.client.get(id).catch(() => null)));
       const map = {};
@@ -214,13 +217,24 @@ export default function GrandEcran() {
     }
   }, [recentEvent]);
 
-  // Name resolver: User IDs + structure_commerciale IDs → display name
+  // Name resolver: le commercial_id est un user_id. On résout via structure_commerciale.user_id
+  // (car list sur l'entité User est refusée par Base44), avec repli sur users si dispo.
   const nameMap = useMemo(() => {
     const m = {};
     users.forEach(u => { m[u.id] = u.full_name || u.email; });
-    structure.forEach(s => { m[s.id] = s.nom_commercial; });
+    structure.forEach(s => {
+      m[s.id] = s.nom_commercial;
+      if (s.user_id) m[s.user_id] = s.nom_commercial;
+    });
     return m;
   }, [users, structure]);
+
+  // Catalogue des badges : id → { nom, icone }
+  const badgeMap = useMemo(() => {
+    const m = {};
+    badges.forEach(b => { m[b.id] = b; });
+    return m;
+  }, [badges]);
 
   // Phase detection
   const phase = useMemo(() => {
@@ -403,11 +417,15 @@ export default function GrandEcran() {
                   <p className="text-sm text-white/40 py-4 text-center">Aucun badge encore — que le sprint commence !</p>
                 ) : (
                   badgeObtenus.slice(0, 5).map((bo, i) => {
+                    const b = badgeMap[bo.badge_id];
                     return (
                       <motion.div key={bo.id || i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                         className="flex items-center gap-3 rounded-xl bg-gd-orange/10 border border-gd-orange/20 px-3 py-2">
-                        <Star className="h-5 w-5 text-gd-orange" fill="currentColor" />
-                        <span className="text-sm font-semibold text-white truncate">{nameMap[bo.utilisateur_id] || 'Commercial'}</span>
+                        <span className="text-2xl shrink-0">{b?.icone || '🏆'}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-white truncate">{b?.nom || 'Badge'}</p>
+                          <p className="text-xs text-white/60 truncate">{nameMap[bo.utilisateur_id] || 'Commercial'}</p>
+                        </div>
                       </motion.div>
                     );
                   })
