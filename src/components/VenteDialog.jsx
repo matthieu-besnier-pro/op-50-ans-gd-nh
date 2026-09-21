@@ -15,6 +15,10 @@ const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
 const REPRISES = ['Sans reprise', 'Reprise NH', 'Reprise autre marque'];
 
 export default function VenteDialog({ open, onOpenChange, client, commercialId, onSaved }) {
+  // Attribution : toujours au commercial affecté au client (la fiche client fait foi).
+  const assigned = client?.commerciaux_assignes || [];
+  const effectiveCommercialId = assigned.includes(commercialId) ? commercialId : (assigned[0] || commercialId);
+
   const [form, setForm] = useState({
     date_vente: new Date().toISOString().slice(0, 10),
     type_machine: 'Tracteur',
@@ -41,7 +45,7 @@ export default function VenteDialog({ open, onOpenChange, client, commercialId, 
     try {
       const payload = {
         client_id: client.id,
-        commercial_id: commercialId,
+        commercial_id: effectiveCommercialId,
         date_vente: form.date_vente,
         type_machine: form.type_machine,
         type_vente: form.type_vente,

@@ -13,6 +13,11 @@ import { base44 } from '@/api/base44Client';
 import { AlertTriangle } from 'lucide-react';
 
 export default function RdvDialog({ open, onOpenChange, client, commercialId, onSaved }) {
+  // Attribution : toujours au commercial affecté au client (la fiche client fait foi).
+  // Si l'utilisateur connecté est lui-même affecté au client, on lui attribue ; sinon au 1er commercial du client.
+  const assigned = client?.commerciaux_assignes || [];
+  const effectiveCommercialId = assigned.includes(commercialId) ? commercialId : (assigned[0] || commercialId);
+
   const [form, setForm] = useState({
     date_heure: '',
     duree_minutes: 30,
@@ -31,7 +36,7 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
   }, [open]);
 
   const checkOverlap = async (dateHeure, duree) => {
-    if (!dateHeure || !commercialId) return;
+    if (!dateHeure || !effectiveCommercialId) return;
     const start = new Date(dateHeure).getTime();
     const end = start + duree * 60000;
     const dayStart = new Date(dateHeure);
@@ -40,7 +45,7 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
     dayEnd.setHours(23, 59, 59, 999);
     try {
       const rdvs = await base44.entities.rdv.filter({
-        commercial_id: commercialId,
+        commercial_id: effectiveCommercialId,
         date_heure: { $gte: dayStart.toISOString(), $lte: dayEnd.toISOString() },
         statut: { $ne: 'Annulé' }
       }, '-date_heure', 100);
@@ -60,7 +65,7 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
     try {
       const payload = {
         client_id: client.id,
-        commercial_id: commercialId,
+        commercial_id: effectiveCommercialId,
         date_heure: new Date(form.date_heure).toISOString(),
         duree_minutes: Number(form.duree_minutes) || 30,
         type: form.type,
@@ -79,7 +84,7 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
       await base44.entities.client.update(client.id, updates);
 
       // Vérifier les badges
-      try { await base44.functions.invoke('verifier_badges', { utilisateur_id: commercialId }); } catch (e) { /* ignore */ }
+      try { await base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }); } catch (e) { /* ignore */ }
 
       onSaved?.(rdv);
       onOpenChange(false);
