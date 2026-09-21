@@ -12,10 +12,11 @@ export default function GestionUtilisateurs() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [b, users] = await Promise.all([
+        const [b, res] = await Promise.all([
           base44.entities.base.list('-nom', 100),
-          base44.entities.User.list('-created_date', 200).catch(() => [])
+          base44.functions.invoke('lister_utilisateurs', {}).catch(() => ({ data: { users: [] } }))
         ]);
+        const users = res?.data?.users || [];
         setBases(b);
         setStats({
           total: users.length,

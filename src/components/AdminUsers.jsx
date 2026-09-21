@@ -27,8 +27,8 @@ export default function AdminUsers({ bases, onReload }) {
   const load = async () => {
     setLoading(true);
     try {
-      const list = await base44.entities.User.list('-created_date', 200).catch(() => []);
-      setUsers(list);
+      const res = await base44.functions.invoke('lister_utilisateurs', {});
+      setUsers((res?.data?.users) || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -42,7 +42,8 @@ export default function AdminUsers({ bases, onReload }) {
     try {
       await base44.users.inviteUser(inviteEmail.trim(), 'user');
       // Re-fetch to get the new user, then set app_role + base
-      const list = await base44.entities.User.list('-created_date', 200).catch(() => []);
+      const res = await base44.functions.invoke('lister_utilisateurs', {});
+      const list = (res?.data?.users) || [];
       const newUser = list.find((u) => u.email === inviteEmail.trim());
       if (newUser) {
         const updates = { app_role: inviteRole };

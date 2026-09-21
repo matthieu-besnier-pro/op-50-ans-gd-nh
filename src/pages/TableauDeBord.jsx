@@ -41,6 +41,12 @@ export default function TableauDeBord() {
   const direction = isDirection(user, viewAsRole);
   const role = getAppRole(user, viewAsRole);
   const canFilterMap = role === 'direction' || role === 'responsable';
+  // Un commercial ne voit que SES propres RDV sur la carte ; un responsable ceux de son équipe ; la direction tout.
+  const mapRdvs = direction
+    ? rdvs
+    : role === 'responsable'
+      ? rdvs.filter((r) => r.base_responsable_id === user?.id)
+      : rdvs.filter((r) => r.commercial_id === user?.id);
 
   const load = useCallback(async () => {
     try {
@@ -252,7 +258,7 @@ export default function TableauDeBord() {
       {/* Carte des prospects avec RDV — masquée en consultation publique (collaborateur) : localisations clients privées */}
       {role !== 'collaborateur' && (
         <div className="mt-6">
-          <ProspectsMap rdvs={rdvs} clients={clients} users={users} canFilter={canFilterMap} />
+          <ProspectsMap rdvs={mapRdvs} clients={clients} users={users} canFilter={canFilterMap} />
         </div>
       )}
 
