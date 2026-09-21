@@ -245,10 +245,12 @@ export default function TableauDeBord() {
         </div>
       </div>
 
-      {/* Carte des prospects avec RDV */}
-      <div className="mt-6">
-        <ProspectsMap rdvs={rdvs} clients={clients} users={users} canFilter={canFilterMap} />
-      </div>
+      {/* Carte des prospects avec RDV — masquée en consultation publique (collaborateur) : localisations clients privées */}
+      {role !== 'collaborateur' && (
+        <div className="mt-6">
+          <ProspectsMap rdvs={rdvs} clients={clients} users={users} canFilter={canFilterMap} />
+        </div>
+      )}
 
       {lastWhatsapp && (
         <p className="mt-4 text-xs text-muted-foreground">
