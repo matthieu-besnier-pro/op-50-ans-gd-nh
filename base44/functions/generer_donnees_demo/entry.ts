@@ -30,9 +30,13 @@ async function listAll(entity, sr) {
   }
   return out;
 }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function del(entity, ids, sr) {
-  for (let i = 0; i < ids.length; i += 25) {
-    await Promise.all(ids.slice(i, i + 25).map((id) => sr.entities[entity].delete(id).catch(() => {})));
+  // Suppression douce (petits lots + pause) pour rester sous la limite de débit Base44
+  for (let i = 0; i < ids.length; i += 5) {
+    await Promise.all(ids.slice(i, i + 5).map((id) => sr.entities[entity].delete(id).catch(() => {})));
+    await sleep(120);
   }
 }
 
@@ -67,6 +71,7 @@ export default async function(req) {
 
     // 0. Purge d'un éventuel jeu de démo précédent (idempotent)
     await supprimerDemo(sr);
+    await sleep(400);
 
     // 1. Commerciaux + managers existants
     const users = await listAll('User', sr);
@@ -189,13 +194,19 @@ export default async function(req) {
       { titre: PREFIX + 'Pneumatiques agricoles', date_debut: '2026-10-10', date_fin: '2026-10-31', ca_realise: rndInt(10000, 40000) }
     ]);
 
-    // 9. Badges attribués aux commerciaux (via la fonction dédiée si dispo)
+    // 9. Badges attribués (création directe, idempotente — léger, sans invoquer verifier_badges)
     let badgesAttribues = 0;
-    for (const comm of commercials.slice(0, 8)) {
-      try {
-        await base44.functions.invoke('verifier_badges', { utilisateur_id: comm.id });
-        badgesAttribues++;
-      } catch (e) { /* ignore */ }
+    if (badges.length && commercials.length) {
+      const existing = await listAll('badge_obtenu', sr);
+      const seen = new Set(existing.map((o) => `${o.utilisateur_id}|${o.badge_id}`));
+      const bo = [];
+      commercials.slice(0, 6).forEach((comm, idx) => {
+        badges.slice(0, (idx % 3) + 1).forEach((b) => {
+          const key = `${comm.id}|${b.id}`;
+          if (!seen.has(key)) { bo.push({ utilisateur_id: comm.id, badge_id: b.id }); seen.add(key); }
+        });
+      });
+      if (bo.length) { await sr.entities.badge_obtenu.bulkCreate(bo); badgesAttribues = bo.length; }
     }
 
     return Response.json({
@@ -206,7 +217,7 @@ export default async function(req) {
       ventes: ventes.length,
       offres: 3,
       commerciaux_utilises: commercials.length,
-      badges_verifies: badgesAttribues,
+      badges_attribues: badgesAttribues,
       note: commercials.length === 0 ? "Aucun compte commercial : les ventes/RDV sont créés sans attribution. Créez d'abord les comptes (Structure) pour les vues par commercial." : undefined
     });
   } catch (error) {
