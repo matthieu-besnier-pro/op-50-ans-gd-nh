@@ -144,7 +144,7 @@ export default function TableauDeBord() {
 
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-gd-navy-dark">Tableau de bord</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{params?.nom_operation || '50 ans New Holland'} · mise à jour auto toutes les 30 s</p>
+        <p className="mt-1 text-sm text-muted-foreground">{params?.nom_operation || '50 ans Gonnin Duris × New Holland'} · mise à jour auto toutes les 30 s</p>
       </div>
 
       {/* Countdowns */}

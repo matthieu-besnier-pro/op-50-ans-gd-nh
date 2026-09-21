@@ -56,7 +56,7 @@ export default function Administration() {
         base44.entities.vente.list('-date_vente', 500),
         base44.entities.badge.list('-created_date', 50)
       ]);
-      setParams(p[0] || { nom_operation: '50 ans New Holland', date_debut_operation: '2026-10-01', date_fin_operation: '2026-10-31', date_debut_prise_rdv: '2026-10-13', date_fin_prise_rdv: '2026-10-14', objectif_rdv: 0, objectif_ventes: 0, objectif_ca_magasin: 0 });
+      setParams(p[0] || { nom_operation: '50 ans Gonnin Duris × New Holland', date_debut_operation: '2026-10-13', date_fin_operation: '2026-10-30', date_debut_prise_rdv: '2026-10-13', date_fin_prise_rdv: '2026-10-14', objectif_rdv: 0, objectif_ventes: 0, objectif_ca_magasin: 0 });
       setVentesAValider(v);
       setBases(b);
       const comms = users.filter((u) => u.app_role === 'commercial');

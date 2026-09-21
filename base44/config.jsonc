@@ -1,5 +1,5 @@
 {
-  "name": "NH50 Pro Tracker",
+  "name": "CockpitOP",
   "site": {
     "installCommand": "npm install",
     "buildCommand": "npm run build",

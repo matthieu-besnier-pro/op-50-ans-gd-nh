@@ -93,7 +93,7 @@ export default async function(req) {
       if (params[0]) {
         await sr.entities.parametres_operation.update(params[0].id, patch);
       } else {
-        await sr.entities.parametres_operation.create({ nom_operation: '50 ans New Holland', ...patch });
+        await sr.entities.parametres_operation.create({ nom_operation: '50 ans Gonnin Duris × New Holland', ...patch });
       }
       datesReglees = true;
     }

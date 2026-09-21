@@ -159,7 +159,7 @@ export default function EspaceCollaborateur() {
             <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
               <Zap className="h-5 w-5 text-gd-orange" /> Mon espace
             </h1>
-            <p className="text-xs text-white/50">50 ans New Holland · Gonnin Duris</p>
+            <p className="text-xs text-white/50">Opération 50 ans Gonnin Duris × New Holland</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex flex-col items-center rounded-xl bg-white/5 border border-white/10 px-5 py-2.5">

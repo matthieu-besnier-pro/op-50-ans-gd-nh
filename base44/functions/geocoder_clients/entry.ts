@@ -46,7 +46,7 @@ export default async function(req) {
             );
             const res = await fetch(
               `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=fr`,
-              { headers: { 'User-Agent': 'NH50-GD-Tracker/1.0 (gonnin-duris.fr)' } }
+              { headers: { 'User-Agent': 'CockpitOP-GD/1.0 (gonnin-duris.fr)' } }
             );
             const data = await res.json();
             if (data && data[0]) {

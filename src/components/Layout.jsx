@@ -80,11 +80,11 @@ export default function Layout({ children }) {
       <div className="px-6 py-6 border-b border-sidebar-border">
         <div className="flex flex-col">
           <span className="text-xl font-extrabold tracking-tight text-white leading-none">
-            GONNIN DURIS
+            CockpitOP
           </span>
           <div className="mt-1.5 h-1.5 w-20 rounded-full bg-gd-orange/90" style={{ transform: 'skewX(-12deg)' }} />
           <span className="mt-2 text-[11px] font-medium uppercase tracking-widest text-gd-orange">
-            50 ans New Holland
+            50 ans Gonnin Duris × New Holland
           </span>
         </div>
       </div>

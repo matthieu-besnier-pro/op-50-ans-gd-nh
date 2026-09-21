@@ -161,7 +161,7 @@ export default function EspaceCommercial() {
             <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
               <Zap className="h-5 w-5 text-gd-orange" /> Bonjour {prenom}
             </h1>
-            <p className="text-xs text-white/50">Votre espace — 50 ans New Holland</p>
+            <p className="text-xs text-white/50">Votre espace — 50 ans Gonnin Duris × New Holland</p>
           </div>
           <div className="flex items-center gap-3">
             {monRang.rang && (

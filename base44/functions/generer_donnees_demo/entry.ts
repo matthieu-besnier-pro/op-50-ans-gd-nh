@@ -108,8 +108,8 @@ export default async function(req) {
       const paramsList = await sr.entities.parametres_operation.list('-created_date', 1);
       const p = paramsList[0];
       const patch = {};
-      if (!p || !p.date_debut_operation) patch.date_debut_operation = '2026-10-01';
-      if (!p || !p.date_fin_operation) patch.date_fin_operation = '2026-10-31';
+      if (!p || !p.date_debut_operation) patch.date_debut_operation = '2026-10-13';
+      if (!p || !p.date_fin_operation) patch.date_fin_operation = '2026-10-30';
       if (!p || !p.date_debut_prise_rdv) patch.date_debut_prise_rdv = '2026-10-13';
       if (!p || !p.date_fin_prise_rdv) patch.date_fin_prise_rdv = '2026-10-14';
       if (!p || !p.objectif_rdv) patch.objectif_rdv = 120;
@@ -117,7 +117,7 @@ export default async function(req) {
       if (!p || !p.objectif_ca_magasin) patch.objectif_ca_magasin = 150000;
       if (Object.keys(patch).length > 0) {
         if (p) await sr.entities.parametres_operation.update(p.id, patch);
-        else await sr.entities.parametres_operation.create({ nom_operation: '50 ans New Holland', ...patch });
+        else await sr.entities.parametres_operation.create({ nom_operation: '50 ans Gonnin Duris × New Holland', ...patch });
         await sleep(200);
       }
 
@@ -185,7 +185,7 @@ export default async function(req) {
 
       // Offres magasin
       await sr.entities.offre_magasin.bulkCreate([
-        { titre: PREFIX + 'Filtres & lubrifiants -20%', date_debut: '2026-10-01', date_fin: '2026-10-31', ca_realise: rndInt(20000, 60000) },
+        { titre: PREFIX + 'Filtres & lubrifiants -20%', date_debut: '2026-10-13', date_fin: '2026-10-30', ca_realise: rndInt(20000, 60000) },
         { titre: PREFIX + 'Pièces d\'usure hivernage', date_debut: '2026-10-05', date_fin: '2026-10-25', ca_realise: rndInt(15000, 50000) }
       ]);
       await sleep(200);

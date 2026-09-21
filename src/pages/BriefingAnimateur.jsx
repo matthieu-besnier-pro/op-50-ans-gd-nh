@@ -49,7 +49,7 @@ export default function BriefingAnimateur() {
       {/* Print bar */}
       <div className="sticky top-0 z-10 bg-gd-navy-dark text-white px-6 py-3 flex items-center justify-between print:hidden">
         <span className="text-sm font-semibold flex items-center gap-2">
-          <Zap className="h-4 w-4 text-gd-orange" /> Briefing animateur — NH50 Pro Tracker
+          <Zap className="h-4 w-4 text-gd-orange" /> Briefing animateur — CockpitOP
         </span>
         <div className="flex items-center gap-2">
           <Link to="/tableau-de-bord">
@@ -70,10 +70,10 @@ export default function BriefingAnimateur() {
             <Zap className="h-9 w-9" fill="currentColor" />
           </div>
           <h1 className="text-4xl font-extrabold text-gd-navy-dark tracking-tight">
-            NH50 Pro Tracker
+            CockpitOP
           </h1>
           <p className="mt-2 text-lg font-semibold text-gd-orange uppercase tracking-widest">
-            50 ans New Holland · Gonnin Duris
+            50 ans Gonnin Duris × New Holland
           </p>
           <p className="mt-4 text-base text-muted-foreground max-w-2xl mx-auto">
             Guide de prise en main — Comment utiliser la plateforme pendant le sprint des 13 &amp; 14 octobre
@@ -87,8 +87,8 @@ export default function BriefingAnimateur() {
         {/* 1. Contexte */}
         <Section num="1" icon={Target} title="Le concept en 30 secondes">
           <p className="text-foreground leading-relaxed mb-3">
-            <strong>NH50 Pro Tracker</strong> est la plateforme de pilotage commercial qui centralise
-            le suivi des rendez-vous, des ventes et de l'activité atelier pour l'opération des 50 ans New Holland.
+            <strong>CockpitOP</strong> est la plateforme de pilotage commercial qui centralise
+            le suivi des rendez-vous, des ventes et de l'activité atelier pour l'opération 50 ans Gonnin Duris × New Holland.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="rounded-xl border border-border bg-card p-4">
@@ -394,7 +394,7 @@ export default function BriefingAnimateur() {
         {/* Footer */}
         <div className="mt-12 pt-6 border-t-2 border-gd-navy/20 text-center">
           <p className="text-sm text-muted-foreground">
-            NH50 Pro Tracker · Gonnin Duris · 50 ans New Holland
+            CockpitOP · Opération 50 ans Gonnin Duris × New Holland
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Document de briefing — à distribuer avant le séminaire des 13 &amp; 14 octobre 2026

@@ -51,7 +51,7 @@ export function generateICS(rdv, client) {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Gonnin Duris//NH50 Tracker//FR',
+    'PRODID:-//Gonnin Duris//CockpitOP//FR',
     'CALSCALE:GREGORIAN',
     buildEvent(rdv, client),
     'END:VCALENDAR'
@@ -66,7 +66,7 @@ export function generateICSAll(rdvs, clients) {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Gonnin Duris//NH50 Tracker//FR',
+    'PRODID:-//Gonnin Duris//CockpitOP//FR',
     'CALSCALE:GREGORIAN',
     events,
     'END:VCALENDAR'

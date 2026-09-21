@@ -119,7 +119,7 @@ function HeroSlide({ stats }) {
         className="text-gd-orange font-semibold tracking-widest uppercase text-sm mb-3">Opération spéciale · 13–14 octobre</motion.p>
       <motion.h1 initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}
         className="text-6xl md:text-7xl font-extrabold text-white mb-4 leading-tight">
-        NH50 <span className="text-gd-orange">Pro Tracker</span>
+        Cockpit<span className="text-gd-orange">OP</span>
       </motion.h1>
       <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }}
         className="text-xl text-white/70 max-w-2xl mb-12">

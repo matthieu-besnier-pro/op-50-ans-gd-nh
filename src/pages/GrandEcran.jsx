@@ -334,8 +334,8 @@ export default function GrandEcran() {
             <Zap className="h-7 w-7" fill="currentColor" />
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight leading-none">NH50 Pro Tracker</h1>
-            <p className="text-xs font-medium uppercase tracking-widest text-gd-orange">50 ans New Holland</p>
+            <h1 className="text-2xl font-extrabold tracking-tight leading-none">CockpitOP</h1>
+            <p className="text-xs font-medium uppercase tracking-widest text-gd-orange">50 ans Gonnin Duris × New Holland</p>
           </div>
         </div>
 

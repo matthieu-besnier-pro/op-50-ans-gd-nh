@@ -39,8 +39,8 @@ export default function Login() {
   return (
     <AuthLayout
       icon={LogIn}
-      title="50 ans New Holland"
-      subtitle="Espace opération — connectez-vous"
+      title="CockpitOP"
+      subtitle="Opération 50 ans Gonnin Duris × New Holland"
       footer={<span className="text-muted-foreground">Identifiants fournis par la Direction / Marketing.</span>}
     >
       {error && (
