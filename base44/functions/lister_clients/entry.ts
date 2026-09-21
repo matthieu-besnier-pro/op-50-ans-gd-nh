@@ -11,7 +11,8 @@ const LIGHT = [
   'id', 'raison_sociale', 'siren', 'type_structure', 'statut',
   'niveau_appetence', 'score_appetence', 'date_dernier_contact',
   'date_prochain_rdv', 'date_rappel', 'montant_devis',
-  'commerciaux_assignes', 'base_responsable_id'
+  'commerciaux_assignes', 'base_responsable_id', 'base_id',
+  'tel_mobile', 'adresse_complete', 'type_client_mistra'
 ];
 const pick = (c) => { const o = {}; for (const k of LIGHT) o[k] = c[k]; return o; };
 

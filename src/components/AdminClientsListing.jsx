@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
+import Loader from '@/components/Loader';
 import { Input } from '@/components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -33,14 +34,10 @@ export default function AdminClientsListing({ commerciaux = [], bases = [] }) {
   const loadClients = async () => {
     setLoading(true);
     try {
-      let result = await base44.entities.client.list('-created_date', 500);
-      let allClients = [...result];
-      let offset = 500;
-      while (result.length === 500 && offset < 5000) {
-        result = await base44.entities.client.list('-created_date', 500, offset);
-        allClients = [...allClients, ...result];
-        offset += 500;
-      }
+      // Via la fonction backend (asServiceRole, projection légère) : rapide et
+      // fonctionne pour la Direction quel que soit le rôle technique.
+      const res = await base44.functions.invoke('lister_clients', { limit: 3000 });
+      const allClients = res?.data?.clients || [];
       setClients(allClients);
       setTotal(allClients.length);
     } catch (e) {
@@ -141,9 +138,7 @@ export default function AdminClientsListing({ commerciaux = [], bases = [] }) {
 
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-4 border-slate-200 border-t-gd-navy rounded-full animate-spin"></div>
-          </div>
+          <Loader label="Chargement des clients…" />
         ) : pageData.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted-foreground">Aucun client ne correspond aux filtres.</p>
         ) : (
