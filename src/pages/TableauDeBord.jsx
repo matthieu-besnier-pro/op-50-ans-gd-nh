@@ -97,16 +97,16 @@ export default function TableauDeBord() {
   }
 
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
   const countdownOp = params ? daysBetween(params.date_fin_operation) : null;
   const countdownRdv = params ? daysBetween(params.date_fin_prise_rdv) : null;
   const showCountdownRdv = countdownRdv !== null && countdownRdv > -3 && countdownRdv < 15;
 
-  const rdvRealisesToday = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure?.slice(0, 10) === todayStr).length;
-  const rdvRealisesMonth = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
-  const rdvPriseRdv = params ? rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= params.date_debut_prise_rdv + 'T00:00:00' && r.date_heure <= params.date_fin_prise_rdv + 'T23:59:59').length : 0;
+  const rdvMoisReal = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart);
+  const rdvMaterielMonth = rdvMoisReal.filter((r) => r.type !== 'RDV atelier hivernage').length;
+  const rdvAtelierMonth = rdvMoisReal.filter((r) => r.type === 'RDV atelier hivernage').length;
+  const rdvTotalMonth = rdvMoisReal.length;
 
   const ventesValidees = ventes.filter((v) => v.statut_validation === 'Validé');
   const ventesParMachine = TYPES_MACHINE.map((t) => ({ name: t, value: ventesValidees.filter((v) => v.type_machine === t).length })).filter((d) => d.value > 0);
@@ -153,8 +153,8 @@ export default function TableauDeBord() {
         {showCountdownRdv && (
           <StatCard label="Fin prise de RDV" value={`${countdownRdv} j`} sublabel={params?.date_fin_prise_rdv} icon={Timer} accent />
         )}
-        <StatCard label="RDV réalisés aujourd'hui" value={rdvRealisesToday} icon={CheckCircle2} />
-        <StatCard label="RDV prise de RDV (13-14/10)" value={rdvPriseRdv} icon={Target} />
+        <StatCard label="RDV Matériel (mois)" value={rdvMaterielMonth} icon={CheckCircle2} />
+        <StatCard label="RDV Atelier (mois)" value={rdvAtelierMonth} icon={Timer} />
       </div>
 
       {/* Objectives */}
@@ -164,8 +164,12 @@ export default function TableauDeBord() {
             <p className="text-sm font-semibold text-muted-foreground">RDV réalisés (mois)</p>
             <Target className="h-4 w-4 text-gd-orange" />
           </div>
-          <p className="text-3xl font-extrabold text-gd-navy-dark">{rdvRealisesMonth}<span className="text-base font-medium text-muted-foreground"> / {objRdv}</span></p>
-          <ProgressBar value={rdvRealisesMonth} max={objRdv} className="mt-3" />
+          <p className="text-3xl font-extrabold text-gd-navy-dark">{rdvTotalMonth}<span className="text-base font-medium text-muted-foreground"> / {objRdv}</span></p>
+          <ProgressBar value={rdvTotalMonth} max={objRdv} className="mt-3" />
+          <div className="mt-3 flex gap-4 text-xs">
+            <span className="text-muted-foreground">🚜 Matériel : <span className="font-bold text-gd-navy-dark">{rdvMaterielMonth}</span></span>
+            <span className="text-muted-foreground">🔧 Atelier : <span className="font-bold text-gd-navy-dark">{rdvAtelierMonth}</span></span>
+          </div>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">

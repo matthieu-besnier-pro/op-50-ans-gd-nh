@@ -385,7 +385,7 @@ export default function GrandEcran() {
                     <div className="rounded-2xl bg-gd-navy/40 p-3 text-center">
                       <CalendarCheck className="h-5 w-5 mx-auto text-white/60 mb-1" />
                       <p className="text-2xl font-extrabold text-white"><AnimatedCounter value={sprintCommercialCount} /></p>
-                      <p className="text-xs text-white/40 uppercase tracking-wide">Commercial</p>
+                      <p className="text-xs text-white/40 uppercase tracking-wide">Matériel</p>
                     </div>
                     <div className="rounded-2xl bg-gd-orange/15 p-3 text-center">
                       <Wrench className="h-5 w-5 mx-auto text-gd-orange mb-1" />
