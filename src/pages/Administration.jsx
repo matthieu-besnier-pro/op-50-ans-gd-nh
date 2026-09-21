@@ -96,8 +96,10 @@ export default function Administration() {
   };
 
   const validerVente = async (id) => {
+    const v = ventesAValider.find((x) => x.id === id);
     await base44.entities.vente.update(id, { statut_validation: 'Validé' });
-    try { await base44.functions.invoke('verifier_badges', {}); } catch (e) { /* ignore */ }
+    // Badges : pour le commercial de la vente (pas l'admin qui valide)
+    try { if (v?.commercial_id) await base44.functions.invoke('verifier_badges', { utilisateur_id: v.commercial_id }); } catch (e) { /* ignore */ }
     load();
   };
 

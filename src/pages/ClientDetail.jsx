@@ -97,7 +97,10 @@ export default function ClientDetail() {
       setPulseRow(true);
       setTimeout(() => setPulseRow(false), 600);
     }
-    try { await base44.functions.invoke('verifier_badges', { utilisateur_id: user.id }); } catch (e) { /* ignore */ }
+    // Badges : toujours pour le commercial affecté au client (la fiche fait foi)
+    const assignes = client.commerciaux_assignes || [];
+    const badgeUserId = assignes.includes(user.id) ? user.id : (assignes[0] || user.id);
+    try { await base44.functions.invoke('verifier_badges', { utilisateur_id: badgeUserId }); } catch (e) { /* ignore */ }
     loadAll();
     setDateRappel(''); setMotifRefus(''); setMontantDevis('');
   };
