@@ -50,7 +50,7 @@ export default function Administration() {
         base44.entities.vente.filter({ statut_validation: 'À valider' }, '-date_vente', 100),
         base44.entities.base.list('-nom', 100),
         base44.entities.User.list('-created_date', 200).catch(() => []),
-        base44.entities.client.list('-created_date', 500),
+        base44.functions.invoke('lister_clients', {}).then((r) => r?.data?.clients || []).catch(() => []),
         base44.entities.materiel.list('-created_date', 500),
         base44.entities.rdv.list('-date_heure', 500),
         base44.entities.vente.list('-date_vente', 500),

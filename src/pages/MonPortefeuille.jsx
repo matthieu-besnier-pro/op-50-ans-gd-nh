@@ -65,23 +65,20 @@ export default function MonPortefeuille() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      // Périmètre selon le rôle : Direction/Marketing → tous les clients ;
-      // Responsable → les clients de son équipe (base_responsable_id) ;
-      // Commercial → ses clients. La démo « Voir en tant que » reste prioritaire.
       const direction = isDirection(user);
       const role = getAppRole(user);
+      // Démo « Voir en tant que » prioritaire ; sinon on passe par la fonction backend
+      // lister_clients (asServiceRole) qui scope par rôle et garantit la remontée
+      // (Direction/Marketing = tous, Responsable = son équipe, Commercial = les siens).
       let clientList;
       if (persona.mode === 'commercial' && persona.clientFilter) {
         clientList = await base44.entities.client.filter(persona.clientFilter, '-date_dernier_contact', 500);
       } else if (persona.mode === 'manager') {
         const all = await base44.entities.client.list('-date_dernier_contact', 2000);
         clientList = all.filter(persona.matchClient);
-      } else if (direction) {
-        clientList = await base44.entities.client.list('-date_dernier_contact', 5000);
-      } else if (role === 'responsable') {
-        clientList = await base44.entities.client.filter({ base_responsable_id: user.id }, '-date_dernier_contact', 2000);
       } else {
-        clientList = await base44.entities.client.filter({ commerciaux_assignes: user.id }, '-date_dernier_contact', 2000);
+        const res = await base44.functions.invoke('lister_clients', {});
+        clientList = (res?.data?.clients) || [];
       }
       setClients(clientList);
 
