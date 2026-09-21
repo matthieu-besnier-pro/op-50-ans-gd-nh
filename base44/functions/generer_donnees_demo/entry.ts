@@ -35,16 +35,20 @@ async function listAll(entity, sr) {
 
 // Un palier de nettoyage : supprime jusqu'à DEL_BUDGET enregistrements de démo, renvoie le reste.
 async function nettoyerPalier(sr) {
-  const demoClients = (await listAll('client', sr)).filter((c) => (c.raison_sociale || '').startsWith(PREFIX));
+  const allClients = await listAll('client', sr);
+  const existingIds = new Set(allClients.map((c) => c.id));
+  const demoClients = allClients.filter((c) => (c.raison_sociale || '').startsWith(PREFIX));
   const demoIds = new Set(demoClients.map((c) => c.id));
   const [rdvs, ventes, mats, offres] = await Promise.all([
     listAll('rdv', sr), listAll('vente', sr), listAll('materiel', sr), listAll('offre_magasin', sr)
   ]);
+  // Cible : enregistrements liés à un client démo OU orphelins (client_id disparu = résidu d'un ancien essai)
+  const aSupprimer = (r) => demoIds.has(r.client_id) || (r.client_id && !existingIds.has(r.client_id));
   // Ordre : dépendances d'abord, clients en dernier
   const cibles = [
-    ...rdvs.filter((r) => demoIds.has(r.client_id)).map((r) => ['rdv', r.id]),
-    ...ventes.filter((v) => demoIds.has(v.client_id)).map((v) => ['vente', v.id]),
-    ...mats.filter((m) => demoIds.has(m.client_id)).map((m) => ['materiel', m.id]),
+    ...rdvs.filter(aSupprimer).map((r) => ['rdv', r.id]),
+    ...ventes.filter(aSupprimer).map((v) => ['vente', v.id]),
+    ...mats.filter(aSupprimer).map((m) => ['materiel', m.id]),
     ...offres.filter((o) => (o.titre || '').startsWith(PREFIX)).map((o) => ['offre_magasin', o.id]),
     ...demoClients.map((c) => ['client', c.id])
   ];
