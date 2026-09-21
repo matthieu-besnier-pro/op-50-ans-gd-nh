@@ -49,7 +49,7 @@ export default function TableauDeBord() {
         base44.entities.rdv.list('-date_heure', 1000),
         base44.entities.vente.list('-date_vente', 1000),
         base44.entities.offre_magasin.list('-created_date', 200),
-        base44.entities.User.list('-created_date', 100),
+        base44.entities.User.list('-created_date', 100).catch(() => []),
         base44.entities.structure_commerciale.list('-nom_commercial', 200)
       ]);
       // Filter by demo persona

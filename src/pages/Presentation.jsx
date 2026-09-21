@@ -45,7 +45,7 @@ export default function Presentation() {
           base44.entities.rdv.list('-created_date', 200),
           base44.entities.vente.list('-created_date', 200),
           base44.entities.badge_obtenu.list('-created_date', 200),
-          base44.entities.User.list('-created_date', 200)
+          base44.entities.User.list('-created_date', 200).catch(() => [])
         ]);
         setStats({
           clients: clients.length,

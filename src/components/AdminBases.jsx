@@ -24,7 +24,7 @@ export default function AdminBases() {
     try {
       const [b, u] = await Promise.all([
         base44.entities.base.list('-nom', 100),
-        base44.entities.User.list('-created_date', 200)
+        base44.entities.User.list('-created_date', 200).catch(() => [])
       ]);
       setBases(b);
       setUsers(u);

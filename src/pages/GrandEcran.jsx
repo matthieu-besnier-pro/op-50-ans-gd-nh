@@ -153,7 +153,7 @@ export default function GrandEcran() {
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.rdv.list('-date_heure', 500),
         base44.entities.vente.list('-date_vente', 500),
-        base44.entities.User.list('-created_date', 50),
+        base44.entities.User.list('-created_date', 50).catch(() => []),
         base44.entities.badge_obtenu.list('-created_date', 100),
         base44.entities.structure_commerciale.list('-nom_commercial', 200)
       ]);

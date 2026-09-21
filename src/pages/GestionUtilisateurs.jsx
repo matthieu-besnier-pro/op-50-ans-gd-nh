@@ -14,7 +14,7 @@ export default function GestionUtilisateurs() {
       try {
         const [b, users] = await Promise.all([
           base44.entities.base.list('-nom', 100),
-          base44.entities.User.list('-created_date', 200)
+          base44.entities.User.list('-created_date', 200).catch(() => [])
         ]);
         setBases(b);
         setStats({

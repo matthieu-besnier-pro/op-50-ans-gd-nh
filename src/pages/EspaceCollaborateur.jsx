@@ -64,7 +64,7 @@ export default function EspaceCollaborateur() {
           base44.entities.vente.list('-date_vente', 500),
           base44.entities.offre_magasin.list('-date_debut', 200),
           base44.entities.badge.list('-created_date', 50),
-          base44.entities.User.list('-created_date', 200),
+          base44.entities.User.list('-created_date', 200).catch(() => []),
           base44.entities.client.list('-created_date', 200)
         ]);
         setParams(p[0] || null);
