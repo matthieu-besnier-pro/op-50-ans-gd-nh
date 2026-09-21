@@ -76,6 +76,39 @@ export default async function(req) {
             atteint = max >= 3;
           }
           break;
+        case "rdv_volume":
+          // N RDV réalisés
+          atteint = rdvs.filter((r) => r.statut === "Réalisé").length >= (badge.condition_seuil || 10);
+          break;
+        case "ventes_volume":
+          // N ventes validées
+          atteint = ventes.filter((v) => v.statut_validation === "Validé").length >= (badge.condition_seuil || 3);
+          break;
+        case "vente_tracteur":
+          // N ventes de tracteurs validées
+          atteint = ventes.filter((v) => v.statut_validation === "Validé" && v.type_machine === "Tracteur").length >= (badge.condition_seuil || 3);
+          break;
+        case "polyvalent": {
+          // Ventes validées sur N types de machine différents
+          const familles = new Set(ventes.filter((v) => v.statut_validation === "Validé" && v.type_machine).map((v) => v.type_machine));
+          atteint = familles.size >= (badge.condition_seuil || 3);
+          break;
+        }
+        case "rdv_jour": {
+          // N RDV réalisés sur une même journée
+          const parJour = {};
+          rdvs.filter((r) => r.statut === "Réalisé" && r.date_heure).forEach((r) => {
+            const d = r.date_heure.slice(0, 10);
+            parJour[d] = (parJour[d] || 0) + 1;
+          });
+          const maxJour = Object.values(parJour).reduce((m, n) => Math.max(m, n), 0);
+          atteint = maxJour >= (badge.condition_seuil || 5);
+          break;
+        }
+        case "offre_magasin":
+          // N clients passés au statut « Offre magasin à proposer »
+          atteint = clients.filter((c) => (c.commerciaux_assignes || []).includes(userId) && c.statut === "Offre magasin à proposer").length >= (badge.condition_seuil || 1);
+          break;
       }
       if (atteint) {
         const o = await sr.entities.badge_obtenu.create({ badge_id: badge.id, utilisateur_id: userId });

@@ -10,15 +10,39 @@ import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 
 const CONDITION_TYPES = [
   { value: 'premier_rdv', label: 'Premier RDV obtenu' },
-  { value: 'sprint_13_14', label: 'Sprint 13-14' },
-  { value: 'closeur', label: 'Closeur (vente conclue)' },
-  { value: 'portefeuille_nettoye', label: 'Portefeuille nettoyé' },
-  { value: 'chasseur_reprises', label: 'Chasseur de reprises' },
+  { value: 'sprint_13_14', label: 'Sprint 13-14 (N RDV pendant la prise de RDV)' },
+  { value: 'closeur', label: 'Closeur (1re vente validée)' },
+  { value: 'portefeuille_nettoye', label: 'Portefeuille nettoyé (plus de « À contacter »)' },
+  { value: 'chasseur_reprises', label: 'Chasseur de reprises (N reprises)' },
   { value: 'premier_devis', label: 'Premier devis' },
-  { value: 'serie_active', label: 'Série active' }
+  { value: 'serie_active', label: 'Série active (N jours consécutifs actifs)' },
+  { value: 'rdv_volume', label: 'Volume RDV (N RDV réalisés)' },
+  { value: 'ventes_volume', label: 'Volume ventes (N ventes validées)' },
+  { value: 'vente_tracteur', label: 'Tracteurs (N ventes de tracteurs)' },
+  { value: 'polyvalent', label: 'Polyvalent (N types de machine vendus)' },
+  { value: 'rdv_jour', label: 'Journée record (N RDV réalisés le même jour)' },
+  { value: 'offre_magasin', label: 'Offre magasin (N clients « Offre magasin à proposer »)' }
 ];
 
-const EMOJI_CHOICES = ['🏆', '🥇', '🚀', '🔥', '⭐', '💎', '🎯', '💪', '🎖️', '⚡', '🌟', '👑'];
+// Catalogue recommandé — créé en un clic (les badges déjà présents par nom sont ignorés)
+const BADGES_RECOMMANDES = [
+  { nom: 'Premier RDV', description: '1er RDV obtenu sur l\'opération', icone: '🎯', condition_type: 'premier_rdv', condition_seuil: 1 },
+  { nom: 'Sprint 13-14', description: '3 RDV réalisés pendant la prise de RDV', icone: '⚡', condition_type: 'sprint_13_14', condition_seuil: 3 },
+  { nom: 'Closeur', description: '1re vente validée', icone: '🏆', condition_type: 'closeur', condition_seuil: 1 },
+  { nom: 'Premier devis', description: '1er devis saisi', icone: '📝', condition_type: 'premier_devis', condition_seuil: 1 },
+  { nom: 'Portefeuille nettoyé', description: 'Plus aucun client « À contacter »', icone: '🧹', condition_type: 'portefeuille_nettoye', condition_seuil: 1 },
+  { nom: 'Série active', description: '3 jours consécutifs avec au moins une action', icone: '🔥', condition_type: 'serie_active', condition_seuil: 3 },
+  { nom: 'Chasseur de reprises', description: '5 reprises décrochées', icone: '🎣', condition_type: 'chasseur_reprises', condition_seuil: 5 },
+  { nom: 'Marathon RDV', description: '10 RDV réalisés', icone: '🏃', condition_type: 'rdv_volume', condition_seuil: 10 },
+  { nom: 'Machine de guerre', description: '25 RDV réalisés', icone: '💪', condition_type: 'rdv_volume', condition_seuil: 25 },
+  { nom: 'Vendeur confirmé', description: '3 ventes validées', icone: '🥇', condition_type: 'ventes_volume', condition_seuil: 3 },
+  { nom: 'Roi du tracteur', description: '3 tracteurs vendus', icone: '🚜', condition_type: 'vente_tracteur', condition_seuil: 3 },
+  { nom: 'Journée record', description: '5 RDV réalisés le même jour', icone: '📅', condition_type: 'rdv_jour', condition_seuil: 5 },
+  { nom: 'Polyvalent', description: '3 types de machine différents vendus', icone: '🌟', condition_type: 'polyvalent', condition_seuil: 3 },
+  { nom: 'Vendeur boutique', description: 'Une offre magasin proposée', icone: '🛒', condition_type: 'offre_magasin', condition_seuil: 1 }
+];
+
+const EMOJI_CHOICES = ['🏆', '🥇', '🚀', '🔥', '⭐', '💎', '🎯', '💪', '🎖️', '⚡', '🌟', '👑', '🚜', '🧹', '📝', '🏃', '📅', '🛒', '🎣'];
 
 export default function AdminBadges() {
   const [badges, setBadges] = useState([]);
@@ -26,6 +50,7 @@ export default function AdminBadges() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ nom: '', description: '', icone: '🏆', condition_type: 'premier_rdv', condition_seuil: 1 });
   const [saving, setSaving] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -68,12 +93,28 @@ export default function AdminBadges() {
     } catch (e) { console.error(e); }
   };
 
+  const ajouterRecommandes = async () => {
+    setSeeding(true);
+    try {
+      const existants = new Set(badges.map((b) => (b.nom || '').toLowerCase()));
+      const aCreer = BADGES_RECOMMANDES.filter((b) => !existants.has(b.nom.toLowerCase()));
+      for (const b of aCreer) {
+        await base44.entities.badge.create(b);
+      }
+      load();
+    } catch (e) { console.error(e); }
+    finally { setSeeding(false); }
+  };
+
   const isForm = editing !== null;
 
   return (
     <div className="space-y-4">
       {!isForm && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button onClick={ajouterRecommandes} disabled={seeding} variant="outline" className="border-gd-orange text-gd-navy hover:bg-gd-orange/10">
+            {seeding ? 'Ajout…' : '✨ Ajouter les badges recommandés'}
+          </Button>
           <Button onClick={() => { setEditing('new'); setForm({ nom: '', description: '', icone: '🏆', condition_type: 'premier_rdv', condition_seuil: 1 }); }} className="bg-gd-navy hover:bg-gd-navy-dark text-white">
             <Plus className="h-4 w-4 mr-1.5" /> Nouveau badge
           </Button>

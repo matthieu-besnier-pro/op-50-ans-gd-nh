@@ -23,7 +23,13 @@
         "portefeuille_nettoye",
         "chasseur_reprises",
         "premier_devis",
-        "serie_active"
+        "serie_active",
+        "rdv_volume",
+        "ventes_volume",
+        "vente_tracteur",
+        "polyvalent",
+        "rdv_jour",
+        "offre_magasin"
       ],
       "description": "Type de condition"
     },
