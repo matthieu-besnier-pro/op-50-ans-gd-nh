@@ -46,9 +46,11 @@ export default function AdminUsers({ bases, onReload }) {
       const list = (res?.data?.users) || [];
       const newUser = list.find((u) => u.email === inviteEmail.trim());
       if (newUser) {
-        const updates = { app_role: inviteRole };
-        if (inviteRole === 'commercial' && inviteBase) updates.base_id = inviteBase;
-        await base44.entities.User.update(newUser.id, updates);
+        await base44.functions.invoke('definir_role', {
+          utilisateur_id: newUser.id,
+          app_role: inviteRole,
+          base_id: inviteRole === 'commercial' ? inviteBase : undefined
+        });
       }
       setInviteEmail('');
       setMsg('Invitation envoyée et rôle configuré.');
@@ -65,7 +67,7 @@ export default function AdminUsers({ bases, onReload }) {
 
   const changeRole = async (userId, newRole) => {
     try {
-      await base44.entities.User.update(userId, { app_role: newRole });
+      await base44.functions.invoke('definir_role', { utilisateur_id: userId, app_role: newRole });
       load();
     } catch (e) { console.error(e); }
   };
