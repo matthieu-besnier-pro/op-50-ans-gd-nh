@@ -61,7 +61,9 @@ export default function Calendrier() {
     return ids.map((id) => ({ id, nom: commByUser[id] || 'Commercial' })).sort((a, b) => a.nom.localeCompare(b.nom));
   }, [rdvs, commByUser]);
 
-  const showFilter = commerciauxDispo.length > 1;
+  // Filtre réservé aux vues multi-commerciaux : direction, responsable, ou démo « équipe ».
+  const peutFiltrer = persona.mode === 'manager' || (!persona.mode && (isDirection(user) || isResponsable(user)));
+  const showFilter = peutFiltrer && commerciauxDispo.length > 1;
 
   const rdvsFiltres = useMemo(() => (
     commFilter === 'all' ? rdvs : rdvs.filter((r) => r.commercial_id === commFilter)
