@@ -22,6 +22,7 @@ import AdminOffres from '@/components/AdminOffres';
 import AdminClientsListing from '@/components/AdminClientsListing';
 import AdminImportDonnees from '@/components/AdminImportDonnees';
 import AdminComptesDemo from '@/components/AdminComptesDemo';
+import AdminDonneesDemo from '@/components/AdminDonneesDemo';
 import AdminImportVentesWhatsapp from '@/components/AdminImportVentesWhatsapp';
 import AdminStructureCommerciale from '@/components/AdminStructureCommerciale';
 
@@ -365,6 +366,7 @@ export default function Administration() {
 
         {/* Structure commerciale */}
         <TabsContent value="structure">
+          <AdminDonneesDemo onReload={load} />
           <AdminComptesDemo onReload={load} />
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><Users className="h-4 w-4 text-gd-orange" /> Structure commerciale</h2>

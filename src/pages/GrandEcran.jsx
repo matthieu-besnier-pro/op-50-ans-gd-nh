@@ -307,14 +307,6 @@ export default function GrandEcran() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gd-navy-dark via-gd-navy to-gd-navy-dark text-white overflow-hidden">
-      {/* Bouton de sortie — toujours visible pour revenir à l'app */}
-      <Link
-        to="/tableau-de-bord"
-        title="Quitter le Grand Écran"
-        className="fixed top-4 right-4 z-50 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 text-xs font-semibold text-white/80 backdrop-blur hover:bg-black/50 hover:text-white transition-colors"
-      >
-        <X className="h-4 w-4" /> Quitter
-      </Link>
       {/* Decorative glow */}
       <div className="pointer-events-none fixed inset-0 opacity-20">
         <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-gd-orange/20 blur-[120px]" />
@@ -351,6 +343,13 @@ export default function GrandEcran() {
               {now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
+          <Link
+            to="/tableau-de-bord"
+            title="Quitter le Grand Écran"
+            className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <X className="h-4 w-4" /> Quitter
+          </Link>
         </div>
       </header>
 
