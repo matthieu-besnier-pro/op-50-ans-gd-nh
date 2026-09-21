@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
+import { isDirection, getAppRole } from '@/lib/permissions';
 import Layout from '@/components/Layout';
 import StatusBadge from '@/components/StatusBadge';
 import AppetenceBadge from '@/components/AppetenceBadge';
@@ -63,12 +64,21 @@ export default function MonPortefeuille() {
   const loadAll = async () => {
     setLoading(true);
     try {
+      // Périmètre selon le rôle : Direction/Marketing → tous les clients ;
+      // Responsable → les clients de son équipe (base_responsable_id) ;
+      // Commercial → ses clients. La démo « Voir en tant que » reste prioritaire.
+      const direction = isDirection(user);
+      const role = getAppRole(user);
       let clientList;
       if (persona.mode === 'commercial' && persona.clientFilter) {
         clientList = await base44.entities.client.filter(persona.clientFilter, '-date_dernier_contact', 500);
       } else if (persona.mode === 'manager') {
         const all = await base44.entities.client.list('-date_dernier_contact', 2000);
         clientList = all.filter(persona.matchClient);
+      } else if (direction) {
+        clientList = await base44.entities.client.list('-date_dernier_contact', 5000);
+      } else if (role === 'responsable') {
+        clientList = await base44.entities.client.filter({ base_responsable_id: user.id }, '-date_dernier_contact', 2000);
       } else {
         clientList = await base44.entities.client.filter({ commerciaux_assignes: user.id }, '-date_dernier_contact', 2000);
       }
@@ -79,14 +89,14 @@ export default function MonPortefeuille() {
         base44.entities.vente.list('-date_vente', 1000),
         base44.entities.parametres_operation.list('-created_date', 1)
       ]);
-      const personaRdvs = persona.mode
-        ? rdvList.filter((r) => persona.matchCommercialId(r.commercial_id))
-        : rdvList.filter((r) => r.commercial_id === user.id);
-      const personaVentes = persona.mode
-        ? venteList.filter((v) => persona.matchCommercialId(v.commercial_id))
-        : venteList.filter((v) => v.commercial_id === user.id);
-      setRdvs(personaRdvs);
-      setVentes(personaVentes);
+      const scopeRdv = (r) => {
+        if (persona.mode) return persona.matchCommercialId(r.commercial_id);
+        if (direction) return true;
+        if (role === 'responsable') return r.base_responsable_id === user.id;
+        return r.commercial_id === user.id;
+      };
+      setRdvs(rdvList.filter(scopeRdv));
+      setVentes(venteList.filter(scopeRdv));
       setParams(paramList[0] || null);
 
       if (!persona.mode) {

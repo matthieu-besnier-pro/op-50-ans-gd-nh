@@ -32,8 +32,6 @@ const navItems = [
   { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
   { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'direction'], section: 'pilotage' },
   { to: '/grand-ecran', label: 'Grand Écran', icon: Monitor, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
-  { to: '/briefing', label: 'Briefing animateur', icon: Megaphone, roles: ['direction'], section: 'pilotage' },
-  { to: '/presentation', label: 'Présentation', icon: Presentation, roles: ['direction'], section: 'pilotage' },
   { to: '/portefeuille', label: 'Mon portefeuille', icon: Briefcase, roles: ['commercial', 'responsable', 'direction'], section: 'activite' },
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['commercial', 'responsable', 'direction'], section: 'activite' },
@@ -181,6 +179,17 @@ export default function Layout({ children }) {
         </div>
       )}
       <div className="px-3 py-4 border-t border-sidebar-border">
+        {role === 'direction' && (
+          <div className="mb-2 flex items-center gap-2 px-3">
+            <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/40">Animation</span>
+            <NavLink to="/briefing" title="Briefing animateur" className={({ isActive }) => `flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isActive ? 'bg-gd-orange text-gd-navy-dark' : 'text-sidebar-foreground/60 hover:bg-white/5 hover:text-white'}`}>
+              <Megaphone className="h-[18px] w-[18px]" />
+            </NavLink>
+            <NavLink to="/presentation" title="Présentation" className={({ isActive }) => `flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isActive ? 'bg-gd-orange text-gd-navy-dark' : 'text-sidebar-foreground/60 hover:bg-white/5 hover:text-white'}`}>
+              <Presentation className="h-[18px] w-[18px]" />
+            </NavLink>
+          </div>
+        )}
         <div className="flex items-center gap-3 px-3 py-2">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gd-orange text-gd-navy-dark font-bold text-sm">
             {(user?.full_name || user?.email || '?').charAt(0).toUpperCase()}

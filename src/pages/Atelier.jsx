@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
 import StatusBadge from '@/components/StatusBadge';
-import { Wrench, CalendarCheck, Clock } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 
 export default function Atelier() {
   const { user } = useAuth();
@@ -32,11 +32,9 @@ export default function Atelier() {
 
   useEffect(() => { load(); }, []);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
   const rdvPris = rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
-  const rdvRealisesToday = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure?.slice(0, 10) === todayStr).length;
-  const aVenir = rdvs.filter((r) => r.statut === 'Planifié' && r.date_heure >= new Date().toISOString()).sort((a, b) => a.date_heure.localeCompare(b.date_heure));
+  const aVenir = rdvs.filter((r) => r.statut !== 'Annulé').sort((a, b) => a.date_heure.localeCompare(b.date_heure));
 
   return (
     <Layout>
@@ -45,18 +43,16 @@ export default function Atelier() {
         <p className="mt-1 text-sm text-muted-foreground">Suivi des RDV hivernage</p>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard label="RDV hivernage pris (mois)" value={rdvPris} icon={Wrench} accent />
-        <StatCard label="Réalisés aujourd'hui" value={rdvRealisesToday} icon={CalendarCheck} />
-        <StatCard label="À venir" value={aVenir.length} icon={Clock} />
       </div>
 
       <div className="rounded-xl border border-border bg-card shadow-sm">
-        <h2 className="px-5 py-4 border-b border-border text-sm font-bold uppercase tracking-wider text-muted-foreground">RDV à venir</h2>
+        <h2 className="px-5 py-4 border-b border-border text-sm font-bold uppercase tracking-wider text-muted-foreground">RDV hivernage</h2>
         {loading ? (
           <p className="px-5 py-12 text-center text-sm text-muted-foreground">Chargement…</p>
         ) : aVenir.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-muted-foreground">Aucun RDV à venir.</p>
+          <p className="px-5 py-12 text-center text-sm text-muted-foreground">Aucun RDV hivernage.</p>
         ) : (
           <div className="divide-y divide-border">
             {aVenir.map((r) => {

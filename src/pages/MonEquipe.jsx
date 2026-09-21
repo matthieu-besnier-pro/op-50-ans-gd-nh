@@ -146,7 +146,7 @@ export default function MonEquipe() {
         <StatCard label="RDV équipe (mois)" value={teamKpis.totalRdv} icon={Calendar} />
         <StatCard label="Ventes validées" value={teamKpis.totalVentes} icon={TrendingUp} />
         <StatCard label="Tx transfo moyen" value={`${teamKpis.avgTransfo}%`} icon={Percent} />
-        <StatCard label="Pipe devis" value={`${teamKpis.totalPipe.toLocaleString('fr-FR')} €`} icon={Wallet} />
+        <StatCard label="Devis en cours (€)" value={`${teamKpis.totalPipe.toLocaleString('fr-FR')} €`} icon={Wallet} />
       </div>
 
       {/* Alertes */}
@@ -181,7 +181,7 @@ export default function MonEquipe() {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">RDV (auj / mois)</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tx transfo</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ventes validées</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pipe devis</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Devis en cours (€)</th>
             </tr>
           </thead>
           <tbody>
