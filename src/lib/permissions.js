@@ -9,6 +9,9 @@ export function getAppRole(user, viewAsRole = null) {
   if (viewAsRole && (user?.role === 'admin' || user?.app_role === 'direction')) {
     return viewAsRole;
   }
+  // Un admin technique contrôle TOUT : traité comme Direction dans toute l'app
+  // (menu complet, pages d'administration, accès à toutes les données).
+  if (user?.role === 'admin') return 'direction';
   return user?.app_role || 'collaborateur';
 }
 
