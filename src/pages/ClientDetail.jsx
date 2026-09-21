@@ -53,8 +53,8 @@ export default function ClientDetail() {
       let c = await base44.entities.client.get(id).catch(() => null);
       if (!c) {
         // Repli Direction/admin : via la fonction backend (asServiceRole) si le RLS bloque le get direct
-        const res = await base44.functions.invoke('lister_clients', {}).catch(() => null);
-        c = (res?.data?.clients || []).find((x) => x.id === id) || null;
+        const res = await base44.functions.invoke('lister_clients', { client_id: id }).catch(() => null);
+        c = (res?.data?.clients || [])[0] || null;
       }
       if (!c) { setLoading(false); return; }
       setClient(c);
