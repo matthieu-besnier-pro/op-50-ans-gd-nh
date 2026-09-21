@@ -41,12 +41,17 @@ export default function TableauDeBord() {
   const direction = isDirection(user, viewAsRole);
   const role = getAppRole(user, viewAsRole);
   const canFilterMap = role === 'direction' || role === 'responsable';
-  // Un commercial ne voit que SES propres RDV sur la carte ; un responsable ceux de son équipe ; la direction tout.
-  const mapRdvs = direction
-    ? rdvs
-    : role === 'responsable'
-      ? rdvs.filter((r) => r.base_responsable_id === user?.id)
-      : rdvs.filter((r) => r.commercial_id === user?.id);
+  // Périmètre des données : le persona « Voir en tant que » est prioritaire, sinon le rôle réel.
+  // Commercial → ses RDV ; Responsable → son équipe ; Direction → tout.
+  const inScope = (commId, baseRespId) => {
+    if (persona.mode === 'commercial' || persona.mode === 'manager') return persona.matchCommercialId(commId);
+    if (direction) return true;
+    if (role === 'responsable') return baseRespId === user?.id;
+    return commId === user?.id;
+  };
+  const scopedRdvs = rdvs.filter((r) => inScope(r.commercial_id, r.base_responsable_id));
+  const scopedVentes = ventes.filter((v) => inScope(v.commercial_id, v.base_responsable_id));
+  const mapRdvs = scopedRdvs;
 
   const load = useCallback(async () => {
     try {
@@ -109,12 +114,12 @@ export default function TableauDeBord() {
   const countdownRdv = params ? daysBetween(params.date_fin_prise_rdv) : null;
   const showCountdownRdv = countdownRdv !== null && countdownRdv > -3 && countdownRdv < 15;
 
-  const rdvMoisReal = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart);
+  const rdvMoisReal = scopedRdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart);
   const rdvMaterielMonth = rdvMoisReal.filter((r) => r.type !== 'RDV atelier hivernage').length;
   const rdvAtelierMonth = rdvMoisReal.filter((r) => r.type === 'RDV atelier hivernage').length;
   const rdvTotalMonth = rdvMoisReal.length;
 
-  const ventesValidees = ventes.filter((v) => v.statut_validation === 'Validé');
+  const ventesValidees = scopedVentes.filter((v) => v.statut_validation === 'Validé');
   const ventesParMachine = TYPES_MACHINE.map((t) => ({ name: t, value: ventesValidees.filter((v) => v.type_machine === t).length })).filter((d) => d.value > 0);
   const ventesParType = TYPES_VENTE.map((t) => ({ name: t, value: ventesValidees.filter((v) => v.type_vente === t).length }));
   const reprisesData = [
