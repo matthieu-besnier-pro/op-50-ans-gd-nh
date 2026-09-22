@@ -12,7 +12,8 @@ const MESSAGES = [
 ];
 
 // Chargement gamifié et brandé (CockpitOP) : logo, tracteur qui avance, messages qui tournent.
-export default function Loader({ label }) {
+// `compact` : version réduite (tableaux, petites zones).
+export default function Loader({ label, compact = false }) {
   const [i, setI] = useState(0);
   useEffect(() => {
     if (label) return; // message fixe fourni → pas de rotation
@@ -21,10 +22,10 @@ export default function Loader({ label }) {
   }, [label]);
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-5 p-8">
+    <div className={`flex flex-col items-center justify-center gap-4 ${compact ? 'py-10' : 'min-h-[60vh] gap-5 p-8'}`}>
       <OpLogo
-        className="h-20 w-20 rounded-full object-contain animate-pulse"
-        fallback={<div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gd-navy text-white animate-pulse"><Zap className="h-8 w-8 text-gd-orange" /></div>}
+        className={`rounded-full object-contain animate-pulse ${compact ? 'h-12 w-12' : 'h-20 w-20'}`}
+        fallback={<div className={`flex items-center justify-center rounded-2xl bg-gd-navy text-white animate-pulse ${compact ? 'h-10 w-10' : 'h-16 w-16'}`}><Zap className={compact ? 'h-5 w-5 text-gd-orange' : 'h-8 w-8 text-gd-orange'} /></div>}
       />
 
       {/* Piste + tracteur */}

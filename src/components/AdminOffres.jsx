@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,7 +59,7 @@ export default function AdminOffres() {
     } catch (e) { console.error(e); }
   };
 
-  if (loading) return <p className="py-8 text-center text-sm text-muted-foreground">Chargement…</p>;
+  if (loading) return <Loader compact />;
 
   return (
     <div className="space-y-4">

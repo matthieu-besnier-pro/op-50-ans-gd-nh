@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -133,7 +134,7 @@ export default function AdminUsers({ bases, onReload }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">Chargement…</td></tr>
+              <tr><td colSpan={4}><Loader compact /></td></tr>
             ) : users.map((u) => (
               <tr key={u.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 text-sm font-semibold text-foreground">{u.full_name || '—'}</td>

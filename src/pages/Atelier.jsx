@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Loader from '@/components/Loader';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -63,7 +64,7 @@ export default function Atelier() {
       <div className="rounded-xl border border-border bg-card shadow-sm">
         <h2 className="px-5 py-4 border-b border-border text-sm font-bold uppercase tracking-wider text-muted-foreground">RDV hivernage</h2>
         {loading ? (
-          <p className="px-5 py-12 text-center text-sm text-muted-foreground">Chargement…</p>
+          <Loader compact />
         ) : aVenir.length === 0 ? (
           <p className="px-5 py-12 text-center text-sm text-muted-foreground">Aucun RDV hivernage.</p>
         ) : (

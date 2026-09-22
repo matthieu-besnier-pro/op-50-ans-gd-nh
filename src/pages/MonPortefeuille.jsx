@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Loader from '@/components/Loader';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
@@ -242,7 +243,7 @@ export default function MonPortefeuille() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={showCommercial ? 8 : 7} className="px-4 py-12 text-center text-sm text-muted-foreground">Chargement…</td></tr>
+              <tr><td colSpan={showCommercial ? 8 : 7}><Loader compact /></td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={showCommercial ? 8 : 7} className="px-4 py-12 text-center text-sm text-muted-foreground">
                 {clients.length === 0

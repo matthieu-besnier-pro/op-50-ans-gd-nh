@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
@@ -186,7 +187,7 @@ export default function MonEquipe() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Chargement…</td></tr>
+              <tr><td colSpan={7}><Loader compact /></td></tr>
             ) : sorted.length === 0 ? (
               <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Aucun commercial dans l'équipe. Les comptes commerciaux seront créés à la réception de la liste.</td></tr>
             ) : sorted.map((r) => (

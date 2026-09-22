@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -48,9 +49,7 @@ export default function AdminStructureCommerciale() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-6 h-6 border-2 border-slate-200 border-t-gd-navy rounded-full animate-spin"></div>
-      </div>
+      <Loader compact />
     );
   }
 

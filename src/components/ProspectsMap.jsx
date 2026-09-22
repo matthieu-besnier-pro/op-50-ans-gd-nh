@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import Loader from '@/components/Loader';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -174,9 +175,7 @@ export default function ProspectsMap({ rdvs, clients, users, canFilter }) {
       </div>
 
       {loading ? (
-        <div className="flex h-[400px] items-center justify-center rounded-lg bg-muted/30">
-          <Loader2 className="h-8 w-8 animate-spin text-gd-navy" />
-        </div>
+        <div className="flex h-[400px] items-center justify-center rounded-lg bg-muted/30"><Loader compact /></div>
       ) : markers.length === 0 ? (
         <div className="flex h-[400px] items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground">
           Aucun prospect géocodé pour le moment. {pendingCount > 0 && 'Géocodage en cours, réactualisez dans quelques instants.'}

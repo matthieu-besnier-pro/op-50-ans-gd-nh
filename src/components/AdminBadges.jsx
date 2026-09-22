@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -160,7 +161,7 @@ export default function AdminBadges() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {loading ? (
-          <p className="col-span-full text-center text-sm text-muted-foreground py-8">Chargement…</p>
+          <Loader compact />
         ) : badges.map((b) => (
           <div key={b.id} className="rounded-xl border border-border bg-card p-4 shadow-sm flex items-start gap-3">
             <span className="text-3xl">{b.icone || '🏆'}</span>

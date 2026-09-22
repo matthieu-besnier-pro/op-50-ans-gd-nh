@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -125,7 +126,7 @@ export default function AdminBases() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">Chargement…</td></tr>
+              <tr><td colSpan={5}><Loader compact /></td></tr>
             ) : bases.map((b) => {
               const resp = users.find((u) => u.id === b.responsable_id);
               return (

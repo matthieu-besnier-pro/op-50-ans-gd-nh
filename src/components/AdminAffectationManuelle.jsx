@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import {
@@ -69,7 +70,7 @@ export default function AdminAffectationManuelle({ commerciaux }) {
     return c?.full_name || c?.email || 'Inconnu';
   };
 
-  if (loading) return <p className="py-8 text-center text-sm text-muted-foreground">Chargement des clients…</p>;
+  if (loading) return <Loader compact label="Chargement des clients…" />;
 
   return (
     <div className="space-y-4">
