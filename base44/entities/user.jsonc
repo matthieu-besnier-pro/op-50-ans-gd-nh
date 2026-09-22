@@ -16,6 +16,8 @@
       "enum": [
         "commercial",
         "responsable",
+        "chef_atelier",
+        "responsable_sav",
         "direction",
         "collaborateur"
       ],
@@ -23,6 +25,8 @@
       "enumNames": [
         "Commercial",
         "Responsable commercial",
+        "Chef d'atelier",
+        "Responsable SAV",
         "Direction / Marketing",
         "Collaborateur"
       ],
