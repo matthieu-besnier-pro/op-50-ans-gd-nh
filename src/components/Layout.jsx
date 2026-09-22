@@ -15,6 +15,8 @@ import {
 const ROLE_LABELS = {
   commercial: 'Commercial',
   responsable: 'Responsable commercial',
+  chef_atelier: "Chef d'atelier",
+  responsable_sav: 'Responsable SAV',
   direction: 'Direction / Marketing',
   collaborateur: 'Collaborateur'
 };
@@ -29,13 +31,13 @@ const SECTION_LABELS = {
 
 const navItems = [
   { to: '/mon-espace', label: 'Mon espace', icon: Zap, roles: ['commercial'], section: 'espace' },
-  { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'direction', 'collaborateur'], section: 'pilotage' },
-  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'direction'], section: 'pilotage' },
+  { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'chef_atelier', 'responsable_sav', 'direction', 'collaborateur'], section: 'pilotage' },
+  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'pilotage' },
   { to: '/grand-ecran', label: 'Grand Écran', icon: Monitor, roles: ['responsable', 'direction', 'collaborateur'], section: 'pilotage' },
   { to: '/portefeuille', label: 'Mes clients', icon: Briefcase, roles: ['commercial', 'responsable', 'direction'], section: 'activite' },
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['responsable', 'direction'], section: 'activite' },
-  { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'direction'], section: 'atelier' },
+  { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'atelier' },
   { to: '/lancement', label: 'Lancement', icon: Rocket, roles: ['direction'], section: 'admin' },
   { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'], section: 'admin' },
   { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'], section: 'admin' },

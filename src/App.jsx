@@ -36,6 +36,7 @@ const HomeRedirect = () => {
   const role = getAppRole(user, viewAsRole);
   if (role === 'collaborateur') return <Navigate to="/tableau-de-bord" replace />;
   if (role === 'commercial') return <Navigate to="/mon-espace" replace />;
+  if (role === 'chef_atelier' || role === 'responsable_sav') return <Navigate to="/atelier" replace />;
   return <Navigate to="/tableau-de-bord" replace />;
 };
 

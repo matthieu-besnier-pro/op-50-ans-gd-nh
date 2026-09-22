@@ -39,8 +39,17 @@ export function canAccessEquipe(user) {
   return isResponsable(user) || isDirection(user);
 }
 
+export function isChefAtelier(user) {
+  return getAppRole(user) === 'chef_atelier';
+}
+
+export function isResponsableSav(user) {
+  return getAppRole(user) === 'responsable_sav';
+}
+
 export function canAccessAtelier(user) {
-  return isResponsable(user) || isDirection(user);
+  const r = getAppRole(user);
+  return r === 'responsable' || r === 'chef_atelier' || r === 'responsable_sav' || isDirection(user);
 }
 
 export function canAccessAdmin(user) {

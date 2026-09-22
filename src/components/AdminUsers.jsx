@@ -12,6 +12,8 @@ import { UserPlus, Mail, Trash2, Briefcase } from 'lucide-react';
 const APP_ROLES = [
   { value: 'commercial', label: 'Commercial' },
   { value: 'responsable', label: 'Responsable commercial' },
+  { value: 'chef_atelier', label: 'Chef d\'atelier' },
+  { value: 'responsable_sav', label: 'Responsable SAV' },
   { value: 'direction', label: 'Direction / Marketing' },
   { value: 'collaborateur', label: 'Collaborateur' }
 ];
