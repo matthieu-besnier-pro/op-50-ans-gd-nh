@@ -138,6 +138,8 @@ export default function Layout({ children }) {
                 <SelectItem value="admin">Vue admin (tout)</SelectItem>
                 <SelectItem value="commercial">Commercial</SelectItem>
                 <SelectItem value="responsable">Manager / Responsable</SelectItem>
+                <SelectItem value="chef_atelier">Chef d'atelier</SelectItem>
+                <SelectItem value="responsable_sav">Responsable SAV</SelectItem>
                 <SelectItem value="collaborateur">Collaborateur</SelectItem>
               </SelectContent>
             </Select>

@@ -52,7 +52,7 @@ export default function AdminUsers({ bases, onReload }) {
         await base44.functions.invoke('definir_role', {
           utilisateur_id: newUser.id,
           app_role: inviteRole,
-          base_id: inviteRole === 'commercial' ? inviteBase : undefined
+          base_id: ['commercial', 'chef_atelier'].includes(inviteRole) ? inviteBase : undefined
         });
       }
       setInviteEmail('');
@@ -103,7 +103,7 @@ export default function AdminUsers({ bases, onReload }) {
               </SelectContent>
             </Select>
           </div>
-          {inviteRole === 'commercial' && (
+          {['commercial', 'chef_atelier'].includes(inviteRole) && (
             <div className="space-y-1.5">
               <Label>Base de rattachement</Label>
               <Select value={inviteBase} onValueChange={setInviteBase}>
@@ -150,7 +150,7 @@ export default function AdminUsers({ bases, onReload }) {
                   </Select>
                 </td>
                 <td className="px-4 py-3">
-                  {(u.app_role === 'commercial' || u.app_role === 'responsable') ? (
+                  {['commercial', 'responsable', 'chef_atelier', 'responsable_sav'].includes(u.app_role) ? (
                     <Select value={u.base_id || ''} onValueChange={(v) => changeBase(u.id, v)}>
                       <SelectTrigger className="h-8 w-40"><SelectValue placeholder="—" /></SelectTrigger>
                       <SelectContent>
