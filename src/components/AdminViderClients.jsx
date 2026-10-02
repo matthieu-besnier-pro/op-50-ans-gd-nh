@@ -16,7 +16,7 @@ export default function AdminViderClients({ onReload }) {
 
   const vider = async () => {
     if (mot.trim().toUpperCase() !== 'VIDER') return;
-    if (!window.confirm('Supprimer définitivement TOUS les clients et leur matériel ? Irréversible.')) return;
+    if (!window.confirm('Supprimer définitivement TOUS les clients, leur matériel, et toute l\'activité (RDV, ventes) ? Irréversible.')) return;
     setBusy(true); setError(null); setDone(false); setStatus('Suppression…');
     let total = 0;
     try {
@@ -51,7 +51,7 @@ export default function AdminViderClients({ onReload }) {
         <AlertTriangle className="h-4 w-4" /> Vider la base clients
       </h3>
       <p className="text-sm text-red-800/90 mb-3">
-        Supprime <strong>tous les clients et tout le matériel</strong>. À faire avant de réimporter les nouvelles bases par secteur. Irréversible.
+        Supprime <strong>tous les clients, tout le matériel et toute l'activité</strong> (RDV, ventes) — y compris les données de démo. À faire avant de réimporter les nouvelles bases par secteur. Irréversible.
       </p>
       <div className="flex items-center gap-3">
         <Input value={mot} onChange={(e) => setMot(e.target.value)} placeholder="Tapez VIDER" className="max-w-[160px]" />

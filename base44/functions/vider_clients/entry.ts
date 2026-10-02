@@ -28,29 +28,27 @@ export default async function(req) {
     }
     const sr = base44.asServiceRole;
 
-    // On supprime d'abord le matériel (dépendances), puis les clients.
+    // Écran blanc complet : on vide l'activité (RDV, ventes) puis le matériel,
+    // et enfin les clients. Ordre = dépendances d'abord. Résumable (lots de BUDGET).
+    const ORDRE = ['rdv', 'vente', 'materiel', 'client'];
     let supprimes = 0;
-    const mats = await page('materiel', sr);
-    for (const m of mats) {
-      await sr.entities.materiel.delete(m.id).catch(() => {});
-      supprimes++;
+    for (const ent of ORDRE) {
       if (supprimes >= BUDGET) break;
-      await sleep(80);
-    }
-    if (supprimes < BUDGET) {
-      const clis = await page('client', sr);
-      for (const c of clis) {
-        await sr.entities.client.delete(c.id).catch(() => {});
+      const rows = await page(ent, sr);
+      for (const r of rows) {
+        await sr.entities[ent].delete(r.id).catch(() => {});
         supprimes++;
         if (supprimes >= BUDGET) break;
         await sleep(80);
       }
     }
 
-    // Compteurs restants (approx : une page)
-    const restMat = (await sr.entities.materiel.list('-created_date', 1)).length;
-    const restCli = (await sr.entities.client.list('-created_date', 1)).length;
-    return Response.json({ ok: true, supprimes_ce_lot: supprimes, done: restMat === 0 && restCli === 0 });
+    // Terminé quand il ne reste plus rien dans aucune de ces entités (approx : une page).
+    let reste = 0;
+    for (const ent of ORDRE) {
+      reste += (await sr.entities[ent].list('-created_date', 1)).length;
+    }
+    return Response.json({ ok: true, supprimes_ce_lot: supprimes, done: reste === 0 });
   } catch (error) {
     return Response.json({ error: `[vider_clients] ${error?.message || String(error)}` }, { status: 500 });
   }
