@@ -30,9 +30,20 @@ export function isCommercial(user) {
   return getAppRole(user) === 'commercial';
 }
 
+export function isAgriPrecision(user) {
+  return getAppRole(user) === 'agri_precision';
+}
+
+// Les profils "terrain" qui disposent d'un portefeuille / espace commercial :
+// commercial classique ET agriculture de précision (spécialiste d'un usage).
+export function isTerrain(user, viewAsRole = null) {
+  const r = viewAsRole || getAppRole(user);
+  return r === 'commercial' || r === 'agri_precision';
+}
+
 export function canAccessClients(user) {
   const r = getAppRole(user);
-  return r === 'commercial' || r === 'responsable' || isDirection(user);
+  return r === 'commercial' || r === 'agri_precision' || r === 'responsable' || isDirection(user);
 }
 
 export function canAccessEquipe(user) {

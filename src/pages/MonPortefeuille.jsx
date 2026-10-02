@@ -7,6 +7,7 @@ import { isDirection, getAppRole } from '@/lib/permissions';
 import Layout from '@/components/Layout';
 import StatusBadge from '@/components/StatusBadge';
 import AppetenceBadge from '@/components/AppetenceBadge';
+import { UsagesClient } from '@/components/MaterielPicto';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
 import { Input } from '@/components/ui/input';
@@ -258,6 +259,7 @@ export default function MonPortefeuille() {
                   <td className="px-4 py-3">
                     <p className="font-semibold text-foreground text-sm">{c.raison_sociale}</p>
                     <p className="text-xs text-muted-foreground">{c.type_structure || 'Exploitation'} · {c.siren || '—'}</p>
+                    {Array.isArray(c.usages) && c.usages.length > 0 && <UsagesClient usages={c.usages} className="mt-1" />}
                   </td>
                   <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
                   <td className="px-4 py-3"><AppetenceBadge niveau={c.niveau_appetence} score={c.score_appetence} /></td>

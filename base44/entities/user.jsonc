@@ -15,6 +15,7 @@
       "type": "string",
       "enum": [
         "commercial",
+        "agri_precision",
         "responsable",
         "chef_atelier",
         "responsable_sav",
@@ -24,6 +25,7 @@
       "default": "collaborateur",
       "enumNames": [
         "Commercial",
+        "Agriculture de précision",
         "Responsable commercial",
         "Chef d'atelier",
         "Responsable SAV",

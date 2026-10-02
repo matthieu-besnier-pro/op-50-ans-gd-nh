@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Tractor } from 'lucide-react';
+import { MaterielPicto, UsageChip, categorieMeta } from '@/components/MaterielPicto';
 
 const ALL_FIELDS = [
   { key: 'num_plaque', label: 'N° de plaque' },
@@ -49,7 +50,18 @@ export default function ParcMaterielTable({ materiels }) {
       }
     });
     const topBrands = Object.entries(brands).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, c]) => `${n} (${c})`);
-    return { total: materiels.length, topBrands, types, withImmat, oldestAge: oldestAge !== null ? Math.round(oldestAge) : null };
+    // Répartition par catégorie d'opération (pictogrammes) et par usage.
+    const cats = {};
+    const usages = {};
+    materiels.forEach((m) => {
+      const meta = categorieMeta(m.categorie_op);
+      cats[meta.label] = cats[meta.label] || { emoji: meta.emoji, label: meta.label, count: 0 };
+      cats[meta.label].count++;
+      if (m.usage) usages[m.usage] = (usages[m.usage] || 0) + 1;
+    });
+    const catList = Object.values(cats).sort((a, b) => b.count - a.count);
+    const usageList = Object.entries(usages).sort((a, b) => b[1] - a[1]);
+    return { total: materiels.length, topBrands, types, withImmat, oldestAge: oldestAge !== null ? Math.round(oldestAge) : null, catList, usageList };
   }, [materiels]);
 
   if (!materiels || materiels.length === 0) {
@@ -70,6 +82,22 @@ export default function ParcMaterielTable({ materiels }) {
           {summary.types.Neuf > 0 && <span className="text-emerald-600 font-medium">{summary.types.Neuf} neuf{summary.types.Neuf > 1 ? 's' : ''}</span>}
           {summary.types.Occasion > 0 && <span className="text-amber-600 font-medium">{summary.types.Occasion} occasion{summary.types.Occasion > 1 ? 's' : ''}</span>}
           {summary.oldestAge !== null && <span className="text-muted-foreground">· plus ancienne : {summary.oldestAge} ans</span>}
+        </div>
+      )}
+
+      {/* Répartition par usage + pictogrammes par catégorie */}
+      {summary && (summary.usageList.length > 0 || summary.catList.length > 0) && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {summary.usageList.map(([u, n]) => (
+            <span key={u} className="inline-flex items-center gap-1"><UsageChip usage={u} /><span className="text-[11px] font-semibold text-muted-foreground">×{n}</span></span>
+          ))}
+          {summary.usageList.length > 0 && summary.catList.length > 0 && <span className="h-4 w-px bg-border" />}
+          {summary.catList.map((c) => (
+            <span key={c.label} title={c.label} className="inline-flex items-center gap-1 rounded-lg bg-muted/50 px-2 py-1 text-xs">
+              <span className="text-base leading-none" role="img" aria-label={c.label}>{c.emoji}</span>
+              <span className="font-semibold text-foreground">{c.count}</span>
+            </span>
+          ))}
         </div>
       )}
 
@@ -103,8 +131,16 @@ export default function ParcMaterielTable({ materiels }) {
                         : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                     </td>
                     <td className="px-3 py-2.5">
-                      <p className="text-sm font-semibold text-foreground">{m.modele || '—'}</p>
-                      <p className="text-xs text-muted-foreground">{m.categorie_2 || m.categorie_1 || m.famille_materiel || ''}</p>
+                      <div className="flex items-center gap-2">
+                        <MaterielPicto categorie_op={m.categorie_op} size="md" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                            {m.modele || '—'}
+                            {m.usage && <UsageChip usage={m.usage} />}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{m.categorie_2 || m.categorie_1 || m.famille_materiel || categorieMeta(m.categorie_op).label}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-3 py-2.5 text-sm text-foreground">{m.marque || '—'}</td>
                     <td className="px-3 py-2.5">

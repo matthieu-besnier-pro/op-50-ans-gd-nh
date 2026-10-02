@@ -6,6 +6,15 @@
       "type": "string",
       "description": "Titre de l'offre"
     },
+    "type": {
+      "type": "string",
+      "enum": [
+        "magasin",
+        "agri_precision"
+      ],
+      "default": "magasin",
+      "description": "Nature de l'offre : magasin ou agriculture de précision"
+    },
     "date_debut": {
       "type": "string",
       "format": "date",

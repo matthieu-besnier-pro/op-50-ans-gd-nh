@@ -12,7 +12,8 @@ const LIGHT = [
   'niveau_appetence', 'score_appetence', 'date_dernier_contact',
   'date_prochain_rdv', 'date_rappel', 'montant_devis',
   'commerciaux_assignes', 'base_responsable_id', 'base_id',
-  'tel_mobile', 'adresse_complete', 'type_client_mistra'
+  'tel_mobile', 'adresse_complete', 'type_client_mistra',
+  'usages', 'secteur', 'departement'
 ];
 const pick = (c) => { const o = {}; for (const k of LIGHT) o[k] = c[k]; return o; };
 

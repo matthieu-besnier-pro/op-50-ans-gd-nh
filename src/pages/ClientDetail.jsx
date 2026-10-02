@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { canSeePac } from '@/lib/permissions';
 import ParcMaterielTable from '@/components/ParcMaterielTable';
+import { UsagesClient } from '@/components/MaterielPicto';
 import CoachCommercial from '@/components/CoachCommercial';
 import {
   ArrowLeft, Phone, MapPin, Calendar, Wrench, ShoppingBag,
@@ -152,6 +153,9 @@ export default function ClientDetail() {
               {client.type_structure && <span className="text-xs font-medium text-muted-foreground">{client.type_structure}</span>}
               {client.type_client_mistra && <span className="text-xs font-medium text-muted-foreground">· {client.type_client_mistra}</span>}
             </div>
+            {Array.isArray(client.usages) && client.usages.length > 0 && (
+              <UsagesClient usages={client.usages} className="mt-2" />
+            )}
           </div>
           <div className="flex gap-2">
             <Button onClick={() => setRdvOpen(true)} className="bg-gd-navy hover:bg-gd-navy-dark text-white">

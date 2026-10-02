@@ -14,6 +14,7 @@ import {
 
 const ROLE_LABELS = {
   commercial: 'Commercial',
+  agri_precision: 'Agriculture de précision',
   responsable: 'Responsable commercial',
   chef_atelier: "Chef d'atelier",
   responsable_sav: 'Responsable SAV',
@@ -30,11 +31,11 @@ const SECTION_LABELS = {
 };
 
 const navItems = [
-  { to: '/mon-espace', label: 'Mon espace', icon: Zap, roles: ['commercial'], section: 'espace' },
-  { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'responsable', 'chef_atelier', 'responsable_sav', 'direction', 'collaborateur'], section: 'pilotage' },
-  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'pilotage' },
+  { to: '/mon-espace', label: 'Mon espace', icon: Zap, roles: ['commercial', 'agri_precision'], section: 'espace' },
+  { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction', 'collaborateur'], section: 'pilotage' },
+  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'pilotage' },
   { to: '/grand-ecran', label: 'Grand Écran', icon: Monitor, roles: ['responsable', 'direction', 'collaborateur'], section: 'pilotage' },
-  { to: '/portefeuille', label: 'Mes clients', icon: Briefcase, roles: ['commercial', 'responsable', 'direction'], section: 'activite' },
+  { to: '/portefeuille', label: 'Mes clients', icon: Briefcase, roles: ['commercial', 'agri_precision', 'responsable', 'direction'], section: 'activite' },
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'atelier' },
@@ -137,6 +138,7 @@ export default function Layout({ children }) {
               <SelectContent>
                 <SelectItem value="admin">Vue admin (tout)</SelectItem>
                 <SelectItem value="commercial">Commercial</SelectItem>
+                <SelectItem value="agri_precision">Agriculture de précision</SelectItem>
                 <SelectItem value="responsable">Manager / Responsable</SelectItem>
                 <SelectItem value="chef_atelier">Chef d'atelier</SelectItem>
                 <SelectItem value="responsable_sav">Responsable SAV</SelectItem>
