@@ -21,6 +21,8 @@ import AdminAffectationCommunesImport from '@/components/AdminAffectationCommune
 import AdminOffres from '@/components/AdminOffres';
 import AdminClientsListing from '@/components/AdminClientsListing';
 import AdminImportDonnees from '@/components/AdminImportDonnees';
+import AdminImportSecteurs from '@/components/AdminImportSecteurs';
+import AdminViderClients from '@/components/AdminViderClients';
 import AdminComptesDemo from '@/components/AdminComptesDemo';
 import AdminDonneesDemo from '@/components/AdminDonneesDemo';
 import AdminDiagnostic from '@/components/AdminDiagnostic';
@@ -424,9 +426,16 @@ export default function Administration() {
         <TabsContent value="import">
           <div className="mb-4">
             <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground"><Upload className="h-4 w-4 text-gd-orange" /> Import de données</h2>
-            <p className="text-sm text-muted-foreground">Importez les exports MISTRA / SIV puis PAC pour créer les clients, leur matériel et calculer les scores d'appétence.</p>
+            <p className="text-sm text-muted-foreground">Nouvelles bases par secteur (3 usages) : videz la base puis importez les 3 fichiers.</p>
           </div>
-          <AdminImportDonnees onReload={load} />
+          <div className="space-y-5">
+            <AdminViderClients onReload={load} />
+            <AdminImportSecteurs onReload={load} />
+            <details className="rounded-xl border border-border bg-card p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">Ancien import (MISTRA / SIV / PAC)</summary>
+              <div className="mt-4"><AdminImportDonnees onReload={load} /></div>
+            </details>
+          </div>
         </TabsContent>
       </Tabs>
     </Layout>

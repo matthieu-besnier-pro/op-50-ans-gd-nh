@@ -144,6 +144,27 @@
         "Autre"
       ],
       "description": "Statut de possession (export MISTRA) \u2014 conserve toute la donn\u00e9e source"
+    },
+    "categorie_op": {
+      "type": "string",
+      "description": "Cat\u00e9gorie op\u00e9ration (TRACTEURS, MB, BB-RB, TELESCOPIQUES, ENSILEUSES, MAV, AUTRES, AGRI PRECISION) \u2014 pour les pictogrammes"
+    },
+    "usage": {
+      "type": "string",
+      "enum": [
+        "commerce",
+        "atelier",
+        "agri_precision"
+      ],
+      "description": "Usage du mat\u00e9riel"
+    },
+    "secteur": {
+      "type": "string",
+      "description": "Secteur vendeur (nom du commercial)"
+    },
+    "annee_immat": {
+      "type": "number",
+      "description": "Ann\u00e9e d'immatriculation"
     }
   },
   "required": [

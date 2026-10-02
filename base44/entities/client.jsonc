@@ -135,6 +135,22 @@
       ],
       "description": "Client ou Prospect (export MISTRA)"
     },
+    "secteur": {
+      "type": "string",
+      "description": "Secteur vendeur (nom du commercial) — sert au rattachement"
+    },
+    "usages": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "commerce",
+          "atelier",
+          "agri_precision"
+        ]
+      },
+      "description": "Usages du client : commerce / atelier (récolte) / agriculture de précision"
+    },
     "ca_total_12m": {
       "type": "number",
       "description": "CA total sur 12 mois (MISTRA)"
