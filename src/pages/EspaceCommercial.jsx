@@ -5,6 +5,8 @@ import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
 import RdvExpress from '@/components/RdvExpress';
+import RdvNiveaux from '@/components/RdvNiveaux';
+import { computeRdvNiveaux } from '@/lib/rdvNiveaux';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
@@ -52,6 +54,8 @@ export default function EspaceCommercial() {
   const [badges, setBadges] = useState([]);
   const [obtenus, setObtenus] = useState([]);
   const [nbCommerciaux, setNbCommerciaux] = useState(1);
+  const [users, setUsers] = useState([]);
+  const [structure, setStructure] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -61,14 +65,15 @@ export default function EspaceCommercial() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [p, myRdv, myClients, b, aRdv, aVentes, users] = await Promise.all([
+        const [p, myRdv, myClients, b, aRdv, aVentes, users, structList] = await Promise.all([
           base44.entities.parametres_operation.list('-created_date', 1),
           base44.entities.rdv.filter({ commercial_id: user.id }, '-date_heure', 500).catch(() => []),
           base44.entities.client.filter({ commerciaux_assignes: user.id }, '-created_date', 500).catch(() => []),
           base44.entities.badge.list('-created_date', 50),
           base44.entities.rdv.list('-date_heure', 1000).catch(() => []),
           base44.entities.vente.list('-date_vente', 1000).catch(() => []),
-          base44.entities.User.list('-created_date', 300).catch(() => [])
+          base44.entities.User.list('-created_date', 300).catch(() => []),
+          base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
         ]);
         setParams(p[0] || null);
         setRdvs(myRdv);
@@ -76,7 +81,10 @@ export default function EspaceCommercial() {
         setBadges(b);
         setAllRdvs(aRdv);
         setAllVentes(aVentes);
-        setNbCommerciaux(Math.max(1, users.filter((u) => u.app_role === 'commercial').length));
+        setUsers(users);
+        setStructure(structList);
+        // Objectif individuel : nombre de commerciaux connectés, sinon repli sur les fiches commerciales.
+        setNbCommerciaux(Math.max(1, users.filter((u) => u.app_role === 'commercial').length || structList.length));
         try {
           const ob = await base44.entities.badge_obtenu.filter({ utilisateur_id: user.id }, '-created_date', 200);
           setObtenus(ob);
@@ -103,6 +111,16 @@ export default function EspaceCommercial() {
   // Objectifs individuels = part de l'objectif global / nb de commerciaux
   const objRdvIndiv = params?.objectif_rdv ? Math.max(1, Math.round(params.objectif_rdv / nbCommerciaux)) : 0;
   const objVentesIndiv = params?.objectif_ventes ? Math.max(1, Math.round(params.objectif_ventes / nbCommerciaux)) : 0;
+
+  // Indicateurs RDV à trois niveaux : moi / mon équipe / l'entreprise.
+  const niveauxRdv = computeRdvNiveaux({
+    rdvs: allRdvs,
+    structure,
+    users,
+    user,
+    objectifRdv: params?.objectif_rdv || 0,
+    nbCommerciaux
+  });
 
   // Mon rang dans l'équipe (RDV pris = 1 pt, vente validée = 3 pts)
   const monRang = useMemo(() => {
@@ -208,6 +226,8 @@ export default function EspaceCommercial() {
             Calendrier <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
+
+        <RdvNiveaux niveaux={niveauxRdv} variant="dark" />
 
         {/* Grille : Priorités + RDV + Badges */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

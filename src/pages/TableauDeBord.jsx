@@ -14,6 +14,8 @@ import {
   CalendarClock, Timer, CheckCircle2, Target, Store, TrendingUp, Trophy, AlertCircle
 } from 'lucide-react';
 import { useDemoPersona } from '@/lib/useDemoPersona';
+import RdvNiveaux from '@/components/RdvNiveaux';
+import { computeRdvNiveaux } from '@/lib/rdvNiveaux';
 
 const CHART_COLORS = ['hsl(212 100% 21%)', 'hsl(45 100% 51%)', 'hsl(213 25% 66%)', 'hsl(0 64% 51%)', 'hsl(215 100% 28%)', 'hsl(45 100% 40%)', 'hsl(210 20% 50%)'];
 const TYPES_MACHINE = ['Tracteur', 'Moissonneuse', 'Big Baler', 'Round Baler', 'Télescopique', 'Ensileuse', 'Machine à vendanger'];
@@ -55,6 +57,7 @@ export default function TableauDeBord() {
   const mapRdvs = scopedRdvs;
 
   const [exacts, setExacts] = useState(null);
+  const [tousRdvs, setTousRdvs] = useState([]); // liste complète : indicateurs moi / mon équipe / entreprise
 
   const load = useCallback(async () => {
     try {
@@ -73,6 +76,7 @@ export default function TableauDeBord() {
       const personaVentes = persona.mode ? v.filter((vd) => persona.matchCommercialId(vd.commercial_id)) : v;
       setParams(p[0] || null);
       setRdvs(personaRdvs);
+      setTousRdvs(r);
       setVentes(personaVentes);
       setOffres(o);
       setUsers(u);
@@ -144,6 +148,16 @@ export default function TableauDeBord() {
   const objVentes = params?.objectif_ventes || 0;
   const objCa = params?.objectif_ca_magasin || 0;
 
+  // Indicateurs RDV à trois niveaux, visibles par toute personne connectée.
+  const niveauxRdv = computeRdvNiveaux({
+    rdvs: tousRdvs,
+    structure,
+    users,
+    user,
+    objectifRdv: objRdv,
+    nbCommerciaux: users.filter((u) => u.app_role === 'commercial').length
+  });
+
   const ventesWhatsapp = ventes.filter((v) => v.source_declaration === 'Import WhatsApp');
   const lastWhatsapp = ventesWhatsapp.length > 0
     ? ventesWhatsapp.reduce((max, v) => v.created_date > max ? v.created_date : max, ventesWhatsapp[0].created_date)
@@ -205,6 +219,11 @@ export default function TableauDeBord() {
           <p className="text-3xl font-extrabold text-gd-navy-dark">{caMagasin.toLocaleString('fr-FR')} €<span className="text-base font-medium text-muted-foreground"> / {objCa.toLocaleString('fr-FR')} €</span></p>
           <ProgressBar value={caMagasin} max={objCa} className="mt-3" />
         </div>
+      </div>
+
+      {/* Indicateurs RDV : moi / mon équipe / l'entreprise */}
+      <div className="mb-6">
+        <RdvNiveaux niveaux={niveauxRdv} variant="light" />
       </div>
 
       {/* Charts */}
