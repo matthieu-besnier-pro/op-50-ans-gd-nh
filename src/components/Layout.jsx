@@ -61,7 +61,7 @@ export default function Layout({ children }) {
     }
   }, [canViewAs]);
 
-  const commercials = structure.filter((s) => s.entite !== 'Quitté');
+  const commercials = structure;
   const managers = useMemo(() => {
     const set = new Set();
     structure.forEach((s) => { if (s.manager) set.add(s.manager); });

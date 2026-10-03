@@ -1,4 +1,5 @@
 import React from 'react';
+import CategorieIcone from '@/components/CategorieIcone';
 import { categorieMeta } from '@/components/MaterielPicto';
 
 // Bandeau compact du parc d'un client : pictogramme + nombre par catégorie.
@@ -22,9 +23,9 @@ export default function ParcPictos({ pictos, className = '' }) {
           <span
             key={cat}
             title={`${meta.label} : ${n}`}
-            className="inline-flex items-center gap-0.5 rounded-md bg-muted/70 px-1.5 py-0.5 text-[11px] font-semibold text-foreground"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-1.5 py-0.5 text-[11px] font-semibold text-foreground"
           >
-            <span className="leading-none" role="img" aria-label={meta.label}>{meta.emoji}</span>
+            <CategorieIcone categorie={cat} size={22} />
             {n}
           </span>
         );

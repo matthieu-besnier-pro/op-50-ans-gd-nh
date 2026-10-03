@@ -236,10 +236,10 @@ export default function MonPortefeuille() {
           <thead>
             <tr className="border-b border-border bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Raison sociale</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Parc</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Appétence</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Priorité</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dernier contact</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prochain RDV</th>
               {showCommercial && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Commercial</th>}
               <th className="px-4 py-3 w-8"></th>
@@ -263,8 +263,8 @@ export default function MonPortefeuille() {
                     <p className="font-semibold text-foreground text-sm">{c.raison_sociale}</p>
                     <p className="text-xs text-muted-foreground">{c.type_structure || 'Exploitation'} · {c.siren || '—'}</p>
                     {Array.isArray(c.usages) && c.usages.length > 0 && <UsagesClient usages={c.usages} className="mt-1" />}
-                    <ParcPictos pictos={c.parc_pictos} className="mt-1" />
                   </td>
+                  <td className="px-4 py-3"><ParcPictos pictos={c.parc_pictos} /></td>
                   <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
                   <td className="px-4 py-3"><AppetenceGauge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
                   <td className="px-4 py-3">
@@ -272,7 +272,6 @@ export default function MonPortefeuille() {
                       {pl.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_dernier_contact || '—'}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_prochain_rdv || '—'}</td>
                   {showCommercial && <td className="px-4 py-3 text-sm text-foreground">{commercialNames(c)}</td>}
                   <td className="px-4 py-3"><ChevronRight className="h-4 w-4 text-muted-foreground" /></td>
