@@ -12,16 +12,35 @@ import ParcPictos from '@/components/ParcPictos';
 import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { Search, Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, ListFilter } from 'lucide-react';
+import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight } from 'lucide-react';
+import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
 const STATUTS_TERMINAUX = ['Vente conclue', 'Refus', 'Contacté sans suite'];
+
+const FILTRES_INIT = {
+  search: '',
+  statut: 'all',
+  appetence: 'all',
+  priorite: 'all',
+  commercial: 'all',
+  base: 'all',
+  parc: 'all',
+  categorie: 'all',
+  suivi: 'all'
+};
+
+// Niveau d'appétence du client (mêmes seuils que la jauge AppetenceGauge).
+export function niveauAppetence(client) {
+  if (client.niveau_appetence) return client.niveau_appetence;
+  const s = client.score_appetence;
+  if (s == null) return null;
+  if (s >= 66) return 'Fort';
+  if (s >= 36) return 'Moyen';
+  return 'Faible';
+}
 
 export function priorityScore(client) {
   if (STATUTS_TERMINAUX.includes(client.statut)) return 0;
@@ -53,9 +72,9 @@ export default function MonPortefeuille() {
   const [params, setParams] = useState(null);
   const [badges, setBadges] = useState([]);
   const [structure, setStructure] = useState([]);
+  const [bases, setBases] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statutFilter, setStatutFilter] = useState('all');
+  const [filters, setFilters] = useState(FILTRES_INIT);
   const [sortByPriority, setSortByPriority] = useState(true);
 
   const effectiveId = persona.mode === 'commercial' ? persona.ids[0] : user?.id;
@@ -83,13 +102,15 @@ export default function MonPortefeuille() {
       }
       setClients(clientList);
 
-      const [rdvList, venteList, paramList, structList] = await Promise.all([
+      const [rdvList, venteList, paramList, structList, baseList] = await Promise.all([
         base44.entities.rdv.list('-date_heure', 1000),
         base44.entities.vente.list('-date_vente', 1000),
         base44.entities.parametres_operation.list('-created_date', 1),
-        base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
+        base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => []),
+        base44.entities.base.list('-nom', 100).catch(() => [])
       ]);
       setStructure(structList);
+      setBases(baseList);
       const scopeRdv = (r) => {
         if (persona.mode) return persona.matchCommercialId(r.commercial_id);
         if (direction) return true;
@@ -135,6 +156,38 @@ export default function MonPortefeuille() {
     return c.secteur || '—';
   };
 
+  // Options du filtre « commercial » : commerciaux assignés, complétés par les noms
+  // issus des fichiers d'import pour les clients non encore rattachés à un compte.
+  const commercialOptions = useMemo(() => {
+    const opts = [];
+    const seen = new Set();
+    clients.forEach((c) => {
+      (c.commerciaux_assignes || []).forEach((id) => {
+        if (seen.has(id)) return;
+        seen.add(id);
+        opts.push({ value: id, label: commByUser[id] || 'Commercial' });
+      });
+    });
+    clients.forEach((c) => {
+      const assigned = c.commerciaux_assignes || [];
+      if (assigned.length === 0 && c.secteur && !seen.has(`secteur:${c.secteur}`)) {
+        seen.add(`secteur:${c.secteur}`);
+        opts.push({ value: `secteur:${c.secteur}`, label: `${c.secteur} (import)` });
+      }
+    });
+    return opts.sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+  }, [clients, commByUser]);
+
+  // Catégories de matériel présentes dans le parc cible affiché.
+  const categoriesParc = useMemo(() => {
+    const set = new Set();
+    clients.forEach((c) => (c.parc_pictos || []).forEach((p) => {
+      const cat = String(p).split(':')[0];
+      if (cat) set.add(cat);
+    }));
+    return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [clients]);
+
   // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
   const kpis = useMemo(() => {
     const rdvMonth = stats?.rdv?.realises_du_mois ?? rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
@@ -146,16 +199,60 @@ export default function MonPortefeuille() {
   }, [clients, rdvs, ventes, stats, monthStart]);
 
   const filtered = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     let list = clients.filter((c) => {
-      if (statutFilter !== 'all' && c.statut !== statutFilter) return false;
-      if (search && !(c.raison_sociale || '').toLowerCase().includes(search.toLowerCase()) && !(c.siren || '').includes(search)) return false;
+      if (filters.statut !== 'all' && c.statut !== filters.statut) return false;
+
+      if (filters.appetence !== 'all' && niveauAppetence(c) !== filters.appetence) return false;
+
+      if (filters.priorite !== 'all' && priorityLabel(priorityScore(c)).label !== filters.priorite) return false;
+
+      if (filters.commercial !== 'all') {
+        const assigned = c.commerciaux_assignes || [];
+        if (filters.commercial.startsWith('secteur:')) {
+          if (assigned.length > 0 || c.secteur !== filters.commercial.slice(8)) return false;
+        } else if (!assigned.includes(filters.commercial)) return false;
+      }
+
+      if (filters.base !== 'all' && c.base_id !== filters.base) return false;
+
+      if (filters.parc !== 'all') {
+        const aParc = (c.parc_total || 0) > 0 || (c.parc_pictos || []).length > 0;
+        if (filters.parc === 'avec' && !aParc) return false;
+        if (filters.parc === 'sans' && aParc) return false;
+      }
+
+      if (filters.categorie !== 'all' && !(c.parc_pictos || []).some((p) => String(p).split(':')[0] === filters.categorie)) {
+        return false;
+      }
+
+      if (filters.suivi !== 'all') {
+        if (filters.suivi === 'rdv') {
+          const next = c.date_prochain_rdv ? new Date(c.date_prochain_rdv) : null;
+          if (!next || next < today) return false;
+        }
+        if (filters.suivi === 'rappel') {
+          const rappel = c.date_rappel ? new Date(c.date_rappel) : null;
+          if (c.statut !== 'À rappeler' || !rappel || rappel > today) return false;
+        }
+      }
+
+      if (filters.search) {
+        const s = filters.search.toLowerCase();
+        const hay = [c.raison_sociale, c.siren, c.code_commune, c.adresse_complete, c.secteur, commercialNames(c)]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(s)) return false;
+      }
+
       return true;
     });
     if (sortByPriority) {
       list = [...list].sort((a, b) => priorityScore(b) - priorityScore(a));
     }
     return list;
-  }, [clients, search, statutFilter, sortByPriority]);
+  }, [clients, filters, sortByPriority, commByUser, structure]);
 
   const statutCounts = useMemo(() => {
     const counts = {};
@@ -166,7 +263,7 @@ export default function MonPortefeuille() {
   }, [clients, stats]);
 
   const [affichesMax, setAffichesMax] = useState(200);
-  useEffect(() => { setAffichesMax(200); }, [search, statutFilter, sortByPriority]);
+  useEffect(() => { setAffichesMax(200); }, [filters, sortByPriority]);
   const affiches = filtered.slice(0, affichesMax);
 
   const objRdv = params?.objectif_rdv || 0;
@@ -213,27 +310,21 @@ export default function MonPortefeuille() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="mb-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Rechercher (raison sociale, SIREN)…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-        </div>
-        <Select value={statutFilter} onValueChange={setStatutFilter}>
-          <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous les statuts</SelectItem>
-            {STATUTS.map((s) => (<SelectItem key={s} value={s}>{s} ({statutCounts[s] || 0})</SelectItem>))}
-          </SelectContent>
-        </Select>
-        <Button
-          variant={sortByPriority ? 'default' : 'outline'}
-          onClick={() => setSortByPriority(!sortByPriority)}
-          className={sortByPriority ? 'bg-gd-navy hover:bg-gd-navy-dark text-white' : 'border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white'}
-        >
-          <ListFilter className="h-4 w-4 mr-1.5" /> Priorité
-        </Button>
-      </div>
+      {/* Filtres du portefeuille */}
+      <PortefeuilleFiltres
+        filters={filters}
+        onChange={(key, value) => setFilters((f) => ({ ...f, [key]: value }))}
+        onReset={() => setFilters(FILTRES_INIT)}
+        statutCounts={statutCounts}
+        commercials={commercialOptions}
+        showCommercial={showCommercial}
+        bases={bases}
+        categories={categoriesParc}
+        sortByPriority={sortByPriority}
+        onTogglePriority={() => setSortByPriority((v) => !v)}
+        count={filtered.length}
+        total={clients.length}
+      />
 
       {kpis.totalClients > clients.length && (
         <p className="mb-2 text-xs text-muted-foreground">
