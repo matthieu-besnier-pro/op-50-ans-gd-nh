@@ -83,8 +83,7 @@ export default function EspaceCommercial() {
         setAllVentes(aVentes);
         setUsers(users);
         setStructure(structList);
-        // Objectif individuel : nombre de commerciaux connectés, sinon repli sur les fiches commerciales.
-        setNbCommerciaux(Math.max(1, users.filter((u) => u.app_role === 'commercial').length || structList.length));
+        setNbCommerciaux(Math.max(1, users.filter((u) => u.app_role === 'commercial').length));
         try {
           const ob = await base44.entities.badge_obtenu.filter({ utilisateur_id: user.id }, '-created_date', 200);
           setObtenus(ob);
@@ -118,8 +117,7 @@ export default function EspaceCommercial() {
     structure,
     users,
     user,
-    objectifRdv: params?.objectif_rdv || 0,
-    nbCommerciaux
+    objectifRdv: params?.objectif_rdv || 0
   });
 
   // Mon rang dans l'équipe (RDV pris = 1 pt, vente validée = 3 pts)

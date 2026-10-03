@@ -154,8 +154,7 @@ export default function TableauDeBord() {
     structure,
     users,
     user,
-    objectifRdv: objRdv,
-    nbCommerciaux: users.filter((u) => u.app_role === 'commercial').length
+    objectifRdv: objRdv
   });
 
   const ventesWhatsapp = ventes.filter((v) => v.source_declaration === 'Import WhatsApp');
@@ -193,7 +192,7 @@ export default function TableauDeBord() {
       <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-muted-foreground">RDV pris (mois)</p>
+            <p className="text-sm font-semibold text-muted-foreground">RDV</p>
             <Target className="h-4 w-4 text-gd-orange" />
           </div>
           <p className="text-3xl font-extrabold text-gd-navy-dark">{rdvTotalMonth}<span className="text-base font-medium text-muted-foreground"> / {objRdv}</span></p>

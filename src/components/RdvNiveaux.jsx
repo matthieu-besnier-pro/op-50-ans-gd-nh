@@ -35,8 +35,8 @@ export default function RdvNiveaux({ niveaux, variant = 'light' }) {
   const t = THEMES[variant] || THEMES.light;
 
   const cartes = [
-    { cle: 'moi', icone: User, titre: 'Moi', valeur: niveaux.moi, objectif: niveaux.objectifMoi, sub: 'mes RDV pris ce mois' },
-    { cle: 'equipe', icone: Users, titre: 'Mon équipe', valeur: niveaux.equipe, objectif: niveaux.objectifEquipe, sub: niveaux.tailleEquipe > 1 ? `${niveaux.tailleEquipe} commerciaux` : 'aucune équipe rattachée à votre compte' },
+    { cle: 'moi', icone: User, titre: 'Moi', valeur: niveaux.moi, objectif: 0, sub: 'mes RDV pris' },
+    { cle: 'equipe', icone: Users, titre: 'Mon équipe', valeur: niveaux.equipe, objectif: 0, sub: niveaux.tailleEquipe > 1 ? `${niveaux.tailleEquipe} commerciaux` : 'aucune équipe rattachée à votre compte' },
     { cle: 'entreprise', icone: Building2, titre: "L'entreprise", valeur: niveaux.entreprise, objectif: niveaux.objectifEntreprise, sub: "toute l'opération" }
   ];
 
@@ -49,7 +49,7 @@ export default function RdvNiveaux({ niveaux, variant = 'light' }) {
     <div className={`${t.card} p-4`}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${t.titre}`}>
-          <Trophy className="h-3.5 w-3.5" /> RDV pris ce mois — moi · mon équipe · l'entreprise
+          <Trophy className="h-3.5 w-3.5" /> RDV — moi · mon équipe · l'entreprise
         </h2>
         {niveaux.monRang && (
           <span className={`text-xs font-semibold ${t.sub}`}>
@@ -86,7 +86,7 @@ export default function RdvNiveaux({ niveaux, variant = 'light' }) {
 
       {niveaux.classement.length > 0 && (
         <div className="mt-4">
-          <p className={`mb-1.5 text-[10px] font-bold uppercase tracking-widest ${t.sub}`}>Classement RDV pris</p>
+          <p className={`mb-1.5 text-[10px] font-bold uppercase tracking-widest ${t.sub}`}>Classement RDV</p>
           <div className="space-y-1.5">
             {[...top, ...(maLigne ? [maLigne] : [])].map((e) => {
               const rang = niveaux.classement.indexOf(e) + 1;

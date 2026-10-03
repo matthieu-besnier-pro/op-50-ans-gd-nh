@@ -3,7 +3,7 @@
 
 const idsDeFiche = (fiche) => [fiche?.id, fiche?.user_id].filter(Boolean);
 
-export function computeRdvNiveaux({ rdvs = [], structure = [], users = [], user, objectifRdv = 0, nbCommerciaux = 0 }) {
+export function computeRdvNiveaux({ rdvs = [], structure = [], users = [], user, objectifRdv = 0 }) {
   const debutMois = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
   const rdvsPris = rdvs.filter((r) => r.commercial_id && r.statut !== 'Annulé' && r.date_heure >= debutMois);
 
@@ -34,15 +34,11 @@ export function computeRdvNiveaux({ rdvs = [], structure = [], users = [], user,
   const monNom = maFiche?.nom_commercial || user?.full_name || '';
   const indexMoi = classement.findIndex((e) => e.nom === monNom);
 
-  const totalCommerciaux = nbCommerciaux || structure.length || 1;
-  const objectifMoi = objectifRdv ? Math.max(1, Math.round(objectifRdv / totalCommerciaux)) : 0;
-
+  // L'objectif RDV est un objectif GLOBAL : il ne se divise pas par personne.
   return {
     moi: rdvsPris.filter((r) => mesIds.includes(r.commercial_id)).length,
-    objectifMoi,
     equipe: equipe.length > 1 ? rdvsPris.filter((r) => idsEquipe.includes(r.commercial_id)).length : null,
     tailleEquipe: equipe.length,
-    objectifEquipe: equipe.length > 1 && objectifMoi ? objectifMoi * equipe.length : 0,
     entreprise: rdvsPris.length,
     objectifEntreprise: objectifRdv || 0,
     classement,
