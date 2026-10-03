@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { isDirection, getAppRole } from '@/lib/permissions';
 import Layout from '@/components/Layout';
 import StatusBadge from '@/components/StatusBadge';
-import AppetenceBadge from '@/components/AppetenceBadge';
+import AppetenceGauge from '@/components/AppetenceGauge';
 import { UsagesClient } from '@/components/MaterielPicto';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
@@ -264,7 +264,7 @@ export default function MonPortefeuille() {
                     {Array.isArray(c.usages) && c.usages.length > 0 && <UsagesClient usages={c.usages} className="mt-1" />}
                   </td>
                   <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
-                  <td className="px-4 py-3"><AppetenceBadge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
+                  <td className="px-4 py-3"><AppetenceGauge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${pl.className}`}>
                       {pl.label}

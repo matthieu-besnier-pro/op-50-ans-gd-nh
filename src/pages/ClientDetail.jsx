@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
 import StatusBadge from '@/components/StatusBadge';
-import AppetenceBadge from '@/components/AppetenceBadge';
+import AppetenceGauge from '@/components/AppetenceGauge';
 import RdvExpress from '@/components/RdvExpress';
 import VenteDialog from '@/components/VenteDialog';
 import ScriptAppel from '@/components/ScriptAppel';
@@ -149,7 +149,7 @@ export default function ClientDetail() {
             <h1 className="text-2xl font-extrabold text-gd-navy-dark">{client.raison_sociale}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <StatusBadge statut={client.statut} />
-              <AppetenceBadge niveau={client.niveau_appetence} score={client.score_appetence} />
+              <AppetenceGauge niveau={client.niveau_appetence} score={client.score_appetence} className="min-w-[8.5rem]" />
               {client.type_structure && <span className="text-xs font-medium text-muted-foreground">{client.type_structure}</span>}
               {client.type_client_mistra && <span className="text-xs font-medium text-muted-foreground">· {client.type_client_mistra}</span>}
             </div>
