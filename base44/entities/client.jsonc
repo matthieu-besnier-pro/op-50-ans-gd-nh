@@ -137,7 +137,7 @@
     },
     "secteur": {
       "type": "string",
-      "description": "Secteur vendeur (nom du commercial) — sert au rattachement"
+      "description": "Secteur vendeur (nom du commercial) \u2014 sert au rattachement"
     },
     "usages": {
       "type": "array",
@@ -149,7 +149,18 @@
           "agri_precision"
         ]
       },
-      "description": "Usages du client : commerce / atelier (récolte) / agriculture de précision"
+      "description": "Usages du client : commerce / atelier (r\u00e9colte) / agriculture de pr\u00e9cision"
+    },
+    "parc_total": {
+      "type": "number",
+      "description": "Nombre de machines du parc client (calcul\u00e9 \u00e0 l'import)"
+    },
+    "parc_pictos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "R\u00e9partition du parc par cat\u00e9gorie d'op\u00e9ration, ex. \u00ab TRACTEURS:3 \u00bb (calcul\u00e9 \u00e0 l'import)"
     },
     "ca_total_12m": {
       "type": "number",

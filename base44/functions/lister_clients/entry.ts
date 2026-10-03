@@ -13,7 +13,7 @@ const LIGHT = [
   'date_prochain_rdv', 'date_rappel', 'montant_devis',
   'commerciaux_assignes', 'base_responsable_id', 'base_id',
   'tel_mobile', 'adresse_complete', 'type_client_mistra',
-  'usages', 'secteur', 'departement'
+  'usages', 'secteur', 'departement', 'parc_total', 'parc_pictos'
 ];
 const pick = (c) => { const o = {}; for (const k of LIGHT) o[k] = c[k]; return o; };
 

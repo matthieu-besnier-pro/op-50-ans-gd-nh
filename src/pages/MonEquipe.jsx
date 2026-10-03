@@ -43,19 +43,25 @@ export default function MonEquipe() {
         return;
       }
 
-      // Non-demo: load structure_commerciale for name resolution + lister_equipe
+      // Non-demo : la liste des commerciaux est celle des profils issus des fichiers
+      // d'import (structure_commerciale), enrichie des comptes utilisateurs existants.
       const [res, structRows] = await Promise.all([
         base44.functions.invoke('lister_equipe', {}),
         base44.entities.structure_commerciale.list('-nom_commercial', 200)
       ]);
       const equipeMembers = res.data?.members || [];
-      // Enrich with structure names if user names are missing
-      const structMap = {};
-      structRows.forEach((s) => { structMap[s.id] = s.nom_commercial; });
-      const members = equipeMembers.map((m) => ({
-        ...m,
-        full_name: m.full_name || structMap[m.id] || m.email || `Commercial ${m.id?.slice(-4) || ''}`
+      const userById = {};
+      equipeMembers.forEach((m) => { userById[m.id] = m; });
+      const members = structRows.map((s) => ({
+        id: s.user_id || s.id,
+        full_name: userById[s.user_id]?.full_name || s.nom_commercial,
+        email: s.email || userById[s.user_id]?.email || '',
+        base_id: ''
       }));
+      const rosterIds = new Set(members.map((m) => m.id));
+      equipeMembers.forEach((m) => {
+        if (!rosterIds.has(m.id)) members.push({ id: m.id, full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '' });
+      });
       setCommerciaux(members);
       const memberIds = members.map((m) => m.id);
 
@@ -189,7 +195,7 @@ export default function MonEquipe() {
             {loading ? (
               <tr><td colSpan={7}><Loader compact /></td></tr>
             ) : sorted.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Aucun commercial dans l'équipe. Les comptes commerciaux seront créés à la réception de la liste.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Aucun commercial dans l'équipe.</td></tr>
             ) : sorted.map((r) => (
               <tr key={r.id} className="border-b border-border last:border-0 transition-all duration-500 hover:bg-muted/30">
                 <td className="px-4 py-3">
