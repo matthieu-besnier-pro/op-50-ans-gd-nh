@@ -29,15 +29,11 @@ import CopilotAdmin from '@/pages/CopilotAdmin';
 import Lancement from '@/pages/Lancement';
 import EspaceCommercial from '@/pages/EspaceCommercial';
 import Loader from '@/components/Loader';
-import { getAppRole } from '@/lib/permissions';
+import { getAppRole, accueilRole } from '@/lib/permissions';
 
 const HomeRedirect = () => {
   const { user, viewAsRole } = useAuth();
-  const role = getAppRole(user, viewAsRole);
-  if (role === 'collaborateur') return <Navigate to="/tableau-de-bord" replace />;
-  if (role === 'commercial' || role === 'agri_precision') return <Navigate to="/portefeuille" replace />;
-  if (role === 'chef_atelier' || role === 'responsable_sav') return <Navigate to="/atelier" replace />;
-  return <Navigate to="/tableau-de-bord" replace />;
+  return <Navigate to={accueilRole(getAppRole(user, viewAsRole))} replace />;
 };
 
 const AuthenticatedApp = () => {

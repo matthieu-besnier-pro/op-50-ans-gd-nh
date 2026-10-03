@@ -6,7 +6,7 @@ import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
   Store, Settings, LogOut, Menu, X, Eye, Monitor, Bot, UserCircle, Rocket, Megaphone, Presentation
 } from 'lucide-react';
-import { getAppRole, isDirection } from '@/lib/permissions';
+import { getAppRole, isDirection, accueilRole } from '@/lib/permissions';
 import OpLogo from '@/components/OpLogo';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -129,6 +129,8 @@ export default function Layout({ children }) {
               setViewAsRole(v === 'admin' ? null : v);
               if (v !== 'commercial') setViewAsCommercial(null);
               if (v !== 'responsable') setViewAsManager(null);
+              // On suit le profil simulé jusqu'à sa page d'accueil.
+              navigate(accueilRole(v === 'admin' ? 'direction' : v));
             }}>
               <SelectTrigger className="h-8 border-white/10 bg-white/5 text-xs text-sidebar-foreground">
                 <SelectValue />

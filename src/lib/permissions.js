@@ -41,6 +41,14 @@ export function isTerrain(user, viewAsRole = null) {
   return r === 'commercial' || r === 'agri_precision';
 }
 
+// Page d'accueil selon le profil (source unique, utilisée au login et lors
+// de la bascule « Voir en tant que »).
+export function accueilRole(role) {
+  if (role === 'commercial' || role === 'agri_precision') return '/portefeuille';
+  if (role === 'chef_atelier' || role === 'responsable_sav') return '/atelier';
+  return '/tableau-de-bord';
+}
+
 export function canAccessClients(user) {
   const r = getAppRole(user);
   return r === 'commercial' || r === 'agri_precision' || r === 'responsable' || isDirection(user);
