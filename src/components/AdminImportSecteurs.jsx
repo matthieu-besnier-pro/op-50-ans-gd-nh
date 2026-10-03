@@ -26,17 +26,27 @@ const parseDate = (v) => {
   return null;
 };
 const parseON = (v) => { const s = norm(v); if (s.includes('neuf')) return 'Neuf'; if (s.includes('occ')) return 'Occasion'; return 'Inconnu'; };
+// Catégories canoniques utilisées par les pictogrammes : les noms d'onglets Excel sont alignés dessus.
+const canonCategorie = (nom) => {
+  const n = norm(nom);
+  if (n.includes('precision')) return 'AGRI PRECISION';
+  if (n.startsWith('tract')) return 'TRACTEURS';
+  if (n.startsWith('telesc')) return 'TELESCOPIQUES';
+  if (n.startsWith('ensil')) return 'ENSILEUSES';
+  if (n.startsWith('mav')) return 'MAV';
+  if (n.startsWith('mb')) return 'MB';
+  if (n.includes('bb') || n.includes('rb') || n.includes('presse')) return 'BB-RB';
+  return 'AUTRES';
+};
 
-// Périmètre de l'opération : départements couverts par le fichier PAC (Centre-Ouest & Nouvelle-Aquitaine).
-// Tout client hors de ces départements est ignoré à l'import.
-const PAC_DEPTS = ['17', '36', '37', '41', '79', '85', '86', '87'];
+// Tous les clients présents dans les fichiers sont importés, tous départements confondus.
+// Le fichier PAC reste un bonus (montant perçu / appétence) : il ne conditionne plus l'import.
 const deptOf = (codeInsee, fallback) => {
   const s = String(codeInsee || '').trim();
   if (s.length >= 2) return s.slice(0, 2);
   const m = String(fallback || '').match(/(\d{5})/);
   return m ? m[1].slice(0, 2) : '';
 };
-const dansPerimetre = (departement) => PAC_DEPTS.includes(departement);
 
 function headerIndex(headerRow) {
   const m = {};
@@ -96,7 +106,6 @@ export default function AdminImportSecteurs({ onReload }) {
         const adr = [str(get(row, 'Adresse 1')), cp, ville].filter(Boolean).join(' ');
         const insee = str(get(row, 'Code INSEE'));
         const dept = deptOf(insee, cp);
-        if (!dansPerimetre(dept)) { exclus++; continue; }
         upsert(siren, { raison_sociale: raison, adresse_complete: adr || null, code_commune: insee, departement: dept, tel_mobile: str(get(row, 'Téléphone 1')), tel_fixe: str(get(row, 'Téléphone 2')), secteur: str(get(row, 'Secteur Commercial')) }, 'agri_precision');
         materiels.push({ _siren: siren, usage: 'agri_precision', categorie_op: 'AGRI PRECISION', secteur: str(get(row, 'Secteur Commercial')), marque: str(get(row, 'Marque')), modele: str(get(row, 'Type')), categorie_1: str(get(row, 'Catégorie Matériel (Libellé)')), occasion_neuf: parseON(get(row, "Etat d'acquisition")), annee_immat: parseInt(get(row, "Année d'Achat")) || null });
         nbMat++;
@@ -118,9 +127,8 @@ export default function AdminImportSecteurs({ onReload }) {
           const secteur = str(get(row, 'Secteur vendeur'));
           const insee = str(get(row, 'Code commune'));
           const dept = deptOf(insee, str(get(row, 'Adresse')));
-          if (!dansPerimetre(dept)) { exclus++; continue; }
           upsert(siren, { raison_sociale: str(get(row, 'Client')) || 'Client', adresse_complete: str(get(row, 'Adresse')), code_commune: insee, departement: dept, tel_mobile: str(get(row, 'Mobile')), tel_fixe: str(get(row, 'Fixe')), secteur }, usageSel);
-          materiels.push({ _siren: siren, usage: usageSel, categorie_op: cat, secteur, marque: str(get(row, 'Marque')), modele: str(get(row, 'Modèle')), categorie_1: str(get(row, 'Type')), num_plaque: str(get(row, 'Plaque')), vin: str(get(row, 'VIN')), premiere_immat: parseDate(get(row, '1re immat.')), annee_immat: parseInt(get(row, 'Année immat.')) || null, occasion_neuf: parseON(get(row, 'Neuf/Occ.')) });
+          materiels.push({ _siren: siren, usage: usageSel, categorie_op: canonCategorie(cat), secteur, marque: str(get(row, 'Marque')), modele: str(get(row, 'Modèle')), categorie_1: str(get(row, 'Type')), num_plaque: str(get(row, 'Plaque')), vin: str(get(row, 'VIN')), premiere_immat: parseDate(get(row, '1re immat.')), annee_immat: parseInt(get(row, 'Année immat.')) || null, occasion_neuf: parseON(get(row, 'Neuf/Occ.')) });
           nbMat++;
         }
       }
@@ -147,7 +155,6 @@ export default function AdminImportSecteurs({ onReload }) {
   const totalClients = clientMap.size;
   const parUsage = { commerce: 0, atelier: 0, agri_precision: 0 };
   clientMap.forEach((c) => c.usages.forEach((u) => { parUsage[u] = (parUsage[u] || 0) + 1; }));
-  const lignesHorsPerimetre = files.reduce((s, f) => s + (f.exclus || 0), 0);
 
   const creerBase = async () => {
     if (clientMap.size === 0) return;
@@ -246,7 +253,7 @@ export default function AdminImportSecteurs({ onReload }) {
           <div className="rounded-lg bg-muted/40 p-3 text-sm">
             <p className="font-semibold">{totalClients} clients uniques · {materiels.length} matériels</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Périmètre PAC : départements {PAC_DEPTS.join(' · ')} — {lignesHorsPerimetre} ligne(s) hors secteur ignorée(s).
+              Tous les clients des fichiers sont importés. Le fichier PAC sert uniquement de bonus (montant perçu et appétence).
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Commerce : {parUsage.commerce} · Atelier : {parUsage.atelier} · Agri‑précision : {parUsage.agri_precision}</p>
           </div>
