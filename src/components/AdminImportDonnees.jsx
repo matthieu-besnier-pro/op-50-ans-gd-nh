@@ -102,7 +102,7 @@ export default function AdminImportDonnees({ onReload }) {
         </div>
         <p className="text-sm text-muted-foreground mb-4">
           Fichier <code className="text-xs">entreprises_vehicules…csv</code>. Crée les clients (dédoublonnés par SIREN) et
-          leur parc matériel. Toutes les colonnes sont reprises. Un client déjà présent n'est pas dupliqué.
+          leur parc cible. Toutes les colonnes sont reprises. Un client déjà présent n'est pas dupliqué.
         </p>
         <div className="rounded-lg border border-dashed border-border p-5 text-center">
           <input ref={clientsRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"

@@ -64,7 +64,7 @@ export default function EspaceCommercial() {
         const [p, myRdv, myClients, b, aRdv, aVentes, users] = await Promise.all([
           base44.entities.parametres_operation.list('-created_date', 1),
           base44.entities.rdv.filter({ commercial_id: user.id }, '-date_heure', 500).catch(() => []),
-          base44.entities.client.filter({ commerciaux_assignes: user.id }, '-date_dernier_contact', 500).catch(() => []),
+          base44.entities.client.filter({ commerciaux_assignes: user.id }, '-created_date', 500).catch(() => []),
           base44.entities.badge.list('-created_date', 50),
           base44.entities.rdv.list('-date_heure', 1000).catch(() => []),
           base44.entities.vente.list('-date_vente', 1000).catch(() => []),

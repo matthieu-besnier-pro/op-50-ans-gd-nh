@@ -186,9 +186,10 @@ export default function ClientDetail() {
 
           {/* Matériel */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              <Tractor className="h-4 w-4 text-gd-orange" /> Parc matériel ({materiels.length})
+            <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              <Tractor className="h-4 w-4 text-gd-orange" /> Parc cible ({materiels.length})
             </h2>
+            <p className="mb-3 text-xs text-muted-foreground">Matériel éligible à l'opération 50 ans Gonnin Duris × New Holland.</p>
             <ParcMaterielTable materiels={materiels} />
           </div>
 

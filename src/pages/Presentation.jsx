@@ -286,7 +286,7 @@ function CoachSlide() {
           className="rounded-2xl bg-gradient-to-br from-gd-navy to-gd-navy-dark p-8 text-center text-white">
           <Lightbulb className="h-12 w-12 text-gd-orange mx-auto mb-4" />
           <h3 className="text-2xl font-bold mb-2">Prêt à l'action</h3>
-          <p className="text-white/70 text-sm">Le coach analyse le parc matériel, l'historique commercial, l'appétence et le statut pour suggérer la meilleure action — maintenant.</p>
+          <p className="text-white/70 text-sm">Le coach analyse le parc cible, l'historique commercial, l'appétence et le statut pour suggérer la meilleure action — maintenant.</p>
           <div className="mt-6 flex justify-center gap-2">
             <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold">Règle-basé</span>
             <span className="px-3 py-1 rounded-full bg-gd-orange/20 text-gd-orange text-xs font-semibold">IA conversationnelle (semaine 2)</span>

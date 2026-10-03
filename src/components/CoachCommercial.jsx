@@ -15,28 +15,27 @@ function generateInsights(client, materiels, rdvs, ventes) {
   const score = client.score_appetence || 0;
   const niveau = client.niveau_appetence;
   const statut = client.statut || 'À contacter';
-  const lastContact = client.date_dernier_contact;
   const terminalStatuts = ['Vente conclue', 'Refus', 'Contacté sans suite'];
 
-  // 1. Appetence + never contacted = GO NOW
-  if (niveau === 'Fort' && (!lastContact || statut === 'À contacter')) {
+  // 1. Forte appétence + client à contacter = GO NOW
+  if (niveau === 'Fort' && statut === 'À contacter') {
     insights.push({
       priority: 'high',
       icon: Flame,
       title: 'Opportunité à saisir — appelez en priorité',
-      desc: `Score ${score}/100. Ce client est un potentiel élevé${!lastContact ? ' et n\'a jamais été contacté' : ''}. C\'est votre meilleure opportunité du jour.`,
+      desc: `Score ${score}/100 : un potentiel élevé sur votre parc cible. C\'est votre meilleure opportunité du jour.`,
       cta: 'Appeler maintenant'
     });
   }
 
-  // 2. Never contacted
-  if (!lastContact && statut === 'À contacter' && niveau !== 'Fort') {
+  // 2. À contacter : une porte à ouvrir
+  if (statut === 'À contacter' && niveau !== 'Fort') {
     insights.push({
       priority: 'medium',
       icon: PhoneCall,
-      title: 'Premier contact à faire',
-      desc: 'Ce client n\'a encore jamais été appelé. Un simple appel de prise de température peut débloquer une opportunité.',
-      cta: 'Premier appel'
+      title: 'Une porte à ouvrir',
+      desc: `Score ${score}/100 : ce client fait partie de votre parc cible, il attend le premier appel de l\'opération. Trois minutes suffisent pour créer la relation.`,
+      cta: 'Appeler aujourd\'hui'
     });
   }
 
@@ -54,7 +53,7 @@ function generateInsights(client, materiels, rdvs, ventes) {
       priority: 'high',
       icon: Tractor,
       title: `${cat} de ${age} ans — renouvellement probable`,
-      desc: `Le parc inclut un matériel ancien (${oldest.marque || ''} ${oldest.modele || ''}, 1ère immat ${new Date(oldest.premiere_immat).getFullYear()}). C'est le moment idéal pour proposer un renouvellement.`,
+      desc: `Votre parc cible inclut un matériel ancien (${oldest.marque || ''} ${oldest.modele || ''}, 1ère immat ${new Date(oldest.premiere_immat).getFullYear()}). C'est le moment idéal pour proposer un renouvellement.`,
       cta: 'Proposer un renouvellement'
     });
   }

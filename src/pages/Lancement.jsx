@@ -124,7 +124,7 @@ export default function Lancement() {
             <p className="text-sm text-muted-foreground">Aperçu indisponible.</p>
           )}
           <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
-            ✓ Conservés : clients (identité + coordonnées), parc matériel, scores d'appétence, affectations commerciales, structure, bases, utilisateurs et paramètres.
+            ✓ Conservés : clients (identité + coordonnées), parc cible, scores d'appétence, affectations commerciales, structure, bases, utilisateurs et paramètres.
           </div>
         </div>
 

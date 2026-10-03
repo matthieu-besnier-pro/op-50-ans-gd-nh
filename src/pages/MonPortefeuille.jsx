@@ -27,13 +27,6 @@ export function priorityScore(client) {
   if (STATUTS_TERMINAUX.includes(client.statut)) return 0;
   let score = client.score_appetence || 0;
   if (client.statut === 'À contacter') score += 30;
-  if (!client.date_dernier_contact) {
-    score += 30;
-  } else {
-    const days = Math.floor((Date.now() - new Date(client.date_dernier_contact).getTime()) / 86400000);
-    if (days > 7) score += 15;
-    else if (days > 3) score += 8;
-  }
   if (client.statut === 'À rappeler' && client.date_rappel) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -78,11 +71,11 @@ export default function MonPortefeuille() {
       let clientList;
       if (persona.mode === 'commercial' && persona.clientFilter) {
         // Portefeuille du commercial (rattachement par secteur) : chargé en entier.
-        clientList = await base44.entities.client.filter(persona.clientFilter, '-date_dernier_contact', 2000);
+        clientList = await base44.entities.client.filter(persona.clientFilter, '-created_date', 2000);
       } else if (persona.mode === 'manager') {
         // Équipe du manager : tous ses secteurs d'un coup, sans troncature.
         clientList = persona.clientFilter
-          ? await base44.entities.client.filter(persona.clientFilter, '-date_dernier_contact', 5000)
+          ? await base44.entities.client.filter(persona.clientFilter, '-created_date', 5000)
           : [];
       } else {
         const res = await base44.functions.invoke('lister_clients', {});
@@ -254,7 +247,7 @@ export default function MonPortefeuille() {
           <thead>
             <tr className="border-b border-border bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Raison sociale</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Parc</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Parc cible</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Appétence</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Priorité</th>
