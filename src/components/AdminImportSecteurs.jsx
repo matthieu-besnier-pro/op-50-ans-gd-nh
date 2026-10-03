@@ -166,9 +166,28 @@ export default function AdminImportSecteurs({ onReload }) {
       const secteurToUser = {};
       structure.forEach((s) => { if (s.user_id && s.nom_commercial) secteurToUser[norm(s.nom_commercial)] = s.user_id; });
 
+      // Agrégat du parc par client : total + répartition par catégorie (pour le
+      // bandeau pictogrammes et les stats). Clés = categorie_op déjà canonisée.
+      const parcBySiren = {};
+      materiels.forEach((m) => {
+        if (!m._siren) return;
+        const p = parcBySiren[m._siren] || (parcBySiren[m._siren] = { total: 0, cats: {} });
+        p.total += 1;
+        const cat = m.categorie_op || 'AUTRES';
+        p.cats[cat] = (p.cats[cat] || 0) + 1;
+      });
+
       const clients = [...clientMap.values()].map((c) => {
         const uid = c.secteur ? secteurToUser[norm(c.secteur)] : null;
-        return { ...c, commerciaux_assignes: uid ? [uid] : [] };
+        const parc = parcBySiren[c.siren];
+        return {
+          ...c,
+          commerciaux_assignes: uid ? [uid] : [],
+          parc_total: parc ? parc.total : 0,
+          parc_pictos: parc
+            ? Object.entries(parc.cats).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}:${n}`)
+            : []
+        };
       });
 
       // 2) Création des clients par lots → mapping siren -> id
