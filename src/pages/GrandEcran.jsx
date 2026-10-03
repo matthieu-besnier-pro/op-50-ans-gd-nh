@@ -149,17 +149,21 @@ export default function GrandEcran() {
     return null;
   }, []);
 
+  const [exacts, setExacts] = useState(null);
+
   const load = useCallback(async () => {
     try {
-      const [p, r, v, u, bo, st, bdg] = await Promise.all([
+      const [p, r, v, u, bo, st, bdg, statsRes] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.rdv.list('-date_heure', 500),
         base44.entities.vente.list('-date_vente', 500),
         base44.entities.User.list('-created_date', 50).catch(() => []),
         base44.entities.badge_obtenu.list('-created_date', 100),
         base44.entities.structure_commerciale.list('-nom_commercial', 200),
-        base44.entities.badge.list('-created_date', 50).catch(() => [])
+        base44.entities.badge.list('-created_date', 50).catch(() => []),
+        base44.functions.invoke('statistiques_operation', {}).catch(() => null)
       ]);
+      setExacts(statsRes?.data || null);
       setParams(p[0] || null);
       setRdvs(r);
       setVentes(v);
@@ -257,10 +261,11 @@ export default function GrandEcran() {
     });
   }, [rdvs, params]);
 
-  const sprintRdvCount = sprintRdvs.length;
+  // Comptages exacts côté serveur ; repli sur la liste chargée en attendant.
+  const sprintRdvCount = exacts?.rdv?.sprint?.total ?? sprintRdvs.length;
   const objRdv = params?.objectif_rdv || 100;
-  const sprintAtelierCount = sprintRdvs.filter(r => r.type === 'RDV atelier hivernage').length;
-  const sprintCommercialCount = sprintRdvs.filter(r => r.type === 'RDV commercial').length;
+  const sprintAtelierCount = exacts?.rdv?.sprint?.atelier ?? sprintRdvs.filter(r => r.type === 'RDV atelier hivernage').length;
+  const sprintCommercialCount = exacts?.rdv?.sprint?.commercial ?? sprintRdvs.filter(r => r.type === 'RDV commercial').length;
 
   // Leaderboard
   const leaderboard = useMemo(() => {
@@ -396,7 +401,7 @@ export default function GrandEcran() {
                 </>
               ) : (
                 <>
-                  <ProgressRing value={ventesValidees.length} max={params?.objectif_ventes || 50} label="Ventes validées" sublabel="objectif" />
+                  <ProgressRing value={exacts?.ventes?.validees ?? ventesValidees.length} max={params?.objectif_ventes || 50} label="Ventes validées" sublabel="objectif" />
                   <div className="mt-6 grid grid-cols-2 gap-3 w-full">
                     <div className="rounded-2xl bg-gd-navy/40 p-3 text-center">
                       <Trophy className="h-5 w-5 mx-auto text-white/60 mb-1" />

@@ -17,6 +17,22 @@ const LIGHT = [
 ];
 const pick = (c) => { const o = {}; for (const k of LIGHT) o[k] = c[k]; return o; };
 
+const CHUNK = 5000;
+
+// Lecture paginée complète (tri par identifiant = clé unique, sans doublon ni oubli).
+async function lireTout(fetchPage, max) {
+  const out = [];
+  const vus = new Set();
+  for (let i = 0; i < 20 && out.length < max; i++) {
+    const page = await fetchPage(i * CHUNK);
+    if (!Array.isArray(page) || page.length === 0) break;
+    let nouveaux = 0;
+    page.forEach((r) => { if (!vus.has(r.id) && out.length < max) { vus.add(r.id); out.push(r); nouveaux += 1; } });
+    if (page.length < CHUNK || nouveaux === 0) break;
+  }
+  return out;
+}
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -32,16 +48,16 @@ export default async function(req) {
       return Response.json({ clients: c ? [c] : [] });
     }
 
-    const limit = Math.min(Number(body.limit) || 1000, 5000);
+    const limit = Math.min(Number(body.limit) || 1000, 20000);
     const estDirection = user.role === 'admin' || user.app_role === 'direction';
 
     let raw;
     if (estDirection) {
-      raw = await sr.entities.client.list('-date_dernier_contact', limit);
+      raw = await lireTout((skip) => sr.entities.client.list('id', CHUNK, skip), limit);
     } else if (user.app_role === 'responsable') {
-      raw = await sr.entities.client.filter({ base_responsable_id: user.id }, '-date_dernier_contact', limit);
+      raw = await lireTout((skip) => sr.entities.client.filter({ base_responsable_id: user.id }, 'id', CHUNK, skip), limit);
     } else {
-      raw = await sr.entities.client.filter({ commerciaux_assignes: user.id }, '-date_dernier_contact', limit);
+      raw = await lireTout((skip) => sr.entities.client.filter({ commerciaux_assignes: user.id }, 'id', CHUNK, skip), limit);
     }
     raw = raw || [];
 

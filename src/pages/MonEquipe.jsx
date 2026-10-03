@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/select';
 import { ArrowUp, ArrowDown, AlertTriangle, Calendar, TrendingUp, Percent, Wallet } from 'lucide-react';
 import { useDemoPersona } from '@/lib/useDemoPersona';
+import { useOperationStats } from '@/lib/useOperationStats';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
 const STATUT_COLORS = ['bg-slate-300', 'bg-orange-400', 'bg-amber-400', 'bg-slate-400', 'bg-blue-400', 'bg-indigo-400', 'bg-violet-400', 'bg-cyan-400', 'bg-emerald-400', 'bg-red-400'];
@@ -16,6 +17,7 @@ const STATUT_COLORS = ['bg-slate-300', 'bg-orange-400', 'bg-amber-400', 'bg-slat
 export default function MonEquipe() {
   const { user } = useAuth();
   const persona = useDemoPersona();
+  const stats = useOperationStats();
   const [commerciaux, setCommerciaux] = useState([]);
   const [clients, setClients] = useState([]);
   const [rdvs, setRdvs] = useState([]);
@@ -29,7 +31,7 @@ export default function MonEquipe() {
       // Demo mode (manager persona): use structure_commerciale instead of real users
       if (persona.mode === 'manager') {
         const teamRows = persona.structure.filter((s) => s.manager === persona.label?.replace('Équipe de ', ''));
-        const members = teamRows.map((s) => ({ id: s.user_id || s.id, full_name: s.nom_commercial, email: s.email || '', base_id: '' }));
+        const members = teamRows.map((s) => ({ id: s.user_id || s.id, user_id: s.user_id || null, nom: s.nom_commercial, full_name: s.nom_commercial, email: s.email || '', base_id: '' }));
         setCommerciaux(members);
         const memberIds = members.map((m) => m.id);
         const [allClients, allRdvs, allVentes] = await Promise.all([
@@ -54,13 +56,15 @@ export default function MonEquipe() {
       equipeMembers.forEach((m) => { userById[m.id] = m; });
       const members = structRows.map((s) => ({
         id: s.user_id || s.id,
+        user_id: s.user_id || null,
+        nom: s.nom_commercial,
         full_name: userById[s.user_id]?.full_name || s.nom_commercial,
         email: s.email || userById[s.user_id]?.email || '',
         base_id: ''
       }));
       const rosterIds = new Set(members.map((m) => m.id));
       equipeMembers.forEach((m) => {
-        if (!rosterIds.has(m.id)) members.push({ id: m.id, full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '' });
+        if (!rosterIds.has(m.id)) members.push({ id: m.id, user_id: m.id, nom: null, full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '' });
       });
       setCommerciaux(members);
       const memberIds = members.map((m) => m.id);
@@ -86,24 +90,32 @@ export default function MonEquipe() {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
   const rows = useMemo(() => {
+    const parSecteur = stats?.clients?.par_secteur || null;
+    const parCommercial = stats?.clients?.par_commercial || null;
     return commerciaux.map((c) => {
+      // Comptages serveur exacts quand le commercial est reconnu, sinon listes chargées
+      const exact = (c.user_id && parCommercial?.[c.user_id]) || (c.nom && parSecteur?.[c.nom]) || null;
+      const rdvExact = stats?.rdv?.par_commercial?.[c.id];
+      const ventesExactes = stats?.ventes?.par_commercial?.[c.id];
       const myClients = clients.filter((cl) => (cl.commerciaux_assignes || []).includes(c.id));
       const myRdvs = rdvs.filter((r) => r.commercial_id === c.id);
       const myVentes = ventes.filter((v) => v.commercial_id === c.id);
-      const ventesValidees = myVentes.filter((v) => v.statut_validation === 'Validé');
+      const ventesValidees = ventesExactes !== undefined ? ventesExactes : myVentes.filter((v) => v.statut_validation === 'Validé').length;
       const rdvRealisesToday = myRdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure?.slice(0, 10) === todayStr).length;
-      const rdvRealisesMonth = myRdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
-      const tauxTransfo = rdvRealisesMonth > 0 ? Math.round((ventesValidees.length / rdvRealisesMonth) * 100) : 0;
+      const rdvRealisesMonth = rdvExact ? rdvExact.realises_mois : myRdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
+      const tauxTransfo = rdvRealisesMonth > 0 ? Math.round((ventesValidees / rdvRealisesMonth) * 100) : 0;
       const pipeDevis = myClients.filter((cl) => cl.statut === 'Devis en cours').reduce((s, cl) => s + (cl.montant_devis || 0), 0);
-      const repartition = STATUTS.map((s) => myClients.filter((cl) => cl.statut === s).length);
+      const repartition = exact
+        ? STATUTS.map((s) => exact.par_statut[s] || 0)
+        : STATUTS.map((s) => myClients.filter((cl) => cl.statut === s).length);
       return {
         id: c.id, nom: c.full_name || c.email,
-        repartition, totalClients: myClients.length,
+        repartition, totalClients: exact ? exact.total : myClients.length,
         rdvToday: rdvRealisesToday, rdvMonth: rdvRealisesMonth,
-        ventes: ventesValidees.length, tauxTransfo, pipeDevis
+        ventes: ventesValidees, tauxTransfo, pipeDevis
       };
     });
-  }, [commerciaux, clients, rdvs, ventes]);
+  }, [commerciaux, clients, rdvs, ventes, stats, todayStr, monthStart]);
 
   const sorted = useMemo(() => {
     const arr = [...rows].sort((a, b) => sortBy === 'rdv' ? b.rdvMonth - a.rdvMonth : b.ventes - a.ventes);
@@ -137,7 +149,7 @@ export default function MonEquipe() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mon équipe</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{commerciaux.length} commercial{commerciaux.length > 1 ? 'aux' : ''} · {clients.length} clients suivis</p>
+          <p className="mt-1 text-sm text-muted-foreground">{commerciaux.length} commercial{commerciaux.length > 1 ? 'aux' : ''} · {(stats?.clients?.total ?? clients.length).toLocaleString('fr-FR')} clients suivis</p>
         </div>
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>

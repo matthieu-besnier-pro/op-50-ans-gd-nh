@@ -55,12 +55,13 @@ export default function EspaceCollaborateur() {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [rdvOpen, setRdvOpen] = useState(false);
   const [venteOpen, setVenteOpen] = useState(false);
+  const [exacts, setExacts] = useState(null);
   const [updatingRdv, setUpdatingRdv] = useState(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [p, r, v, o, b, u, c, st] = await Promise.all([
+        const [p, r, v, o, b, u, c, st, statsRes] = await Promise.all([
           base44.entities.parametres_operation.list('-created_date', 1),
           base44.entities.rdv.list('-date_heure', 500),
           base44.entities.vente.list('-date_vente', 500),
@@ -68,8 +69,10 @@ export default function EspaceCollaborateur() {
           base44.entities.badge.list('-created_date', 50),
           base44.entities.User.list('-created_date', 200).catch(() => []),
           base44.entities.client.list('-created_date', 200),
-          base44.entities.structure_commerciale.list('-nom_commercial', 200).catch(() => [])
+          base44.entities.structure_commerciale.list('-nom_commercial', 200).catch(() => []),
+          base44.functions.invoke('statistiques_operation', {}).catch(() => null)
         ]);
+        setExacts(statsRes?.data || null);
         setParams(p[0] || null);
         setRdvs(r);
         setVentes(v);
@@ -93,11 +96,11 @@ export default function EspaceCollaborateur() {
 
   const stats = useMemo(() => {
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-    const rdvRealises = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
-    const ventesValidees = ventes.filter((v) => v.statut_validation === 'Validé').length;
-    const caCumul = offres.reduce((s, o) => s + (o.ca_realise || 0), 0);
+    const rdvRealises = exacts?.rdv?.realises_du_mois ?? rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
+    const ventesValidees = exacts?.ventes?.validees ?? ventes.filter((v) => v.statut_validation === 'Validé').length;
+    const caCumul = exacts?.offres?.ca_realise ?? offres.reduce((s, o) => s + (o.ca_realise || 0), 0);
     return { rdvRealises, ventesValidees, caCumul };
-  }, [rdvs, ventes, offres]);
+  }, [rdvs, ventes, offres, exacts]);
 
   const upcomingRdvs = useMemo(() => {
     const now = new Date().toISOString();

@@ -18,16 +18,19 @@ export default function Atelier() {
   const [allClients, setAllClients] = useState([]);
   const [rdvOpen, setRdvOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [exacts, setExacts] = useState(null);
 
   const load = async () => {
     try {
       let list = await base44.entities.rdv.filter({ type: 'RDV atelier hivernage' }, '-date_heure', 500);
       setRdvs(list);
       const clientIds = [...new Set(list.map((r) => r.client_id))];
-      const [clientList, all] = await Promise.all([
+      const [clientList, all, statsRes] = await Promise.all([
         Promise.all(clientIds.slice(0, 50).map((id) => base44.entities.client.get(id).catch(() => null))),
-        base44.entities.client.list('-raison_sociale', 2000).catch(() => [])
+        base44.entities.client.list('-raison_sociale', 2000).catch(() => []),
+        base44.functions.invoke('statistiques_operation', {}).catch(() => null)
       ]);
+      setExacts(statsRes?.data || null);
       const map = {};
       clientList.filter(Boolean).forEach((c) => { map[c.id] = c; });
       setClients(map);
@@ -42,7 +45,8 @@ export default function Atelier() {
   useEffect(() => { load(); }, []);
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-  const rdvPris = rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
+  // Comptage exact côté serveur ; repli sur la liste chargée en attendant.
+  const rdvPris = exacts?.rdv?.atelier_hors_annule_du_mois ?? rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
   const aVenir = rdvs.filter((r) => r.statut !== 'Annulé').sort((a, b) => a.date_heure.localeCompare(b.date_heure));
 
   return (

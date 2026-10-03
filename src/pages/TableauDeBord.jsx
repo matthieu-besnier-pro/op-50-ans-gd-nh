@@ -54,16 +54,20 @@ export default function TableauDeBord() {
   const scopedVentes = ventes.filter((v) => inScope(v.commercial_id, v.base_responsable_id));
   const mapRdvs = scopedRdvs;
 
+  const [exacts, setExacts] = useState(null);
+
   const load = useCallback(async () => {
     try {
-      const [p, r, v, o, u, s] = await Promise.all([
+      const [p, r, v, o, u, s, statsRes] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.rdv.list('-date_heure', 1000),
         base44.entities.vente.list('-date_vente', 1000),
         base44.entities.offre_magasin.list('-created_date', 200),
         base44.entities.User.list('-created_date', 100).catch(() => []),
-        base44.entities.structure_commerciale.list('-nom_commercial', 200)
+        base44.entities.structure_commerciale.list('-nom_commercial', 200),
+        base44.functions.invoke('statistiques_operation', persona.mode ? { scope: { commercial_ids: persona.ids, secteurs: persona.secteurs } } : {}).catch(() => null)
       ]);
+      setExacts(statsRes?.data || null);
       // Filter by demo persona
       const personaRdvs = persona.mode ? r.filter((rd) => persona.matchCommercialId(rd.commercial_id)) : r;
       const personaVentes = persona.mode ? v.filter((vd) => persona.matchCommercialId(vd.commercial_id)) : v;
@@ -116,24 +120,25 @@ export default function TableauDeBord() {
   const showCountdownRdv = countdownRdv !== null && countdownRdv > -3 && countdownRdv < 15;
 
   const rdvMoisReal = scopedRdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart);
-  const rdvMaterielMonth = rdvMoisReal.filter((r) => r.type !== 'RDV atelier hivernage').length;
-  const rdvAtelierMonth = rdvMoisReal.filter((r) => r.type === 'RDV atelier hivernage').length;
-  const rdvTotalMonth = rdvMoisReal.length;
+  // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
+  const rdvMaterielMonth = exacts?.rdv?.commercial_realises_du_mois ?? rdvMoisReal.filter((r) => r.type !== 'RDV atelier hivernage').length;
+  const rdvAtelierMonth = exacts?.rdv?.atelier_realises_du_mois ?? rdvMoisReal.filter((r) => r.type === 'RDV atelier hivernage').length;
+  const rdvTotalMonth = exacts?.rdv?.realises_du_mois ?? rdvMoisReal.length;
 
   const ventesValidees = scopedVentes.filter((v) => v.statut_validation === 'Validé');
-  const ventesParMachine = TYPES_MACHINE.map((t) => ({ name: t, value: ventesValidees.filter((v) => v.type_machine === t).length })).filter((d) => d.value > 0);
-  const ventesParType = TYPES_VENTE.map((t) => ({ name: t, value: ventesValidees.filter((v) => v.type_vente === t).length }));
+  const ventesParMachine = TYPES_MACHINE.map((t) => ({ name: t, value: exacts?.ventes?.par_type_machine?.[t] ?? ventesValidees.filter((v) => v.type_machine === t).length })).filter((d) => d.value > 0);
+  const ventesParType = TYPES_VENTE.map((t) => ({ name: t, value: exacts?.ventes?.par_type_vente?.[t] ?? ventesValidees.filter((v) => v.type_vente === t).length }));
   const reprisesData = [
-    { name: 'Sans reprise', value: ventesValidees.filter((v) => v.reprise === 'Sans reprise').length },
-    { name: 'Reprise NH', value: ventesValidees.filter((v) => v.reprise === 'Reprise NH').length },
-    { name: 'Reprise autre marque', value: ventesValidees.filter((v) => v.reprise === 'Reprise autre marque').length }
+    { name: 'Sans reprise', value: exacts?.ventes?.par_reprise?.['Sans reprise'] ?? ventesValidees.filter((v) => v.reprise === 'Sans reprise').length },
+    { name: 'Reprise NH', value: exacts?.ventes?.par_reprise?.['Reprise NH'] ?? ventesValidees.filter((v) => v.reprise === 'Reprise NH').length },
+    { name: 'Reprise autre marque', value: exacts?.ventes?.par_reprise?.['Reprise autre marque'] ?? ventesValidees.filter((v) => v.reprise === 'Reprise autre marque').length }
   ];
   const marquesReprise = {};
   ventesValidees.filter((v) => v.reprise === 'Reprise autre marque' && v.marque_reprise).forEach((v) => {
     marquesReprise[v.marque_reprise] = (marquesReprise[v.marque_reprise] || 0) + 1;
   });
 
-  const caMagasin = offres.reduce((sum, o) => sum + (o.ca_realise || 0), 0);
+  const caMagasin = exacts?.offres?.ca_realise ?? offres.reduce((sum, o) => sum + (o.ca_realise || 0), 0);
   const objRdv = params?.objectif_rdv || 0;
   const objVentes = params?.objectif_ventes || 0;
   const objCa = params?.objectif_ca_magasin || 0;

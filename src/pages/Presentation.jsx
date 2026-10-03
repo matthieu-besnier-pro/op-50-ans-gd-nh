@@ -40,19 +40,18 @@ export default function Presentation() {
   useEffect(() => {
     (async () => {
       try {
-        const [clients, rdvs, ventes, badges, users] = await Promise.all([
-          base44.entities.client.list('-created_date', 200),
-          base44.entities.rdv.list('-created_date', 200),
-          base44.entities.vente.list('-created_date', 200),
-          base44.entities.badge_obtenu.list('-created_date', 200),
+        // Chiffres exacts de l'opération (comptages serveur, jamais tronqués).
+        const [statsRes, users] = await Promise.all([
+          base44.functions.invoke('statistiques_operation', {}).catch(() => null),
           base44.entities.User.list('-created_date', 200).catch(() => [])
         ]);
+        const d = statsRes?.data || {};
         setStats({
-          clients: clients.length,
-          rdv: rdvs.length,
-          ventes: ventes.length,
-          badges: badges.length,
-          users: users.length
+          clients: d.clients?.total || 0,
+          rdv: d.rdv?.total || 0,
+          ventes: d.ventes?.total || 0,
+          badges: d.badges?.obtenus || 0,
+          users: d.structure?.commerciaux || users.length
         });
       } catch (e) { /* ignore */ }
     })();

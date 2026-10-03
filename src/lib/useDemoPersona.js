@@ -33,26 +33,29 @@ export function useDemoPersona() {
     if (viewAsRole === 'commercial' && viewAsCommercial) {
       const record = structure.find((s) => s.id === viewAsCommercial);
       const uid = record?.user_id || viewAsCommercial;
+      const nom = (record?.nom_commercial || '').trim();
       return {
         mode: 'commercial',
-        label: record?.nom_commercial || 'Commercial',
+        label: nom || 'Commercial',
         ids: [uid],
-        clientFilter: { commerciaux_assignes: uid },
-        matchClient: (c) => (c.commerciaux_assignes || []).includes(uid),
+        secteurs: nom ? [nom] : [],
+        clientFilter: nom ? { secteur: nom } : { commerciaux_assignes: uid },
+        matchClient: (c) => (nom && (c.secteur || '').trim() === nom) || (c.commerciaux_assignes || []).includes(uid),
         matchCommercialId: (id) => id === uid,
       };
     }
-    // Manager spécifique — équipe résolue en IDs utilisateurs
+    // Manager spécifique — équipe résolue en IDs utilisateurs et en secteurs (noms)
     if (viewAsRole === 'responsable' && viewAsManager) {
-      const teamIds = structure
-        .filter((s) => s.manager === viewAsManager)
-        .map((s) => s.user_id || s.id);
+      const teamRows = structure.filter((s) => s.manager === viewAsManager);
+      const teamIds = teamRows.map((s) => s.user_id || s.id);
+      const secteurs = teamRows.map((s) => (s.nom_commercial || '').trim()).filter(Boolean);
       return {
         mode: 'manager',
         label: `Équipe de ${viewAsManager}`,
         ids: teamIds,
-        clientFilter: null, // pas de filtre direct possible (multi-IDs), on filtre côté client
-        matchClient: (c) => (c.commerciaux_assignes || []).some((id) => teamIds.includes(id)),
+        secteurs,
+        clientFilter: secteurs.length > 0 ? { secteur: { $in: secteurs } } : null,
+        matchClient: (c) => teamIds.includes(c.id) || secteurs.includes((c.secteur || '').trim()) || (c.commerciaux_assignes || []).some((id) => teamIds.includes(id)),
         matchCommercialId: (id) => teamIds.includes(id),
       };
     }
@@ -60,6 +63,7 @@ export function useDemoPersona() {
       mode: null,
       label: null,
       ids: [],
+      secteurs: [],
       clientFilter: null,
       matchClient: () => true,
       matchCommercialId: () => true,

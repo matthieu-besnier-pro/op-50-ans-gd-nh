@@ -9,6 +9,7 @@ import StatusBadge from '@/components/StatusBadge';
 import AppetenceGauge from '@/components/AppetenceGauge';
 import { UsagesClient } from '@/components/MaterielPicto';
 import ParcPictos from '@/components/ParcPictos';
+import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,7 @@ export default function MonPortefeuille() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const persona = useDemoPersona();
+  const stats = useOperationStats();
   const [clients, setClients] = useState([]);
   const [rdvs, setRdvs] = useState([]);
   const [ventes, setVentes] = useState([]);
@@ -75,10 +77,13 @@ export default function MonPortefeuille() {
       // (Direction/Marketing = tous, Responsable = son équipe, Commercial = les siens).
       let clientList;
       if (persona.mode === 'commercial' && persona.clientFilter) {
-        clientList = await base44.entities.client.filter(persona.clientFilter, '-date_dernier_contact', 500);
+        // Portefeuille du commercial (rattachement par secteur) : chargé en entier.
+        clientList = await base44.entities.client.filter(persona.clientFilter, '-date_dernier_contact', 2000);
       } else if (persona.mode === 'manager') {
-        const all = await base44.entities.client.list('-date_dernier_contact', 2000);
-        clientList = all.filter(persona.matchClient);
+        // Équipe du manager : tous ses secteurs d'un coup, sans troncature.
+        clientList = persona.clientFilter
+          ? await base44.entities.client.filter(persona.clientFilter, '-date_dernier_contact', 5000)
+          : [];
       } else {
         const res = await base44.functions.invoke('lister_clients', {});
         clientList = (res?.data?.clients) || [];
@@ -137,13 +142,15 @@ export default function MonPortefeuille() {
     return c.secteur || '—';
   };
 
+  // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
   const kpis = useMemo(() => {
-    const rdvMonth = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
-    const ventesValidees = ventes.filter((v) => v.statut_validation === 'Validé').length;
+    const rdvMonth = stats?.rdv?.realises_du_mois ?? rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
+    const ventesValidees = stats?.ventes?.validees ?? ventes.filter((v) => v.statut_validation === 'Validé').length;
     const txTransfo = rdvMonth > 0 ? Math.round((ventesValidees / rdvMonth) * 100) : 0;
-    const aContacter = clients.filter((c) => c.statut === 'À contacter').length;
-    return { rdvMonth, ventesValidees, txTransfo, aContacter };
-  }, [clients, rdvs, ventes]);
+    const aContacter = stats?.clients?.par_statut?.['À contacter'] ?? clients.filter((c) => c.statut === 'À contacter').length;
+    const totalClients = stats?.clients?.total ?? clients.length;
+    return { rdvMonth, ventesValidees, txTransfo, aContacter, totalClients };
+  }, [clients, rdvs, ventes, stats, monthStart]);
 
   const filtered = useMemo(() => {
     let list = clients.filter((c) => {
@@ -159,10 +166,15 @@ export default function MonPortefeuille() {
 
   const statutCounts = useMemo(() => {
     const counts = {};
-    STATUTS.forEach((s) => counts[s] = 0);
-    clients.forEach((c) => { if (counts[c.statut] !== undefined) counts[c.statut]++; });
+    const exacts = stats?.clients?.par_statut;
+    STATUTS.forEach((s) => { counts[s] = exacts ? (exacts[s] || 0) : 0; });
+    if (!exacts) clients.forEach((c) => { if (counts[c.statut] !== undefined) counts[c.statut]++; });
     return counts;
-  }, [clients]);
+  }, [clients, stats]);
+
+  const [affichesMax, setAffichesMax] = useState(200);
+  useEffect(() => { setAffichesMax(200); }, [search, statutFilter, sortByPriority]);
+  const affiches = filtered.slice(0, affichesMax);
 
   const objRdv = params?.objectif_rdv || 0;
 
@@ -171,7 +183,7 @@ export default function MonPortefeuille() {
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mes clients</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {clients.length} client{clients.length > 1 ? 's' : ''} assigné{clients.length > 1 ? 's' : ''} · {kpis.aContacter} à contacter
+          {kpis.totalClients.toLocaleString('fr-FR')} client{kpis.totalClients > 1 ? 's' : ''} assigné{kpis.totalClients > 1 ? 's' : ''} · {kpis.aContacter.toLocaleString('fr-FR')} à contacter
         </p>
       </div>
 
@@ -230,6 +242,12 @@ export default function MonPortefeuille() {
         </Button>
       </div>
 
+      {kpis.totalClients > clients.length && (
+        <p className="mb-2 text-xs text-muted-foreground">
+          {clients.length.toLocaleString('fr-FR')} clients chargés sur {kpis.totalClients.toLocaleString('fr-FR')} — la recherche et les filtres portent sur les clients affichés.
+        </p>
+      )}
+
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full">
@@ -254,7 +272,7 @@ export default function MonPortefeuille() {
                   ? 'Aucun client ne vous est affecté pour l\'instant. L\'affectation est gérée par la Direction (Administration → Affectation).'
                   : 'Aucun client ne correspond aux filtres.'}
               </td></tr>
-            ) : filtered.map((c) => {
+            ) : affiches.map((c) => {
               const prio = priorityScore(c);
               const pl = priorityLabel(prio);
               return (
@@ -281,6 +299,21 @@ export default function MonPortefeuille() {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > affiches.length && (
+        <div className="mt-4 flex flex-col items-center gap-1.5">
+          <Button
+            variant="outline"
+            onClick={() => setAffichesMax((n) => n + 500)}
+            className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white"
+          >
+            Afficher 500 clients de plus
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            {affiches.length.toLocaleString('fr-FR')} affichés sur {filtered.length.toLocaleString('fr-FR')}
+          </p>
+        </div>
+      )}
     </Layout>
   );
 }

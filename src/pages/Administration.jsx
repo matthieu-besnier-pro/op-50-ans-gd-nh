@@ -47,7 +47,7 @@ export default function Administration() {
 
   const load = async () => {
     try {
-      const [p, v, b, users, allClients, allMateriels, allRdvs, allVentes, allBadges] = await Promise.all([
+      const [p, v, b, users, allClients, allMateriels, allRdvs, allVentes, allBadges, statsRes] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.vente.filter({ statut_validation: 'À valider' }, '-date_vente', 100),
         base44.entities.base.list('-nom', 100),
@@ -56,7 +56,8 @@ export default function Administration() {
         base44.entities.materiel.list('-created_date', 500),
         base44.entities.rdv.list('-date_heure', 500),
         base44.entities.vente.list('-date_vente', 500),
-        base44.entities.badge.list('-created_date', 50)
+        base44.entities.badge.list('-created_date', 50),
+        base44.functions.invoke('statistiques_operation', {}).catch(() => null)
       ]);
       setParams(p[0] || { nom_operation: '50 ans Gonnin Duris × New Holland', date_debut_operation: '2026-10-13', date_fin_operation: '2026-10-30', date_debut_prise_rdv: '2026-10-13', date_fin_prise_rdv: '2026-10-14', objectif_rdv: 0, objectif_ventes: 0, objectif_ca_magasin: 0 });
       setVentesAValider(v);
@@ -67,10 +68,15 @@ export default function Administration() {
       comms.forEach((c) => { codesMap[c.id] = c.codes_communes || []; });
       setEditCodes(codesMap);
       setClientsList(allClients);
+      // Totaux exacts (comptages serveur) ; repli sur les listes tronquées en attendant.
+      const exacts = statsRes?.data || null;
       setGlobalStats({
-        clients: allClients.length, materiels: allMateriels.length,
-        rdvs: allRdvs.length, ventes: allVentes.length,
-        users: users.length, badges: allBadges.length
+        clients: exacts?.clients?.total ?? allClients.length,
+        materiels: exacts?.parc?.total ?? allMateriels.length,
+        rdvs: exacts?.rdv?.total ?? allRdvs.length,
+        ventes: exacts?.ventes?.total ?? allVentes.length,
+        users: users.length,
+        badges: exacts?.badges?.total ?? allBadges.length
       });
     } catch (e) {
       console.error(e);
