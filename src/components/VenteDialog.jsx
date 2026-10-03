@@ -9,6 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { base44 } from '@/api/base44Client';
+import { MessageCircle } from 'lucide-react';
 
 const TYPES_MACHINE = ['Tracteur', 'Moissonneuse', 'Big Baler', 'Round Baler', 'Télescopique', 'Ensileuse', 'Machine à vendanger'];
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
@@ -73,6 +74,16 @@ export default function VenteDialog({ open, onOpenChange, client, commercialId, 
           <DialogDescription>{client?.raison_sociale} — déclaration manuelle (à valider)</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {/* Canal de déclaration : le groupe WhatsApp */}
+          <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+            <MessageCircle className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <p className="text-sm font-semibold text-emerald-900 leading-snug">
+              Déclarez votre vente dans le groupe WhatsApp comme d'habitude ! Elle remontera automatiquement ici, rien d'autre à faire.
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Saisie manuelle : seulement si la vente n'a pas pu être passée sur WhatsApp (elle restera à valider).
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Date de vente</Label>
