@@ -6,8 +6,8 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import {
-  Search, RotateCcw, SlidersHorizontal, Gauge, Flag, User, Building2,
-  CalendarClock, Tractor, Cog, ArrowDownWideNarrow
+  Search, RotateCcw, SlidersHorizontal, Gauge, Flag, User,
+  CalendarClock, ArrowDownWideNarrow
 } from 'lucide-react';
 
 const APPETENCES = ['Fort', 'Moyen', 'Faible'];
@@ -16,7 +16,6 @@ const APPETENCE_LABELS = {
   Moyen: 'Moyen (à cultiver)',
   Faible: 'Faible (à explorer)'
 };
-const PRIORITES = ['Haute', 'Moyenne', 'Normale'];
 
 // Un champ de filtre : libellé + icône au-dessus, contrôle en dessous.
 // Le libellé et l'icône passent en orange dès que le filtre est actif → repère visuel immédiat.
@@ -40,8 +39,7 @@ function Champ({ label, icone: Icone, actif = false, className, children }) {
 const triggerClass = (actif) =>
   cn('w-full font-medium', actif && 'border-gd-orange/60 bg-gd-orange/10 text-gd-navy-dark');
 
-// Barre de filtres du portefeuille : statut, appétence, priorité, commercial,
-// base, suivi (RDV / rappels) et parc cible (matériel éligible + catégorie de machine).
+// Barre de filtres du portefeuille : statut, appétence, commercial et suivi (RDV / rappels).
 export default function PortefeuilleFiltres({
   filters,
   onChange,
@@ -49,10 +47,8 @@ export default function PortefeuilleFiltres({
   statutCounts = {},
   commercials = [],
   showCommercial = false,
-  bases = [],
-  categories = [],
-  sortByPriority,
-  onTogglePriority,
+  sortByAppetence,
+  onToggleSort,
   count = 0,
   total = 0
 }) {
@@ -84,8 +80,8 @@ export default function PortefeuilleFiltres({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-        <Champ label="Recherche rapide" icone={Search} actif={actif('search')} className="sm:col-span-2 xl:col-span-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Champ label="Recherche rapide" icone={Search} actif={actif('search')}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -119,16 +115,6 @@ export default function PortefeuilleFiltres({
           </Select>
         </Champ>
 
-        <Champ label="Priorité de travail" icone={Flag} actif={actif('priorite')}>
-          <Select value={filters.priorite} onValueChange={(v) => onChange('priorite', v)}>
-            <SelectTrigger className={triggerClass(actif('priorite'))}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes priorités</SelectItem>
-              {PRIORITES.map((p) => <SelectItem key={p} value={p}>Priorité {p.toLowerCase()}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </Champ>
-
         <Champ label="Suivi (RDV / rappels)" icone={CalendarClock} actif={actif('suivi')}>
           <Select value={filters.suivi} onValueChange={(v) => onChange('suivi', v)}>
             <SelectTrigger className={triggerClass(actif('suivi'))}><SelectValue /></SelectTrigger>
@@ -152,53 +138,18 @@ export default function PortefeuilleFiltres({
           </Champ>
         )}
 
-        {bases.length > 0 && (
-          <Champ label="Base / site" icone={Building2} actif={actif('base')}>
-            <Select value={filters.base} onValueChange={(v) => onChange('base', v)}>
-              <SelectTrigger className={triggerClass(actif('base'))}><SelectValue /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value="all">Toutes les bases</SelectItem>
-                {bases.map((b) => <SelectItem key={b.id} value={b.id}>{b.nom}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </Champ>
-        )}
-
-        <Champ label="Parc cible" icone={Tractor} actif={actif('parc')}>
-          <Select value={filters.parc} onValueChange={(v) => onChange('parc', v)}>
-            <SelectTrigger className={triggerClass(actif('parc'))}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tout le parc cible</SelectItem>
-              <SelectItem value="avec">Avec parc cible</SelectItem>
-              <SelectItem value="sans">Sans parc cible (à conquérir)</SelectItem>
-            </SelectContent>
-          </Select>
-        </Champ>
-
-        {categories.length > 0 && (
-          <Champ label="Catégorie machine" icone={Cog} actif={actif('categorie')}>
-            <Select value={filters.categorie} onValueChange={(v) => onChange('categorie', v)}>
-              <SelectTrigger className={triggerClass(actif('categorie'))}><SelectValue /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value="all">Toutes les machines</SelectItem>
-                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </Champ>
-        )}
-
         <Champ label="Tri de la liste" icone={ArrowDownWideNarrow}>
           <Button
-            variant={sortByPriority ? 'default' : 'outline'}
-            onClick={onTogglePriority}
+            variant={sortByAppetence ? 'default' : 'outline'}
+            onClick={onToggleSort}
             className={cn(
               'w-full justify-start',
-              sortByPriority
+              sortByAppetence
                 ? 'bg-gd-navy text-white hover:bg-gd-navy-dark'
                 : 'border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white'
             )}
           >
-            {sortByPriority ? 'Par priorité' : 'Ordre d\'ajout'}
+            {sortByAppetence ? 'Meilleure appétence' : 'Ordre d\'ajout'}
           </Button>
         </Champ>
       </div>

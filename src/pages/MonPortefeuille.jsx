@@ -18,17 +18,11 @@ import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
-const STATUTS_TERMINAUX = ['Vente conclue', 'Refus', 'Contacté sans suite'];
-
 const FILTRES_INIT = {
   search: '',
   statut: 'all',
   appetence: 'all',
-  priorite: 'all',
   commercial: 'all',
-  base: 'all',
-  parc: 'all',
-  categorie: 'all',
   suivi: 'all'
 };
 
@@ -42,25 +36,6 @@ export function niveauAppetence(client) {
   return 'Faible';
 }
 
-export function priorityScore(client) {
-  if (STATUTS_TERMINAUX.includes(client.statut)) return 0;
-  let score = client.score_appetence || 0;
-  if (client.statut === 'À contacter') score += 30;
-  if (client.statut === 'À rappeler' && client.date_rappel) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const rappel = new Date(client.date_rappel);
-    if (rappel <= today) score += 40;
-  }
-  return Math.round(Math.min(score, 150));
-}
-
-export function priorityLabel(score) {
-  if (score >= 80) return { label: 'Haute', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-  if (score >= 40) return { label: 'Moyenne', className: 'bg-gd-orange/15 text-gd-orange border-gd-orange/30' };
-  return { label: 'Normale', className: 'bg-muted text-muted-foreground border-border' };
-}
-
 export default function MonPortefeuille() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -72,7 +47,6 @@ export default function MonPortefeuille() {
   const [params, setParams] = useState(null);
   const [badges, setBadges] = useState([]);
   const [structure, setStructure] = useState([]);
-  const [bases, setBases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(FILTRES_INIT);
   const [sortByPriority, setSortByPriority] = useState(true);
@@ -102,15 +76,13 @@ export default function MonPortefeuille() {
       }
       setClients(clientList);
 
-      const [rdvList, venteList, paramList, structList, baseList] = await Promise.all([
+      const [rdvList, venteList, paramList, structList] = await Promise.all([
         base44.entities.rdv.list('-date_heure', 1000),
         base44.entities.vente.list('-date_vente', 1000),
         base44.entities.parametres_operation.list('-created_date', 1),
-        base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => []),
-        base44.entities.base.list('-nom', 100).catch(() => [])
+        base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
       ]);
       setStructure(structList);
-      setBases(baseList);
       const scopeRdv = (r) => {
         if (persona.mode) return persona.matchCommercialId(r.commercial_id);
         if (direction) return true;
@@ -178,15 +150,7 @@ export default function MonPortefeuille() {
     return opts.sort((a, b) => a.label.localeCompare(b.label, 'fr'));
   }, [clients, commByUser]);
 
-  // Catégories de matériel présentes dans le parc cible affiché.
-  const categoriesParc = useMemo(() => {
-    const set = new Set();
-    clients.forEach((c) => (c.parc_pictos || []).forEach((p) => {
-      const cat = String(p).split(':')[0];
-      if (cat) set.add(cat);
-    }));
-    return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
-  }, [clients]);
+
 
   // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
   const kpis = useMemo(() => {
@@ -207,25 +171,11 @@ export default function MonPortefeuille() {
 
       if (filters.appetence !== 'all' && niveauAppetence(c) !== filters.appetence) return false;
 
-      if (filters.priorite !== 'all' && priorityLabel(priorityScore(c)).label !== filters.priorite) return false;
-
       if (filters.commercial !== 'all') {
         const assigned = c.commerciaux_assignes || [];
         if (filters.commercial.startsWith('secteur:')) {
           if (assigned.length > 0 || c.secteur !== filters.commercial.slice(8)) return false;
         } else if (!assigned.includes(filters.commercial)) return false;
-      }
-
-      if (filters.base !== 'all' && c.base_id !== filters.base) return false;
-
-      if (filters.parc !== 'all') {
-        const aParc = (c.parc_total || 0) > 0 || (c.parc_pictos || []).length > 0;
-        if (filters.parc === 'avec' && !aParc) return false;
-        if (filters.parc === 'sans' && aParc) return false;
-      }
-
-      if (filters.categorie !== 'all' && !(c.parc_pictos || []).some((p) => String(p).split(':')[0] === filters.categorie)) {
-        return false;
       }
 
       if (filters.suivi !== 'all') {
@@ -249,7 +199,7 @@ export default function MonPortefeuille() {
       return true;
     });
     if (sortByPriority) {
-      list = [...list].sort((a, b) => priorityScore(b) - priorityScore(a));
+      list = [...list].sort((a, b) => (b.score_appetence || 0) - (a.score_appetence || 0));
     }
     return list;
   }, [clients, filters, sortByPriority, commByUser, structure]);
@@ -318,10 +268,8 @@ export default function MonPortefeuille() {
         statutCounts={statutCounts}
         commercials={commercialOptions}
         showCommercial={showCommercial}
-        bases={bases}
-        categories={categoriesParc}
-        sortByPriority={sortByPriority}
-        onTogglePriority={() => setSortByPriority((v) => !v)}
+        sortByAppetence={sortByPriority}
+        onToggleSort={() => setSortByPriority((v) => !v)}
         count={filtered.length}
         total={clients.length}
       />
@@ -341,7 +289,6 @@ export default function MonPortefeuille() {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Parc cible</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Appétence</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Priorité</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prochain RDV</th>
               {showCommercial && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Commercial</th>}
               <th className="px-4 py-3 w-8"></th>
@@ -349,16 +296,14 @@ export default function MonPortefeuille() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={showCommercial ? 8 : 7}><Loader compact /></td></tr>
+              <tr><td colSpan={showCommercial ? 7 : 6}><Loader compact /></td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={showCommercial ? 8 : 7} className="px-4 py-12 text-center text-sm text-muted-foreground">
+              <tr><td colSpan={showCommercial ? 7 : 6} className="px-4 py-12 text-center text-sm text-muted-foreground">
                 {clients.length === 0
                   ? 'Aucun client ne vous est affecté pour l\'instant. L\'affectation est gérée par la Direction (Administration → Affectation).'
                   : 'Aucun client ne correspond aux filtres.'}
               </td></tr>
             ) : affiches.map((c) => {
-              const prio = priorityScore(c);
-              const pl = priorityLabel(prio);
               return (
                 <tr key={c.id} onClick={() => navigate(`/client/${c.id}`)} className="border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer transition-colors">
                   <td className="px-4 py-3">
@@ -369,11 +314,6 @@ export default function MonPortefeuille() {
                   <td className="px-4 py-3"><ParcPictos pictos={c.parc_pictos} /></td>
                   <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
                   <td className="px-4 py-3"><AppetenceGauge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${pl.className}`}>
-                      {pl.label}
-                    </span>
-                  </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_prochain_rdv || '—'}</td>
                   {showCommercial && <td className="px-4 py-3 text-sm text-foreground">{commercialNames(c)}</td>}
                   <td className="px-4 py-3"><ChevronRight className="h-4 w-4 text-muted-foreground" /></td>
