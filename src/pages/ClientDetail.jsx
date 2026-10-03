@@ -20,6 +20,7 @@ import { canSeePac } from '@/lib/permissions';
 import ParcMaterielTable from '@/components/ParcMaterielTable';
 import { UsagesClient } from '@/components/MaterielPicto';
 import CoachCommercial from '@/components/CoachCommercial';
+import ClientRdvsEntete from '@/components/ClientRdvsEntete';
 import {
   ArrowLeft, Phone, MapPin, Calendar, Wrench, ShoppingBag,
   MessageSquare, Plus, Tractor, Mail, Euro, FileText
@@ -166,6 +167,9 @@ export default function ClientDetail() {
             </Button>
           </div>
         </div>
+
+        {/* RDV du client */}
+        <ClientRdvsEntete rdvs={rdvs} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -266,26 +270,6 @@ export default function ClientDetail() {
         <div className="space-y-6">
           {/* Coach Commercial */}
           <CoachCommercial client={client} materiels={materiels} rdvs={rdvs} ventes={ventes} />
-
-          {/* RDV */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              <Calendar className="h-4 w-4 text-gd-orange" /> Rendez-vous
-            </h2>
-            <div className="space-y-2">
-              {rdvs.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-2">Aucun RDV.</p>
-              ) : rdvs.slice(0, 5).map((r) => (
-                <div key={r.id} className="rounded-lg bg-muted/40 px-3 py-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground">{new Date(r.date_heure).toLocaleDateString('fr-FR')}</p>
-                    <StatusBadge statut={r.statut} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">{r.type} · {r.duree_minutes || 30} min</p>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Ventes */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
