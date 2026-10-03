@@ -131,7 +131,9 @@ export default function MonPortefeuille() {
   }, [structure]);
   const commercialNames = (c) => {
     const noms = (c.commerciaux_assignes || []).map((id) => commByUser[id]).filter(Boolean);
-    return noms.length ? noms.join(', ') : '—';
+    if (noms.length) return noms.join(', ');
+    // Repli : nom du commercial issu des fichiers d'import (champ « secteur vendeur »)
+    return c.secteur || '—';
   };
 
   const kpis = useMemo(() => {
