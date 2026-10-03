@@ -1,133 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { base44 } from '@/api/base44Client';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Clock } from 'lucide-react';
 
-const TYPES_MACHINE = ['Tracteur', 'Moissonneuse', 'Big Baler', 'Round Baler', 'Télescopique', 'Ensileuse', 'Machine à vendanger'];
-const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
-const REPRISES = ['Sans reprise', 'Reprise NH', 'Reprise autre marque'];
-
-export default function VenteDialog({ open, onOpenChange, client, commercialId, onSaved }) {
-  // Attribution : toujours au commercial affecté au client (la fiche client fait foi).
-  const assigned = client?.commerciaux_assignes || [];
-  const effectiveCommercialId = assigned.includes(commercialId) ? commercialId : (assigned[0] || commercialId);
-
-  const [form, setForm] = useState({
-    date_vente: new Date().toISOString().slice(0, 10),
-    type_machine: 'Tracteur',
-    type_vente: 'Nouvelle commande',
-    reprise: 'Sans reprise',
-    marque_reprise: ''
-  });
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setForm({
-        date_vente: new Date().toISOString().slice(0, 10),
-        type_machine: 'Tracteur',
-        type_vente: 'Nouvelle commande',
-        reprise: 'Sans reprise',
-        marque_reprise: ''
-      });
-    }
-  }, [open]);
-
-  const handleSubmit = async () => {
-    setSaving(true);
-    try {
-      const payload = {
-        client_id: client.id,
-        commercial_id: effectiveCommercialId,
-        date_vente: form.date_vente,
-        type_machine: form.type_machine,
-        type_vente: form.type_vente,
-        reprise: form.reprise,
-        source_declaration: 'Saisie manuelle',
-        statut_validation: 'À valider'
-      };
-      if (form.reprise === 'Reprise autre marque') payload.marque_reprise = form.marque_reprise;
-      if (client.base_responsable_id) payload.base_responsable_id = client.base_responsable_id;
-      const vente = await base44.entities.vente.create(payload);
-      onSaved?.(vente);
-      onOpenChange(false);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSaving(false);
-    }
-  };
-
+// La déclaration de vente se fait sur le groupe WhatsApp : cet écran le rappelle,
+// l'outil récupère ensuite les ventes automatiquement (import plusieurs fois par jour).
+export default function VenteDialog({ open, onOpenChange, client }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Déclarer une vente</DialogTitle>
-          <DialogDescription>{client?.raison_sociale} — déclaration manuelle (à valider)</DialogDescription>
+          <DialogDescription>{client?.raison_sociale}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          {/* Canal de déclaration : le groupe WhatsApp */}
-          <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
-            <MessageCircle className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+        <div className="space-y-3 py-2">
+          <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3">
+            <MessageCircle className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
             <p className="text-sm font-semibold text-emerald-900 leading-snug">
               Déclarez votre vente dans le groupe WhatsApp comme d'habitude ! Elle remontera automatiquement ici, rien d'autre à faire.
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Saisie manuelle : seulement si la vente n'a pas pu être passée sur WhatsApp (elle restera à valider).
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Date de vente</Label>
-              <Input type="date" value={form.date_vente} onChange={(e) => setForm({ ...form, date_vente: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Type de machine</Label>
-              <Select value={form.type_machine} onValueChange={(v) => setForm({ ...form, type_machine: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {TYPES_MACHINE.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+            <Clock className="h-4 w-4 text-gd-navy mt-0.5 shrink-0" />
+            <p className="text-xs text-muted-foreground leading-snug">
+              Les mises à jour sont faites plusieurs fois par jour : votre vente apparaît dans l'outil quelques heures après sa déclaration.
+            </p>
           </div>
-          <div className="space-y-1.5">
-            <Label>Type de vente</Label>
-            <Select value={form.type_vente} onValueChange={(v) => setForm({ ...form, type_vente: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TYPES_VENTE.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Reprise</Label>
-            <Select value={form.reprise} onValueChange={(v) => setForm({ ...form, reprise: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {REPRISES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          {form.reprise === 'Reprise autre marque' && (
-            <div className="space-y-1.5">
-              <Label>Marque de la reprise</Label>
-              <Input value={form.marque_reprise} onChange={(e) => setForm({ ...form, marque_reprise: e.target.value })} placeholder="Ex. Valtra, John Deere…" />
-            </div>
-          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button onClick={handleSubmit} disabled={saving} className="bg-gd-navy hover:bg-gd-navy-dark text-white">
-            {saving ? 'Enregistrement…' : 'Déclarer'}
+          <Button onClick={() => onOpenChange(false)} className="bg-gd-navy hover:bg-gd-navy-dark text-white">
+            J'ai compris
           </Button>
         </DialogFooter>
       </DialogContent>
