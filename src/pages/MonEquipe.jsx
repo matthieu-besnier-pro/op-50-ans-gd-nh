@@ -101,9 +101,9 @@ export default function MonEquipe() {
       const myRdvs = rdvs.filter((r) => r.commercial_id === c.id);
       const myVentes = ventes.filter((v) => v.commercial_id === c.id);
       const ventesValidees = ventesExactes !== undefined ? ventesExactes : myVentes.filter((v) => v.statut_validation === 'Validé').length;
-      const rdvRealisesToday = myRdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure?.slice(0, 10) === todayStr).length;
-      const rdvRealisesMonth = rdvExact ? rdvExact.realises_mois : myRdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
-      const tauxTransfo = rdvRealisesMonth > 0 ? Math.round((ventesValidees / rdvRealisesMonth) * 100) : 0;
+      const rdvPrisToday = rdvExact?.pris_jour ?? myRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure?.slice(0, 10) === todayStr).length;
+      const rdvPrisMonth = rdvExact ? (rdvExact.pris_mois || 0) : myRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
+      const tauxTransfo = rdvPrisMonth > 0 ? Math.round((ventesValidees / rdvPrisMonth) * 100) : 0;
       const pipeDevis = myClients.filter((cl) => cl.statut === 'Devis en cours').reduce((s, cl) => s + (cl.montant_devis || 0), 0);
       const repartition = exact
         ? STATUTS.map((s) => exact.par_statut[s] || 0)
@@ -111,7 +111,7 @@ export default function MonEquipe() {
       return {
         id: c.id, nom: c.full_name || c.email,
         repartition, totalClients: exact ? exact.total : myClients.length,
-        rdvToday: rdvRealisesToday, rdvMonth: rdvRealisesMonth,
+        rdvToday: rdvPrisToday, rdvMonth: rdvPrisMonth,
         ventes: ventesValidees, tauxTransfo, pipeDevis
       };
     });
@@ -154,7 +154,7 @@ export default function MonEquipe() {
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="rdv">Trier par RDV réalisés</SelectItem>
+            <SelectItem value="rdv">Trier par RDV pris</SelectItem>
             <SelectItem value="ventes">Trier par ventes validées</SelectItem>
           </SelectContent>
         </Select>

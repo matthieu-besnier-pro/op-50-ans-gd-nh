@@ -94,20 +94,20 @@ export default function EspaceCommercial() {
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const stats = useMemo(() => {
-    const rdvRealises = rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
+    const rdvPris = rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
     const myVentes = allVentes.filter((v) => v.commercial_id === user.id && v.statut_validation === 'Validé').length;
     const aContacter = clients.filter((c) => c.statut === 'À contacter').length;
-    return { rdvRealises, myVentes, aContacter };
+    return { rdvPris, myVentes, aContacter };
   }, [rdvs, allVentes, clients, user.id]);
 
   // Objectifs individuels = part de l'objectif global / nb de commerciaux
   const objRdvIndiv = params?.objectif_rdv ? Math.max(1, Math.round(params.objectif_rdv / nbCommerciaux)) : 0;
   const objVentesIndiv = params?.objectif_ventes ? Math.max(1, Math.round(params.objectif_ventes / nbCommerciaux)) : 0;
 
-  // Mon rang dans l'équipe (RDV réalisés = 1 pt, vente validée = 3 pts)
+  // Mon rang dans l'équipe (RDV pris = 1 pt, vente validée = 3 pts)
   const monRang = useMemo(() => {
     const byUser = {};
-    allRdvs.forEach((r) => { if (r.statut === 'Réalisé') byUser[r.commercial_id] = (byUser[r.commercial_id] || 0) + 1; });
+    allRdvs.forEach((r) => { if (r.statut !== 'Annulé') byUser[r.commercial_id] = (byUser[r.commercial_id] || 0) + 1; });
     allVentes.forEach((v) => { if (v.statut_validation === 'Validé') byUser[v.commercial_id] = (byUser[v.commercial_id] || 0) + 3; });
     const classement = Object.entries(byUser).map(([uid, score]) => ({ uid, score })).sort((a, b) => b.score - a.score);
     const idx = classement.findIndex((e) => e.uid === user.id);
@@ -180,7 +180,7 @@ export default function EspaceCommercial() {
 
         {/* Anneaux */}
         <div className="flex items-center justify-around rounded-xl bg-white/5 border border-white/10 py-3">
-          <ProgressRing value={stats.rdvRealises} max={objRdvIndiv} label="Mes RDV réalisés" sublabel="ce mois" color="#FFC107" />
+          <ProgressRing value={stats.rdvPris} max={objRdvIndiv} label="Mes RDV pris" sublabel="ce mois" color="#FFC107" />
           <ProgressRing value={stats.myVentes} max={objVentesIndiv} label="Mes ventes" sublabel="validées" color="#4ADE80" />
           <ProgressRing value={stats.aContacter} max={0} label="À contacter" sublabel="dans mon portefeuille" color="#60A5FA" />
         </div>
@@ -290,7 +290,7 @@ export default function EspaceCommercial() {
         {/* Footer motivant */}
         <div className="flex items-center justify-center gap-2 text-xs text-white/60">
           <Flame className="h-3.5 w-3.5 text-gd-orange" />
-          <span>{stats.rdvRealises + stats.myVentes} action(s) ce mois{monRang.rang ? ` · ${monRang.score} pts au classement` : ''} — continuez ! <Trophy className="inline h-3.5 w-3.5 text-gd-orange" /></span>
+          <span>{stats.rdvPris + stats.myVentes} action(s) ce mois{monRang.rang ? ` · ${monRang.score} pts au classement` : ''} — continuez ! <Trophy className="inline h-3.5 w-3.5 text-gd-orange" /></span>
         </div>
       </div>
 

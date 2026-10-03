@@ -96,10 +96,10 @@ export default function EspaceCollaborateur() {
 
   const stats = useMemo(() => {
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-    const rdvRealises = exacts?.rdv?.realises_du_mois ?? rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
+    const rdvPris = exacts?.rdv?.pris_du_mois ?? rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
     const ventesValidees = exacts?.ventes?.validees ?? ventes.filter((v) => v.statut_validation === 'Validé').length;
     const caCumul = exacts?.offres?.ca_realise ?? offres.reduce((s, o) => s + (o.ca_realise || 0), 0);
-    return { rdvRealises, ventesValidees, caCumul };
+    return { rdvPris, ventesValidees, caCumul };
   }, [rdvs, ventes, offres, exacts]);
 
   const upcomingRdvs = useMemo(() => {
@@ -118,7 +118,7 @@ export default function EspaceCollaborateur() {
       return s ? s.nom_commercial : 'Commercial';
     };
     const byUser = {};
-    rdvs.forEach((r) => { if (r.statut === 'Réalisé' && r.commercial_id) byUser[r.commercial_id] = (byUser[r.commercial_id] || 0) + 1; });
+    rdvs.forEach((r) => { if (r.statut !== 'Annulé' && r.commercial_id) byUser[r.commercial_id] = (byUser[r.commercial_id] || 0) + 1; });
     ventes.forEach((v) => { if (v.statut_validation === 'Validé' && v.commercial_id) byUser[v.commercial_id] = (byUser[v.commercial_id] || 0) + 3; });
     return Object.entries(byUser)
       .map(([uid, score]) => ({ id: uid, name: nameFor(uid), score }))
@@ -206,7 +206,7 @@ export default function EspaceCollaborateur() {
 
         {/* Progress rings */}
         <div className="flex items-center justify-around rounded-xl bg-white/5 border border-white/10 py-3">
-          <ProgressRing value={stats.rdvRealises} max={params?.objectif_rdv || 0} label="RDV réalisés" sublabel="ce mois" color="#FFC107" />
+          <ProgressRing value={stats.rdvPris} max={params?.objectif_rdv || 0} label="RDV pris" sublabel="ce mois" color="#FFC107" />
           <ProgressRing value={stats.ventesValidees} max={params?.objectif_ventes || 0} label="Ventes validées" sublabel="total" color="#4ADE80" />
           <ProgressRing value={stats.caCumul} max={params?.objectif_ca_magasin || 0} label="CA magasin" sublabel={`${stats.caCumul.toLocaleString('fr-FR')} €`} color="#60A5FA" />
         </div>
@@ -306,7 +306,7 @@ export default function EspaceCollaborateur() {
         {/* Footer */}
         <div className="flex items-center justify-center gap-2 text-xs text-white/60">
           <Flame className="h-3.5 w-3.5 text-gd-orange" />
-          <span>{stats.rdvRealises + stats.ventesValidees} actions réalisées ce mois — continuez !</span>
+          <span>{stats.rdvPris + stats.ventesValidees} actions ce mois — continuez !</span>
         </div>
       </div>
 

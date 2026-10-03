@@ -129,13 +129,18 @@ export default async function (req) {
     let rdvAtelierRealisesMois = 0;
     let rdvCommercialRealisesMois = 0;
     let rdvAtelierHorsAnnuleMois = 0;
+    let rdvPrisMois = 0;
+    let rdvAtelierPrisMois = 0;
+    let rdvCommercialPrisMois = 0;
     let sprintTotal = 0;
     let sprintAtelier = 0;
     let sprintCommercial = 0;
     let sprintRealises = 0;
 
+    const jourAujourdhui = new Date().toISOString().slice(0, 10);
     rdvs.forEach((r) => {
       const st = r.statut || '(non renseigné)';
+      const pris = st !== 'Annulé';
       rdvParStatut[st] = (rdvParStatut[st] || 0) + 1;
       const ty = r.type || '(non renseigné)';
       rdvParType[ty] = (rdvParType[ty] || 0) + 1;
@@ -145,12 +150,17 @@ export default async function (req) {
       const realise = st === 'Réalisé';
       if (duMois) {
         rdvMois += 1;
+        if (pris) rdvPrisMois += 1;
         if (atelier) {
           rdvAtelierMois += 1;
-          if (st !== 'Annulé') rdvAtelierHorsAnnuleMois += 1;
+          if (pris) {
+            rdvAtelierHorsAnnuleMois += 1;
+            rdvAtelierPrisMois += 1;
+          }
           if (realise) rdvAtelierRealisesMois += 1;
         } else {
           rdvCommercialMois += 1;
+          if (pris) rdvCommercialPrisMois += 1;
           if (realise) rdvCommercialRealisesMois += 1;
         }
         if (realise) rdvRealisesMois += 1;
@@ -165,9 +175,11 @@ export default async function (req) {
       }
 
       if (r.commercial_id) {
-        const e = (rdvParCommercial[r.commercial_id] = rdvParCommercial[r.commercial_id] || { total: 0, realises_mois: 0, du_mois: 0 });
+        const e = (rdvParCommercial[r.commercial_id] = rdvParCommercial[r.commercial_id] || { total: 0, realises_mois: 0, du_mois: 0, pris_mois: 0, pris_jour: 0 });
         e.total += 1;
         if (duMois) e.du_mois += 1;
+        if (duMois && pris) e.pris_mois += 1;
+        if (pris && jour === jourAujourdhui) e.pris_jour += 1;
         if (duMois && realise) e.realises_mois += 1;
       }
     });
@@ -208,8 +220,11 @@ export default async function (req) {
         par_commercial: rdvParCommercial,
         sprint_par_commercial: rdvSprintParCommercial,
         du_mois: rdvMois,
+        pris_du_mois: rdvPrisMois,
         realises_du_mois: rdvRealisesMois,
         atelier_du_mois: rdvAtelierMois,
+        atelier_pris_du_mois: rdvAtelierPrisMois,
+        commercial_pris_du_mois: rdvCommercialPrisMois,
         atelier_realises_du_mois: rdvAtelierRealisesMois,
         atelier_hors_annule_du_mois: rdvAtelierHorsAnnuleMois,
         commercial_du_mois: rdvCommercialMois,

@@ -119,11 +119,12 @@ export default function TableauDeBord() {
   const countdownRdv = params ? daysBetween(params.date_fin_prise_rdv) : null;
   const showCountdownRdv = countdownRdv !== null && countdownRdv > -3 && countdownRdv < 15;
 
-  const rdvMoisReal = scopedRdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart);
+  // RDV pris : comptés dès la prise de rendez-vous (hors RDV annulés).
+  const rdvMoisPris = scopedRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart);
   // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
-  const rdvMaterielMonth = exacts?.rdv?.commercial_realises_du_mois ?? rdvMoisReal.filter((r) => r.type !== 'RDV atelier hivernage').length;
-  const rdvAtelierMonth = exacts?.rdv?.atelier_realises_du_mois ?? rdvMoisReal.filter((r) => r.type === 'RDV atelier hivernage').length;
-  const rdvTotalMonth = exacts?.rdv?.realises_du_mois ?? rdvMoisReal.length;
+  const rdvMaterielMonth = exacts?.rdv?.commercial_pris_du_mois ?? rdvMoisPris.filter((r) => r.type !== 'RDV atelier hivernage').length;
+  const rdvAtelierMonth = exacts?.rdv?.atelier_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV atelier hivernage').length;
+  const rdvTotalMonth = exacts?.rdv?.pris_du_mois ?? rdvMoisPris.length;
 
   const ventesValidees = scopedVentes.filter((v) => v.statut_validation === 'Validé');
   const ventesParMachine = TYPES_MACHINE.map((t) => ({ name: t, value: exacts?.ventes?.par_type_machine?.[t] ?? ventesValidees.filter((v) => v.type_machine === t).length })).filter((d) => d.value > 0);
@@ -178,7 +179,7 @@ export default function TableauDeBord() {
       <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-muted-foreground">RDV réalisés (mois)</p>
+            <p className="text-sm font-semibold text-muted-foreground">RDV pris (mois)</p>
             <Target className="h-4 w-4 text-gd-orange" />
           </div>
           <p className="text-3xl font-extrabold text-gd-navy-dark">{rdvTotalMonth}<span className="text-base font-medium text-muted-foreground"> / {objRdv}</span></p>
@@ -260,7 +261,7 @@ export default function TableauDeBord() {
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-            <Trophy className="h-4 w-4 text-gd-orange" /> Podium (RDV réalisés)
+            <Trophy className="h-4 w-4 text-gd-orange" /> Podium (RDV pris)
           </h2>
           <Podium rdvs={rdvs} nameMap={nameMap} />
         </div>
@@ -284,11 +285,11 @@ export default function TableauDeBord() {
 
 function Podium({ rdvs, nameMap = {} }) {
   const counts = {};
-  rdvs.filter((r) => r.statut === 'Réalisé').forEach((r) => {
+  rdvs.filter((r) => r.statut !== 'Annulé').forEach((r) => {
     counts[r.commercial_id] = (counts[r.commercial_id] || 0) + 1;
   });
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  if (sorted.length === 0) return <p className="text-sm text-muted-foreground py-8 text-center">Aucun RDV réalisé.</p>;
+  if (sorted.length === 0) return <p className="text-sm text-muted-foreground py-8 text-center">Aucun RDV pris.</p>;
   return (
     <div className="space-y-2">
       {sorted.map(([cid, count], i) => (

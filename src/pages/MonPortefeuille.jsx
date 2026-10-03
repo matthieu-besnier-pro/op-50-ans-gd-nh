@@ -154,7 +154,7 @@ export default function MonPortefeuille() {
 
   // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
   const kpis = useMemo(() => {
-    const rdvMonth = stats?.rdv?.realises_du_mois ?? rdvs.filter((r) => r.statut === 'Réalisé' && r.date_heure >= monthStart).length;
+    const rdvMonth = stats?.rdv?.pris_du_mois ?? rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
     const ventesValidees = stats?.ventes?.validees ?? ventes.filter((v) => v.statut_validation === 'Validé').length;
     const txTransfo = rdvMonth > 0 ? Math.round((ventesValidees / rdvMonth) * 100) : 0;
     const aContacter = stats?.clients?.par_statut?.['À contacter'] ?? clients.filter((c) => c.statut === 'À contacter').length;
@@ -229,7 +229,7 @@ export default function MonPortefeuille() {
 
       {/* KPIs */}
       <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="RDV réalisés (mois)" value={kpis.rdvMonth} icon={Calendar} />
+        <StatCard label="RDV pris (mois)" value={kpis.rdvMonth} icon={Calendar} />
         <StatCard label="Ventes validées" value={kpis.ventesValidees} icon={TrendingUp} />
         <StatCard label="Tx transformation" value={`${kpis.txTransfo}%`} icon={Percent} />
         <StatCard label="Clients à contacter" value={kpis.aContacter} icon={PhoneCall} accent />
