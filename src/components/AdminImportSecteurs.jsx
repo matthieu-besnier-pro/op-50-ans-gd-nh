@@ -27,6 +27,17 @@ const parseDate = (v) => {
 };
 const parseON = (v) => { const s = norm(v); if (s.includes('neuf')) return 'Neuf'; if (s.includes('occ')) return 'Occasion'; return 'Inconnu'; };
 
+// Périmètre de l'opération : départements couverts par le fichier PAC (Centre-Ouest & Nouvelle-Aquitaine).
+// Tout client hors de ces départements est ignoré à l'import.
+const PAC_DEPTS = ['17', '36', '37', '41', '79', '85', '86', '87'];
+const deptOf = (codeInsee, fallback) => {
+  const s = String(codeInsee || '').trim();
+  if (s.length >= 2) return s.slice(0, 2);
+  const m = String(fallback || '').match(/(\d{5})/);
+  return m ? m[1].slice(0, 2) : '';
+};
+const dansPerimetre = (departement) => PAC_DEPTS.includes(departement);
+
 function headerIndex(headerRow) {
   const m = {};
   headerRow.forEach((h, i) => { const k = norm(h); if (k && !(k in m)) m[k] = i; });
@@ -54,13 +65,13 @@ export default function AdminImportSecteurs({ onReload }) {
 
   const parseFile = async (file, usageSel) => {
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-    let nbCli = 0, nbMat = 0;
+    let nbCli = 0, nbMat = 0, exclus = 0;
 
     const upsert = (siren, base, u) => {
       if (!siren) return null;
       let c = clientMap.get(siren);
       if (!c) {
-        c = { raison_sociale: base.raison_sociale, siren, adresse_complete: base.adresse_complete || null, code_commune: base.code_commune || null, tel_mobile: base.tel_mobile || null, tel_fixe: base.tel_fixe || null, secteur: base.secteur || null, usages: [], statut: 'À contacter', nb_tentatives_contact: 0, sources_donnees: ['SIV'] };
+        c = { raison_sociale: base.raison_sociale, siren, adresse_complete: base.adresse_complete || null, code_commune: base.code_commune || null, departement: base.departement || null, tel_mobile: base.tel_mobile || null, tel_fixe: base.tel_fixe || null, secteur: base.secteur || null, usages: [], statut: 'À contacter', nb_tentatives_contact: 0, sources_donnees: ['SIV'] };
         clientMap.set(siren, c); nbCli++;
       } else {
         if (!c.secteur && base.secteur) c.secteur = base.secteur;
@@ -74,7 +85,7 @@ export default function AdminImportSecteurs({ onReload }) {
     if (usageSel === 'agri_precision') {
       const ws = wb.Sheets['Feuil1'] || wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-      if (rows.length < 2) return { nbCli, nbMat };
+      if (rows.length < 2) return { nbCli, nbMat, exclus };
       const get = headerIndex(rows[0]);
       for (let r = 1; r < rows.length; r++) {
         const row = rows[r];
@@ -83,7 +94,10 @@ export default function AdminImportSecteurs({ onReload }) {
         const raison = str(get(row, 'Raison Sociale')) || str(get(row, 'Titre Social')) || 'Client';
         const cp = str(get(row, 'Code Postal')); const ville = str(get(row, 'Ville'));
         const adr = [str(get(row, 'Adresse 1')), cp, ville].filter(Boolean).join(' ');
-        upsert(siren, { raison_sociale: raison, adresse_complete: adr || null, code_commune: str(get(row, 'Code INSEE')), tel_mobile: str(get(row, 'Téléphone 1')), tel_fixe: str(get(row, 'Téléphone 2')), secteur: str(get(row, 'Secteur Commercial')) }, 'agri_precision');
+        const insee = str(get(row, 'Code INSEE'));
+        const dept = deptOf(insee, cp);
+        if (!dansPerimetre(dept)) { exclus++; continue; }
+        upsert(siren, { raison_sociale: raison, adresse_complete: adr || null, code_commune: insee, departement: dept, tel_mobile: str(get(row, 'Téléphone 1')), tel_fixe: str(get(row, 'Téléphone 2')), secteur: str(get(row, 'Secteur Commercial')) }, 'agri_precision');
         materiels.push({ _siren: siren, usage: 'agri_precision', categorie_op: 'AGRI PRECISION', secteur: str(get(row, 'Secteur Commercial')), marque: str(get(row, 'Marque')), modele: str(get(row, 'Type')), categorie_1: str(get(row, 'Catégorie Matériel (Libellé)')), occasion_neuf: parseON(get(row, "Etat d'acquisition")), annee_immat: parseInt(get(row, "Année d'Achat")) || null });
         nbMat++;
       }
@@ -102,21 +116,24 @@ export default function AdminImportSecteurs({ onReload }) {
           const siren = sirenClean(get(row, 'SIREN'));
           if (!siren) continue;
           const secteur = str(get(row, 'Secteur vendeur'));
-          upsert(siren, { raison_sociale: str(get(row, 'Client')) || 'Client', adresse_complete: str(get(row, 'Adresse')), code_commune: str(get(row, 'Code commune')), tel_mobile: str(get(row, 'Mobile')), tel_fixe: str(get(row, 'Fixe')), secteur }, usageSel);
+          const insee = str(get(row, 'Code commune'));
+          const dept = deptOf(insee, str(get(row, 'Adresse')));
+          if (!dansPerimetre(dept)) { exclus++; continue; }
+          upsert(siren, { raison_sociale: str(get(row, 'Client')) || 'Client', adresse_complete: str(get(row, 'Adresse')), code_commune: insee, departement: dept, tel_mobile: str(get(row, 'Mobile')), tel_fixe: str(get(row, 'Fixe')), secteur }, usageSel);
           materiels.push({ _siren: siren, usage: usageSel, categorie_op: cat, secteur, marque: str(get(row, 'Marque')), modele: str(get(row, 'Modèle')), categorie_1: str(get(row, 'Type')), num_plaque: str(get(row, 'Plaque')), vin: str(get(row, 'VIN')), premiere_immat: parseDate(get(row, '1re immat.')), annee_immat: parseInt(get(row, 'Année immat.')) || null, occasion_neuf: parseON(get(row, 'Neuf/Occ.')) });
           nbMat++;
         }
       }
     }
-    return { nbCli, nbMat };
+    return { nbCli, nbMat, exclus };
   };
 
   const handleFile = async (file) => {
     if (!file) return;
     setBusy(true); setError(null); setResult(null); setStatus('Lecture du fichier…');
     try {
-      const { nbMat } = await parseFile(file, usage);
-      setFiles((prev) => [...prev, { name: file.name, usage, materiels: nbMat }]);
+      const { nbMat, exclus } = await parseFile(file, usage);
+      setFiles((prev) => [...prev, { name: file.name, usage, materiels: nbMat, exclus }]);
       force((x) => x + 1);
       setStatus('');
     } catch (e) {
@@ -130,6 +147,7 @@ export default function AdminImportSecteurs({ onReload }) {
   const totalClients = clientMap.size;
   const parUsage = { commerce: 0, atelier: 0, agri_precision: 0 };
   clientMap.forEach((c) => c.usages.forEach((u) => { parUsage[u] = (parUsage[u] || 0) + 1; }));
+  const lignesHorsPerimetre = files.reduce((s, f) => s + (f.exclus || 0), 0);
 
   const creerBase = async () => {
     if (clientMap.size === 0) return;
@@ -219,11 +237,17 @@ export default function AdminImportSecteurs({ onReload }) {
           {files.map((f, i) => (
             <div key={i} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
               <span className="font-medium">{f.name}</span>
-              <span className="text-xs text-muted-foreground">{USAGES.find((u) => u.value === f.usage)?.label} · {f.materiels} machines</span>
+              <span className="text-xs text-muted-foreground">
+                {USAGES.find((u) => u.value === f.usage)?.label} · {f.materiels} machines
+                {f.exclus ? ` · ${f.exclus} lignes hors périmètre` : ''}
+              </span>
             </div>
           ))}
           <div className="rounded-lg bg-muted/40 p-3 text-sm">
             <p className="font-semibold">{totalClients} clients uniques · {materiels.length} matériels</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Périmètre PAC : départements {PAC_DEPTS.join(' · ')} — {lignesHorsPerimetre} ligne(s) hors secteur ignorée(s).
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">Commerce : {parUsage.commerce} · Atelier : {parUsage.atelier} · Agri‑précision : {parUsage.agri_precision}</p>
           </div>
           <Button onClick={creerBase} disabled={busy} className="bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark">
