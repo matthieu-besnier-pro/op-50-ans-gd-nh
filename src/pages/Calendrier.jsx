@@ -33,12 +33,15 @@ export default function Calendrier() {
         list = list.filter((r) => r.commercial_id === user.id);
       }
       setRdvs(list);
-      const [clientList, structList] = await Promise.all([
-        Promise.all([...new Set(list.map((r) => r.client_id))].slice(0, 100).map((id) => base44.entities.client.get(id).catch(() => null))),
-        base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
-      ]);
+      const structList = await base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => []);
+      // Clients des RDV du périmètre, chargés par lots : nécessaires pour nommer et localiser les RDV dans l'export .ics.
+      const idsClients = [...new Set(list.map((r) => r.client_id).filter(Boolean))].slice(0, 600);
       const map = {};
-      clientList.filter(Boolean).forEach((c) => { map[c.id] = c; });
+      for (let i = 0; i < idsClients.length; i += 50) {
+        const lot = idsClients.slice(i, i + 50);
+        const clientsLot = await base44.entities.client.filter({ id: { $in: lot } }, '-created_date', 50).catch(() => []);
+        clientsLot.forEach((c) => { map[c.id] = c; });
+      }
       setClients(map);
       setStructure(structList);
     } catch (e) {
@@ -53,7 +56,11 @@ export default function Calendrier() {
   // Commerciaux présents dans les RDV du périmètre (pour le filtre)
   const commByUser = useMemo(() => {
     const m = {};
-    structure.forEach((s) => { if (s.user_id) m[s.user_id] = s.nom_commercial; });
+    // Un RDV peut référencer un compte utilisateur ou une fiche commerciale : on résout les deux.
+    structure.forEach((s) => {
+      m[s.id] = s.nom_commercial;
+      if (s.user_id) m[s.user_id] = s.nom_commercial;
+    });
     return m;
   }, [structure]);
 
@@ -104,7 +111,7 @@ export default function Calendrier() {
       ) : rdvsFiltres.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground py-24">Aucun rendez-vous.</p>
       ) : (
-        <OutlookCalendar rdvs={rdvsFiltres} clients={clients} />
+        <OutlookCalendar rdvs={rdvsFiltres} clients={clients} commercialNames={commByUser} />
       )}
     </Layout>
   );

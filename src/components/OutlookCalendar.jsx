@@ -5,7 +5,16 @@ import {
   Download, Wrench, User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { generateICS, generateICSAll, downloadICS } from '@/lib/icsExport';
+
+function slugify(nom) {
+  return String(nom || 'commercial')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+}
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8h → 20h
 const HOUR_HEIGHT = 56; // px
@@ -29,7 +38,7 @@ function rdvOnDate(rdv, date) {
   return rdv.date_heure && sameDay(new Date(rdv.date_heure), date);
 }
 
-export default function OutlookCalendar({ rdvs, clients }) {
+export default function OutlookCalendar({ rdvs, clients, commercialNames = {} }) {
   const navigate = useNavigate();
   const [view, setView] = useState('week'); // 'day' | 'week' | 'month'
   const [current, setCurrent] = useState(new Date());
@@ -68,8 +77,26 @@ export default function OutlookCalendar({ rdvs, clients }) {
   };
 
   const handleExportAll = () => {
-    const ics = generateICSAll(rdvs, clients);
-    downloadICS(ics, 'tous-les-rdv.ics');
+    downloadICS(generateICSAll(rdvs, clients), 'rdv-vue-affichee.ics');
+  };
+
+  // RDV pris = RDV du périmètre hors RDV annulés
+  const handleExportPris = () => {
+    const pris = rdvs.filter((r) => r.statut !== 'Annulé');
+    downloadICS(generateICSAll(pris, clients), `rdv-pris-${new Date().toISOString().slice(0, 10)}.ics`);
+  };
+
+  // Un fichier .ics par commercial : calendriers individuels prêts à importer dans Outlook
+  const handleExportParCommercial = () => {
+    const groupes = {};
+    rdvs.filter((r) => r.statut !== 'Annulé').forEach((r) => {
+      const cle = r.commercial_id || 'sans-commercial';
+      (groupes[cle] = groupes[cle] || []).push(r);
+    });
+    Object.entries(groupes).forEach(([cle, liste], i) => {
+      const nom = commercialNames[cle] || 'commercial';
+      setTimeout(() => downloadICS(generateICSAll(liste, clients), `rdv-${slugify(nom)}.ics`), i * 400);
+    });
   };
 
   const goToday = () => setCurrent(new Date());
@@ -204,9 +231,18 @@ export default function OutlookCalendar({ rdvs, clients }) {
               );
             })}
           </div>
-          <Button variant="outline" size="sm" onClick={handleExportAll}>
-            <Download className="h-4 w-4" /> Exporter (.ics)
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4" /> Exporter Outlook
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportAll}>Vue affichée ({rdvs.length} RDV)</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPris}>RDV pris (.ics)</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportParCommercial}>Un calendrier par commercial</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
