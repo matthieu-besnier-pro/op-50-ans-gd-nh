@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
-  Store, Settings, LogOut, Menu, X, Eye, Zap, Monitor, Bot, UserCircle, Rocket, Megaphone, Presentation
+  Store, Settings, LogOut, Menu, X, Eye, Monitor, Bot, UserCircle, Rocket, Megaphone, Presentation
 } from 'lucide-react';
 import { getAppRole, isDirection } from '@/lib/permissions';
 import OpLogo from '@/components/OpLogo';
@@ -23,7 +23,6 @@ const ROLE_LABELS = {
 };
 
 const SECTION_LABELS = {
-  espace: 'Mon espace',
   pilotage: 'Pilotage',
   activite: 'Activité commerciale',
   atelier: 'Atelier',
@@ -31,7 +30,6 @@ const SECTION_LABELS = {
 };
 
 const navItems = [
-  { to: '/mon-espace', label: 'Mon espace', icon: Zap, roles: ['commercial', 'agri_precision'], section: 'espace' },
   { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction', 'collaborateur'], section: 'pilotage' },
   { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'pilotage' },
   { to: '/grand-ecran', label: 'Grand Écran', icon: Monitor, roles: ['responsable', 'direction', 'collaborateur'], section: 'pilotage' },
