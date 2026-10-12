@@ -25,6 +25,7 @@ import AdminImportDonnees from '@/components/AdminImportDonnees';
 import AdminImportSecteurs from '@/components/AdminImportSecteurs';
 import AdminViderClients from '@/components/AdminViderClients';
 import AdminCiblesPrioritaires from '@/components/AdminCiblesPrioritaires';
+import ExportRdv from '@/components/ExportRdv';
 import AdminComptesDemo from '@/components/AdminComptesDemo';
 import AdminDonneesDemo from '@/components/AdminDonneesDemo';
 import AdminDiagnostic from '@/components/AdminDiagnostic';
@@ -445,6 +446,7 @@ export default function Administration() {
             <p className="text-sm text-muted-foreground">Nouvelles bases par secteur (3 usages) : videz la base puis importez les 3 fichiers.</p>
           </div>
           <div className="space-y-5">
+            <ExportRdv />
             <AdminViderClients onReload={load} />
             <AdminImportSecteurs onReload={load} />
             <AdminCiblesPrioritaires onReload={load} />

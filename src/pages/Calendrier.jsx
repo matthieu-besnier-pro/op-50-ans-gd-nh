@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
+import ExportRdv from '@/components/ExportRdv';
 import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
@@ -93,18 +94,21 @@ export default function Calendrier() {
             {rdvsFiltres.length} rendez-vous · {upcomingCount} à venir · export Outlook (.ics) disponible
           </p>
         </div>
-        {showFilter && (
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={commFilter} onValueChange={setCommFilter}>
-              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les commerciaux</SelectItem>
-                {commerciauxDispo.map((c) => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportRdv compact />
+          {showFilter && (
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={commFilter} onValueChange={setCommFilter}>
+                <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les commerciaux</SelectItem>
+                  {commerciauxDispo.map((c) => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (
