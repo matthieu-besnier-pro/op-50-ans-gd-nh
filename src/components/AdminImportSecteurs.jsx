@@ -135,9 +135,13 @@ export default function AdminImportSecteurs({ onReload }) {
           const marque = str(get(row, 'Marque')); const modele = str(get(row, 'Modèle'));
           const plaque = str(get(row, 'Plaque')); const vin = str(get(row, 'VIN'));
           const immat = parseDate(get(row, '1re immat.'));
-          // On ne crée pas de matériel « vide » (prospect ajouté sans machine) : la fiche client suffit.
-          if (marque || modele || plaque || vin || immat) {
-            materiels.push({ _siren: siren, usage: usageSel, categorie_op: canonCategorie(cat), secteur, priorite: prio, marque, modele, categorie_1: str(get(row, 'Type')), num_plaque: plaque, vin, premiere_immat: immat, annee_immat: parseInt(get(row, 'Année immat.')) || null, occasion_neuf: parseON(get(row, 'Neuf/Occ.')) });
+          const typeMachine = str(get(row, 'Type'));
+          // On ne crée pas de matériel « vide » (prospect ajouté sans aucune machine).
+          // En revanche, une ligne ajoutée à la main qui ne précise que le type
+          // (« Tracteur agricole », ou parfois la marque saisie dans cette colonne)
+          // désigne bien une machine : l'onglet donne la catégorie, ça suffit.
+          if (marque || modele || plaque || vin || immat || typeMachine) {
+            materiels.push({ _siren: siren, usage: usageSel, categorie_op: canonCategorie(cat), secteur, priorite: prio, marque, modele, categorie_1: typeMachine, num_plaque: plaque, vin, premiere_immat: immat, annee_immat: parseInt(get(row, 'Année immat.')) || null, occasion_neuf: parseON(get(row, 'Neuf/Occ.')) });
             nbMat++;
           }
         }
