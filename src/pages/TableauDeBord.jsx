@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { fetchOperationStats } from '@/lib/operationStats';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
@@ -63,18 +64,36 @@ export default function TableauDeBord() {
   const [exacts, setExacts] = useState(null);
   const [tousRdvs, setTousRdvs] = useState([]); // liste complète : indicateurs moi / mon équipe / entreprise
 
+  // Clients de la carte : chargés en arrière-plan et une seule fois par client,
+  // pour ne pas retarder l'affichage du tableau de bord.
+  const clientsCarte = useRef({});
+  const chargerClientsCarte = useCallback(async (rdvsCarte) => {
+    const aCharger = [...new Set(rdvsCarte.map((rd) => rd.client_id))]
+      .filter((id) => id && !clientsCarte.current[id])
+      .slice(0, 200);
+    if (aCharger.length === 0) return;
+    const trouves = {};
+    for (let i = 0; i < aCharger.length; i += 50) {
+      const morceau = await base44.entities.client.filter({ id: { $in: aCharger.slice(i, i + 50) } }, '-created_date', 50).catch(() => []);
+      (morceau || []).forEach((c) => { trouves[c.id] = c; });
+    }
+    clientsCarte.current = { ...clientsCarte.current, ...trouves };
+    setClients(clientsCarte.current);
+  }, []);
+
   const load = useCallback(async () => {
     try {
-      const [p, r, v, o, u, s, statsRes] = await Promise.all([
+      const [p, r, v, o, u, s] = await Promise.all([
         base44.entities.parametres_operation.list('-created_date', 1),
         base44.entities.rdv.list('-date_heure', 1000),
         base44.entities.vente.list('-date_vente', 1000),
         base44.entities.offre_magasin.list('-created_date', 200),
         base44.entities.User.list('-created_date', 100).catch(() => []),
-        base44.entities.structure_commerciale.list('-nom_commercial', 200),
-        base44.functions.invoke('statistiques_operation', persona.mode ? { scope: { commercial_ids: persona.ids, secteurs: persona.secteurs } } : {}).catch(() => null)
+        base44.entities.structure_commerciale.list('-nom_commercial', 200)
       ]);
-      setExacts(statsRes?.data || null);
+      // Comptages exacts : appel serveur mutualisé (mis en cache) et non bloquant.
+      // Les chiffres des listes s'affichent aussitôt, puis sont affinés.
+      fetchOperationStats(persona.mode ? { commercial_ids: persona.ids, secteurs: persona.secteurs } : null).then(setExacts);
       // Chef d'atelier / responsable SAV : périmètre des commerciaux de ses sites.
       if (!persona.mode && (role === 'chef_atelier' || role === 'responsable_sav')) {
         const sc = await base44.functions.invoke('lister_clients', { scope_only: true }).catch(() => null);
@@ -90,26 +109,19 @@ export default function TableauDeBord() {
       setOffres(o);
       setUsers(u);
       setStructure(s);
-      // Load clients for map (those with RDV) — batch via filter
-      const clientIds = [...new Set(personaRdvs.map((rd) => rd.client_id))].slice(0, 200);
-      const cmap = {};
-      // Batch: filter by client_id in chunks of 50
-      for (let i = 0; i < clientIds.length; i += 50) {
-        const chunk = clientIds.slice(i, i + 50);
-        const results = await base44.entities.client.filter({ id: { $in: chunk } }, '-created_date', 50);
-        results.forEach((c) => { cmap[c.id] = c; });
-      }
-      setClients(cmap);
+      // Carte : chargée après l'affichage (aucun blocage de la page), puis réutilisée.
+      chargerClientsCarte(personaRdvs);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [persona.mode, persona.ids.join(',')]);
+  }, [persona.mode, persona.ids.join(','), chargerClientsCarte]);
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 30000);
+    // Onglet en arrière-plan : aucun rechargement (réseau et serveur préservés).
+    const interval = setInterval(() => { if (!document.hidden) load(); }, 30000);
     return () => clearInterval(interval);
   }, [load]);
 

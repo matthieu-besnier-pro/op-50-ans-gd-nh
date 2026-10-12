@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { fetchOperationStats } from '@/lib/operationStats';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import OpLogo from '@/components/OpLogo';
@@ -161,9 +162,9 @@ export default function GrandEcran() {
         base44.entities.badge_obtenu.list('-created_date', 100),
         base44.entities.structure_commerciale.list('-nom_commercial', 200),
         base44.entities.badge.list('-created_date', 50).catch(() => []),
-        base44.functions.invoke('statistiques_operation', {}).catch(() => null)
+        fetchOperationStats()
       ]);
-      setExacts(statsRes?.data || null);
+      setExacts(statsRes || null);
       setParams(p[0] || null);
       setRdvs(r);
       setVentes(v);
@@ -171,10 +172,13 @@ export default function GrandEcran() {
       setStructure(st);
       setBadgeObtenus(bo);
       setBadges(bdg);
+      // Clients du feed : deux requêtes groupées au lieu de cent requêtes unitaires.
       const clientIds = [...new Set(r.map(rd => rd.client_id))].slice(0, 100);
-      const clientResults = await Promise.all(clientIds.map(id => base44.entities.client.get(id).catch(() => null)));
       const map = {};
-      clientResults.filter(Boolean).forEach(c => { map[c.id] = c; });
+      for (let i = 0; i < clientIds.length; i += 50) {
+        const morceau = await base44.entities.client.filter({ id: { $in: clientIds.slice(i, i + 50) } }, '-created_date', 50).catch(() => []);
+        (morceau || []).forEach(c => { map[c.id] = c; });
+      }
       setClients(map);
     } catch (e) { console.error(e); }
   }, []);

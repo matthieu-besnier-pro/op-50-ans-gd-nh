@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster"
+import { lazy, Suspense } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
@@ -11,23 +12,24 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
-// Page imports
-import MonPortefeuille from '@/pages/MonPortefeuille';
-import MonEquipe from '@/pages/MonEquipe';
-import Calendrier from '@/pages/Calendrier';
-import TableauDeBord from '@/pages/TableauDeBord';
-import Atelier from '@/pages/Atelier';
-import Magasin from '@/pages/Magasin';
-import Administration from '@/pages/Administration';
-import ClientDetail from '@/pages/ClientDetail';
-import EspaceCollaborateur from '@/pages/EspaceCollaborateur';
-import GestionUtilisateurs from '@/pages/GestionUtilisateurs';
-import GrandEcran from '@/pages/GrandEcran';
-import BriefingAnimateur from '@/pages/BriefingAnimateur';
-import Presentation from '@/pages/Presentation';
-import CopilotAdmin from '@/pages/CopilotAdmin';
-import Lancement from '@/pages/Lancement';
-import EspaceCommercial from '@/pages/EspaceCommercial';
+// Pages chargées à la demande : chaque écran n'est téléchargé que lorsqu'on l'ouvre
+// (le premier affichage ne charge plus tout l'outil en une seule fois).
+const MonPortefeuille = lazy(() => import('@/pages/MonPortefeuille'));
+const MonEquipe = lazy(() => import('@/pages/MonEquipe'));
+const Calendrier = lazy(() => import('@/pages/Calendrier'));
+const TableauDeBord = lazy(() => import('@/pages/TableauDeBord'));
+const Atelier = lazy(() => import('@/pages/Atelier'));
+const Magasin = lazy(() => import('@/pages/Magasin'));
+const Administration = lazy(() => import('@/pages/Administration'));
+const ClientDetail = lazy(() => import('@/pages/ClientDetail'));
+const EspaceCollaborateur = lazy(() => import('@/pages/EspaceCollaborateur'));
+const GestionUtilisateurs = lazy(() => import('@/pages/GestionUtilisateurs'));
+const GrandEcran = lazy(() => import('@/pages/GrandEcran'));
+const BriefingAnimateur = lazy(() => import('@/pages/BriefingAnimateur'));
+const Presentation = lazy(() => import('@/pages/Presentation'));
+const CopilotAdmin = lazy(() => import('@/pages/CopilotAdmin'));
+const Lancement = lazy(() => import('@/pages/Lancement'));
+const EspaceCommercial = lazy(() => import('@/pages/EspaceCommercial'));
 import Loader from '@/components/Loader';
 import { getAppRole, accueilRole } from '@/lib/permissions';
 
@@ -57,6 +59,11 @@ const AuthenticatedApp = () => {
   }
 
   return (
+    <Suspense fallback={(
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <Loader label="Ouverture du module…" />
+      </div>
+    )}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -83,6 +90,7 @@ const AuthenticatedApp = () => {
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 

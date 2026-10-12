@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useDemoPersona } from '@/lib/useDemoPersona';
+import { fetchOperationStats } from '@/lib/operationStats';
 
 /**
  * Chiffres EXACTS de l'opération (comptages calculés côté serveur, jamais tronqués
  * par les limites de chargement des listes).
  * La portée suit le persona de démo « Voir en tant que » quand il est actif.
+ * L'appel est mutualisé et mis en cache (voir operationStats.js) : plusieurs pages
+ * ouvertes dans la même session ne relancent pas le calcul.
  * Retourne null tant que les chiffres ne sont pas chargés.
  */
 export function useOperationStats() {
@@ -15,12 +17,9 @@ export function useOperationStats() {
 
   useEffect(() => {
     let actif = true;
-    const payload = persona.mode
-      ? { scope: { commercial_ids: persona.ids || [], secteurs: persona.secteurs || [] } }
-      : {};
-    base44.functions.invoke('statistiques_operation', payload)
-      .then((res) => { if (actif) setStats(res?.data || null); })
-      .catch(() => { if (actif) setStats(null); });
+    fetchOperationStats(
+      persona.mode ? { commercial_ids: persona.ids || [], secteurs: persona.secteurs || [] } : null
+    ).then((data) => { if (actif) setStats(data); });
     return () => { actif = false; };
   }, [persona.mode, (persona.ids || []).join(','), secteurs]);
 
