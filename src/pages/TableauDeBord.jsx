@@ -166,6 +166,8 @@ export default function TableauDeBord() {
     marquesReprise[v.marque_reprise] = (marquesReprise[v.marque_reprise] || 0) + 1;
   });
 
+  // Premier objectif de l'opération : les cibles choisies par les commerciaux.
+  const cibles = exacts?.clients?.priorites || null;
   const caMagasin = exacts?.offres?.ca_realise ?? offres.reduce((sum, o) => sum + (o.ca_realise || 0), 0);
   const objRdv = params?.objectif_rdv || 0;
   const objVentes = params?.objectif_ventes || 0;
@@ -211,6 +213,27 @@ export default function TableauDeBord() {
         <StatCard label="RDV Atelier" value={rdvAtelierMonth} icon={Timer} />
         <StatCard label="RDV Agri. précision" value={rdvAgriMonth} icon={Satellite} />
       </div>
+
+      {/* Premier objectif : les cibles choisies par les commerciaux */}
+      {cibles && cibles.total > 0 && (
+        <div className="mb-6 rounded-xl border-2 border-gd-orange/30 bg-gd-orange/5 p-5 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-2 text-sm font-semibold text-gd-navy-dark">
+              <Target className="h-4 w-4 text-gd-orange" />
+              Premier objectif — cibles choisies par les commerciaux
+            </p>
+            <p className="text-sm font-bold text-gd-navy">
+              {cibles.traites.toLocaleString('fr-FR')} / {cibles.total.toLocaleString('fr-FR')} contactées
+            </p>
+          </div>
+          <ProgressBar value={cibles.traites} max={cibles.total} barClassName="bg-gd-orange" />
+          <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
+            <span>⭐ Restantes : <span className="font-bold text-gd-navy-dark">{(cibles.total - cibles.traites).toLocaleString('fr-FR')}</span></span>
+            <span>📅 RDV obtenus : <span className="font-bold text-gd-navy-dark">{(cibles.rdv || 0).toLocaleString('fr-FR')}</span></span>
+            <span>🏆 Ventes : <span className="font-bold text-gd-navy-dark">{(cibles.ventes || 0).toLocaleString('fr-FR')}</span></span>
+          </div>
+        </div>
+      )}
 
       {/* Objectives */}
       <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">

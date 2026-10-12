@@ -96,10 +96,26 @@ export default async function (req) {
     const parSecteur = {};
     const parCategorie = {};
     let parcTotal = 0;
+    // Cibles prioritaires : les clients choisis par les commerciaux dans leur
+    // fichier. C'est le premier objectif de l'opération, avant le reste du parc.
+    let prioTotal = 0, prioAContacter = 0, prioRdv = 0, prioVente = 0;
+    const prioParCommercial = {};
 
     clients.forEach((c) => {
       const st = c.statut || '(non renseigné)';
       parStatut[st] = (parStatut[st] || 0) + 1;
+
+      if (c.priorite_commercial) {
+        prioTotal += 1;
+        if (st === 'À contacter') prioAContacter += 1;
+        if (st.startsWith('RDV ')) prioRdv += 1;
+        if (st === 'Vente conclue') prioVente += 1;
+        (c.commerciaux_assignes || []).forEach((id) => {
+          const e = (prioParCommercial[id] = prioParCommercial[id] || { total: 0, traites: 0 });
+          e.total += 1;
+          if (st !== 'À contacter') e.traites += 1;
+        });
+      }
       const ap = c.niveau_appetence || 'Non évalué';
       parAppetence[ap] = (parAppetence[ap] || 0) + 1;
 
@@ -268,6 +284,15 @@ export default async function (req) {
       clients: {
         total: clients.length,
         par_statut: parStatut,
+        // Premier objectif : les cibles choisies par les commerciaux.
+        priorites: {
+          total: prioTotal,
+          a_contacter: prioAContacter,
+          traites: prioTotal - prioAContacter,
+          rdv: prioRdv,
+          ventes: prioVente,
+          par_commercial: prioParCommercial
+        },
         par_appetence: parAppetence,
         par_commercial: parCommercial,
         par_secteur: parSecteur

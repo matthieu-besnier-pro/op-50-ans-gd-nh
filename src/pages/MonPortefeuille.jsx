@@ -239,8 +239,13 @@ export default function MonPortefeuille() {
       ?? ventes.filter((v) => v.statut_validation === 'Validé' && v.date_vente >= moisJour).length;
     const txTransfo = rdvMonth > 0 ? Math.round((ventesMois / rdvMonth) * 100) : 0;
     const aContacter = stats?.clients?.par_statut?.['À contacter'] ?? clients.filter((c) => c.statut === 'À contacter').length;
+    // Premier objectif : les cibles choisies par le commercial lui-même.
+    const prio = stats?.clients?.priorites;
+    const ciblesTotal = prio?.total ?? clients.filter((c) => c.priorite_commercial).length;
+    const ciblesTraitees = prio?.traites
+      ?? clients.filter((c) => c.priorite_commercial && c.statut !== 'À contacter').length;
     const totalClients = stats?.clients?.total ?? clients.length;
-    return { rdvMonth, ventesValidees, ventesMois, txTransfo, aContacter, totalClients };
+    return { rdvMonth, ventesValidees, ventesMois, txTransfo, aContacter, totalClients, ciblesTotal, ciblesTraitees };
   }, [clients, rdvs, ventes, stats, monthStart]);
 
   const filtered = useMemo(() => {
@@ -366,8 +371,39 @@ export default function MonPortefeuille() {
         <StatCard label="RDV pris" value={kpis.rdvMonth} icon={Calendar} />
         <StatCard label="Ventes validées" value={kpis.ventesValidees} icon={TrendingUp} />
         <StatCard label="Tx transformation" value={`${kpis.txTransfo}%`} icon={Percent} />
-        <StatCard label="Clients à contacter" value={kpis.aContacter} icon={PhoneCall} accent />
+        {kpis.ciblesTotal > 0 ? (
+          <StatCard
+            label="Mes cibles prioritaires"
+            value={`${kpis.ciblesTraitees} / ${kpis.ciblesTotal}`}
+            sublabel={`${kpis.ciblesTotal - kpis.ciblesTraitees} restante(s) à appeler`}
+            icon={Star}
+            accent
+          />
+        ) : (
+          <StatCard label="Clients à contacter" value={kpis.aContacter} icon={PhoneCall} accent />
+        )}
       </div>
+
+      {/* Premier objectif : les cibles que le commercial a lui-même choisies. */}
+      {kpis.ciblesTotal > 0 && (
+        <div className="mb-6 rounded-xl border-2 border-gd-orange/30 bg-gd-orange/5 p-5 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-2 text-sm font-semibold text-gd-navy-dark">
+              <Star className="h-4 w-4 text-gd-orange" fill="currentColor" />
+              Premier objectif — les cibles choisies par le commercial
+            </p>
+            <p className="text-sm font-bold text-gd-navy">
+              {kpis.ciblesTraitees} / {kpis.ciblesTotal} contactée{kpis.ciblesTraitees > 1 ? 's' : ''}
+            </p>
+          </div>
+          <ProgressBar value={kpis.ciblesTraitees} max={kpis.ciblesTotal} barClassName="bg-gd-orange" />
+          <p className="mt-2 text-xs text-muted-foreground">
+            {kpis.ciblesTotal - kpis.ciblesTraitees === 0
+              ? 'Toutes les cibles ont été contactées — place au reste du portefeuille.'
+              : `${(kpis.ciblesTotal - kpis.ciblesTraitees).toLocaleString('fr-FR')} cible(s) encore à appeler, puis le reste du portefeuille (${kpis.aContacter.toLocaleString('fr-FR')} clients à contacter).`}
+          </p>
+        </div>
+      )}
 
       {/* Progress toward objective */}
       {objRdv > 0 && (
