@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
+import { normNom } from '@/lib/nomCle';
 
 /**
  * Hook central pour la démo "Voir en tant que".
@@ -17,13 +18,17 @@ import { base44 } from '@/api/base44Client';
  *  - matchCommercialId(id): fonction pour vérifier si un commercial_id correspond
  */
 export function useDemoPersona() {
-  const { viewAsCommercial, viewAsManager, viewAsRole } = useAuth();
+  const { viewAsCommercial, viewAsManager, viewAsReferent, viewAsRole } = useAuth();
   const [structure, setStructure] = useState([]);
+  const [bases, setBases] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    base44.entities.structure_commerciale.list('-nom_commercial', 200)
-      .then((rows) => { setStructure(rows); setLoading(false); })
+    Promise.all([
+      base44.entities.structure_commerciale.list('-nom_commercial', 200),
+      base44.entities.base.list('-nom', 100)
+    ])
+      .then(([rows, sites]) => { setStructure(rows); setBases(sites); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -47,6 +52,31 @@ export function useDemoPersona() {
         matchCommercialId: (id) => id === uid,
       };
     }
+    // Chef d'atelier / responsable SAV — les clients des commerciaux de ses sites
+    // (tableau de répartition : base.commerciaux × base.chefs_atelier / responsables_sav).
+    if ((viewAsRole === 'chef_atelier' || viewAsRole === 'responsable_sav') && viewAsReferent) {
+      const champ = viewAsRole === 'chef_atelier' ? 'chefs_atelier' : 'responsables_sav';
+      const mesSites = bases.filter((b) => (b[champ] || []).includes(viewAsReferent));
+      const noms = [...new Set(mesSites.flatMap((b) => b.commerciaux || []))];
+      const cles = new Set(noms.map(normNom));
+      const mesFiches = structure.filter((f) => cles.has(normNom(f.nom_commercial)));
+      const ids = [...new Set(mesFiches.flatMap((f) => [f.id, f.user_id]).filter(Boolean))];
+      const secteurs = [...new Set(mesFiches.map((f) => (f.nom_commercial || '').trim()).filter(Boolean))];
+      return {
+        mode: 'atelier',
+        label: viewAsReferent,
+        sites: mesSites.map((b) => b.nom),
+        ids,
+        secteurs,
+        clientFilter: ids.length
+          ? { $or: [{ commerciaux_assignes: { $in: ids } }, { secteur: { $in: secteurs } }] }
+          : null,
+        matchClient: (c) =>
+          (c.commerciaux_assignes || []).some((i) => ids.includes(i)) ||
+          secteurs.some((n) => normNom(n) === normNom(c.secteur)),
+        matchCommercialId: (id) => ids.includes(id),
+      };
+    }
     // Manager spécifique — équipe résolue en IDs utilisateurs et en secteurs (noms)
     if (viewAsRole === 'responsable' && viewAsManager) {
       const teamRows = structure.filter((s) => s.manager === viewAsManager);
@@ -55,6 +85,7 @@ export function useDemoPersona() {
       return {
         mode: 'manager',
         label: `Équipe de ${viewAsManager}`,
+        sites: [],
         ids: teamIds,
         secteurs,
         clientFilter: secteurs.length > 0 ? { secteur: { $in: secteurs } } : null,
@@ -65,13 +96,14 @@ export function useDemoPersona() {
     return {
       mode: null,
       label: null,
+      sites: [],
       ids: [],
       secteurs: [],
       clientFilter: null,
       matchClient: () => true,
       matchCommercialId: () => true,
     };
-  }, [viewAsRole, viewAsCommercial, viewAsManager, structure]);
+  }, [viewAsRole, viewAsCommercial, viewAsManager, viewAsReferent, structure, bases]);
 
   return { ...persona, loading, structure };
 }

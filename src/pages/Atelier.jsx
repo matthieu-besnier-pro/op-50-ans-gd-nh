@@ -29,7 +29,9 @@ export default function Atelier() {
       const clientIds = [...new Set(list.map((r) => r.client_id))];
       const [clientList, all, statsRes, structList] = await Promise.all([
         Promise.all(clientIds.slice(0, 50).map((id) => base44.entities.client.get(id).catch(() => null))),
-        base44.entities.client.list('-raison_sociale', 2000).catch(() => []),
+        // Périmètre résolu côté serveur : Direction = tous les clients, chef d'atelier
+        // ou responsable SAV = ceux des commerciaux de ses sites.
+        base44.functions.invoke('lister_clients', { limit: 2000 }).then((r) => r?.data?.clients || []).catch(() => []),
         base44.functions.invoke('statistiques_operation', {}).catch(() => null),
         base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
       ]);

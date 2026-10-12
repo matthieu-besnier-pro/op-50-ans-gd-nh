@@ -49,6 +49,7 @@ export default function MonPortefeuille() {
   const [params, setParams] = useState(null);
   const [badges, setBadges] = useState([]);
   const [structure, setStructure] = useState([]);
+  const [perimetre, setPerimetre] = useState(null); // chef d'atelier / responsable SAV : périmètre renvoyé par le serveur
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(FILTRES_INIT);
   const [sortByPriority, setSortByPriority] = useState(true);
@@ -63,8 +64,10 @@ export default function MonPortefeuille() {
     if (persona.mode) return persona.matchCommercialId(r.commercial_id);
     if (isDirection(user)) return true;
     if (getAppRole(user) === 'responsable') return r.base_responsable_id === user?.id;
+    // Chef d'atelier / responsable SAV : les RDV des commerciaux de ses sites.
+    if (perimetre) return (perimetre.commercial_ids || []).includes(r.commercial_id);
     return r.commercial_id === user?.id;
-  }, [user, persona.mode, persona.ids.join(',')]);
+  }, [user, persona.mode, persona.ids.join(','), perimetre]);
 
   const loadAll = async () => {
     setLoading(true);
@@ -73,19 +76,26 @@ export default function MonPortefeuille() {
       // lister_clients (asServiceRole) qui scope par rôle et garantit la remontée
       // (Direction/Marketing = tous, Responsable = son équipe, Commercial = les siens).
       let clientList;
+      let scopeFrais = null;
       if (persona.mode === 'commercial' && persona.clientFilter) {
         // Portefeuille du commercial (rattachement par secteur) : chargé en entier.
         clientList = await base44.entities.client.filter(persona.clientFilter, '-created_date', 2000);
-      } else if (persona.mode === 'manager') {
-        // Équipe du manager : tous ses secteurs d'un coup, sans troncature.
+      } else if (persona.mode === 'manager' || persona.mode === 'atelier') {
+        // Équipe du manager / sites du référent d'atelier : tout le périmètre d'un coup.
         clientList = persona.clientFilter
           ? await base44.entities.client.filter(persona.clientFilter, '-created_date', 5000)
           : [];
+        setPerimetre(null);
       } else {
         const res = await base44.functions.invoke('lister_clients', {});
         clientList = (res?.data?.clients) || [];
+        scopeFrais = res?.data?.scope || null;
+        setPerimetre(scopeFrais);
       }
       setClients(clientList);
+      // Le périmètre vient d'être lu par le serveur : on l'applique aux RDV et ventes
+      // dans la foulée (le state n'est pas encore disponible dans ce rendu).
+      const dansPortee = (r) => (scopeFrais ? (scopeFrais.commercial_ids || []).includes(r.commercial_id) : rdvScope(r));
 
       const [rdvList, venteList, paramList, structList] = await Promise.all([
         base44.entities.rdv.list('-date_heure', 1000),
@@ -94,8 +104,8 @@ export default function MonPortefeuille() {
         base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
       ]);
       setStructure(structList);
-      setRdvs(rdvList.filter(rdvScope));
-      setVentes(venteList.filter(rdvScope));
+      setRdvs(rdvList.filter(dansPortee));
+      setVentes(venteList.filter(dansPortee));
       setParams(paramList[0] || null);
 
       if (!persona.mode) {
@@ -130,7 +140,7 @@ export default function MonPortefeuille() {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
   // Colonne « Commercial » affichée en vue manager/direction (pas pour un commercial sur son propre portefeuille)
-  const showCommercial = persona.mode === 'manager' || (!persona.mode && (isDirection(user) || getAppRole(user) === 'responsable'));
+  const showCommercial = !!perimetre || persona.mode === 'manager' || persona.mode === 'atelier' || (!persona.mode && (isDirection(user) || getAppRole(user) === 'responsable'));
   const commByUser = useMemo(() => {
     const m = {};
     structure.forEach((s) => { if (s.user_id) m[s.user_id] = s.nom_commercial; });
@@ -239,6 +249,7 @@ export default function MonPortefeuille() {
   const affiches = filtered.slice(0, affichesMax);
 
   const objRdv = params?.objectif_rdv || 0;
+  const sitesAtelier = persona.mode === 'atelier' ? (persona.sites || []) : (perimetre?.sites || []);
 
   return (
     <Layout>
@@ -247,6 +258,11 @@ export default function MonPortefeuille() {
         <p className="mt-1 text-sm text-muted-foreground">
           {kpis.totalClients.toLocaleString('fr-FR')} client{kpis.totalClients > 1 ? 's' : ''} assigné{kpis.totalClients > 1 ? 's' : ''} · {kpis.aContacter.toLocaleString('fr-FR')} à contacter
         </p>
+        {sitesAtelier.length > 0 && (
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-gd-navy/70">
+            {persona.mode === 'atelier' && persona.label ? `${persona.label} · ` : ''}Atelier{sitesAtelier.length > 1 ? 's' : ''} : {sitesAtelier.join(' · ')}
+          </p>
+        )}
       </div>
 
       {/* KPIs */}

@@ -40,6 +40,7 @@ export default function TableauDeBord() {
   const [users, setUsers] = useState([]);
   const [structure, setStructure] = useState([]);
   const [clients, setClients] = useState({});
+  const [perimetre, setPerimetre] = useState(null); // chef d'atelier / responsable SAV : périmètre renvoyé par le serveur
   const [loading, setLoading] = useState(true);
   const direction = isDirection(user, viewAsRole);
   const role = getAppRole(user, viewAsRole);
@@ -47,9 +48,11 @@ export default function TableauDeBord() {
   // Périmètre des données : le persona « Voir en tant que » est prioritaire, sinon le rôle réel.
   // Commercial → ses RDV ; Responsable → son équipe ; Direction → tout.
   const inScope = (commId, baseRespId) => {
-    if (persona.mode === 'commercial' || persona.mode === 'manager') return persona.matchCommercialId(commId);
+    if (persona.mode) return persona.matchCommercialId(commId);
     if (direction) return true;
     if (role === 'responsable') return baseRespId === user?.id;
+    // Chef d'atelier / responsable SAV : périmètre résolu côté serveur (ses sites).
+    if (perimetre) return (perimetre.commercial_ids || []).includes(commId);
     return commId === user?.id;
   };
   const scopedRdvs = rdvs.filter((r) => inScope(r.commercial_id, r.base_responsable_id));
@@ -71,6 +74,11 @@ export default function TableauDeBord() {
         base44.functions.invoke('statistiques_operation', persona.mode ? { scope: { commercial_ids: persona.ids, secteurs: persona.secteurs } } : {}).catch(() => null)
       ]);
       setExacts(statsRes?.data || null);
+      // Chef d'atelier / responsable SAV : périmètre des commerciaux de ses sites.
+      if (!persona.mode && (role === 'chef_atelier' || role === 'responsable_sav')) {
+        const sc = await base44.functions.invoke('lister_clients', { scope_only: true }).catch(() => null);
+        setPerimetre(sc?.data?.scope || null);
+      }
       // Filter by demo persona
       const personaRdvs = persona.mode ? r.filter((rd) => persona.matchCommercialId(rd.commercial_id)) : r;
       const personaVentes = persona.mode ? v.filter((vd) => persona.matchCommercialId(vd.commercial_id)) : v;

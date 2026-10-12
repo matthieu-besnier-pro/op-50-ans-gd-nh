@@ -33,7 +33,7 @@ const navItems = [
   { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction', 'collaborateur'], section: 'pilotage' },
   { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'pilotage' },
   { to: '/grand-ecran', label: 'Grand Écran', icon: Monitor, roles: ['responsable', 'direction', 'collaborateur'], section: 'pilotage' },
-  { to: '/portefeuille', label: 'Mes clients', icon: Briefcase, roles: ['commercial', 'agri_precision', 'responsable', 'direction'], section: 'activite' },
+  { to: '/portefeuille', label: 'Mes clients', icon: Briefcase, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'activite' },
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'atelier' },
@@ -44,10 +44,11 @@ const navItems = [
 ];
 
 export default function Layout({ children }) {
-  const { user, logout, viewAsRole, setViewAsRole, viewAsCommercial, setViewAsCommercial, viewAsManager, setViewAsManager } = useAuth();
+  const { user, logout, viewAsRole, setViewAsRole, viewAsCommercial, setViewAsCommercial, viewAsManager, setViewAsManager, viewAsReferent, setViewAsReferent } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [structure, setStructure] = useState([]);
+  const [bases, setBases] = useState([]);
   const role = getAppRole(user, viewAsRole);
   const canViewAs = isDirection(user);
 
@@ -56,10 +57,16 @@ export default function Layout({ children }) {
       base44.entities.structure_commerciale.list('-nom_commercial', 200)
         .then(setStructure)
         .catch(() => {});
+      base44.entities.base.list('-nom', 100)
+        .then(setBases)
+        .catch(() => {});
     }
   }, [canViewAs]);
 
   const commercials = structure;
+  // Référents d'atelier simulables (démo) : chefs d'atelier et responsables SAV des sites.
+  const chefs = useMemo(() => [...new Set(bases.flatMap((b) => b.chefs_atelier || []))].sort(), [bases]);
+  const responsablesSav = useMemo(() => [...new Set(bases.flatMap((b) => b.responsables_sav || []))].sort(), [bases]);
   const managers = useMemo(() => {
     const set = new Set();
     structure.forEach((s) => { if (s.manager) set.add(s.manager); });
@@ -129,6 +136,8 @@ export default function Layout({ children }) {
               setViewAsRole(v === 'admin' ? null : v);
               if (v !== 'commercial') setViewAsCommercial(null);
               if (v !== 'responsable') setViewAsManager(null);
+              // Atelier : on part sur le premier référent du tableau de répartition.
+              setViewAsReferent(v === 'chef_atelier' ? chefs[0] || null : v === 'responsable_sav' ? responsablesSav[0] || null : null);
               // On suit le profil simulé jusqu'à sa page d'accueil.
               navigate(accueilRole(v === 'admin' ? 'direction' : v));
             }}>
@@ -177,6 +186,23 @@ export default function Layout({ children }) {
                   <SelectItem value="all">Tous (vue globale)</SelectItem>
                   {managers.map((m) => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {(viewAsRole === 'chef_atelier' || viewAsRole === 'responsable_sav') && (
+            <div>
+              <label className="px-1 mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
+                <UserCircle className="mr-1 inline h-3 w-3" /> {viewAsRole === 'chef_atelier' ? "Chef d'atelier" : 'Responsable SAV'} (démo)
+              </label>
+              <Select value={viewAsReferent || ''} onValueChange={(v) => setViewAsReferent(v)}>
+                <SelectTrigger className="h-8 border-white/10 bg-white/5 text-xs text-sidebar-foreground">
+                  <SelectValue placeholder="Choisir un référent" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {(viewAsRole === 'chef_atelier' ? chefs : responsablesSav).map((n) => (
+                    <SelectItem key={n} value={n}>{n}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -264,8 +290,13 @@ export default function Layout({ children }) {
                   {viewAsManager}
                 </span>
               )}
+              {viewAsReferent && (viewAsRole === 'chef_atelier' || viewAsRole === 'responsable_sav') && (
+                <span className="ml-1.5 rounded-full bg-gd-navy px-2 py-0.5 text-xs font-bold text-white">
+                  {viewAsReferent}
+                </span>
+              )}
             </p>
-            <button onClick={() => { setViewAsRole(null); setViewAsCommercial(null); setViewAsManager(null); }} className="text-sm text-gd-navy/70 underline hover:text-gd-navy">
+            <button onClick={() => { setViewAsRole(null); setViewAsCommercial(null); setViewAsManager(null); setViewAsReferent(null); }} className="text-sm text-gd-navy/70 underline hover:text-gd-navy">
               Revenir en vue admin
             </button>
           </div>
