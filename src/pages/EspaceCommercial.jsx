@@ -8,6 +8,7 @@ import Loader from '@/components/Loader';
 import RdvExpress from '@/components/RdvExpress';
 import RdvNiveaux from '@/components/RdvNiveaux';
 import { computeRdvNiveaux } from '@/lib/rdvNiveaux';
+import { useOperationStats } from '@/lib/useOperationStats';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
@@ -98,15 +99,21 @@ export default function EspaceCommercial() {
     load();
   }, [user.id]);
 
+  const exacts = useOperationStats();
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
   const todayStr = new Date().toISOString().slice(0, 10);
 
+  // Comptages exacts côté serveur (portée = le commercial connecté) ; les listes
+  // chargées servent de repli le temps que la réponse arrive.
   const stats = useMemo(() => {
-    const rdvPris = rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
-    const myVentes = allVentes.filter((v) => v.commercial_id === user.id && v.statut_validation === 'Validé').length;
-    const aContacter = clients.filter((c) => c.statut === 'À contacter').length;
+    const rdvPris = exacts?.rdv?.operation?.pris ?? exacts?.rdv?.pris_du_mois
+      ?? rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
+    const myVentes = exacts?.ventes?.validees_operation ?? exacts?.ventes?.validees
+      ?? allVentes.filter((v) => v.commercial_id === user.id && v.statut_validation === 'Validé').length;
+    const aContacter = exacts?.clients?.par_statut?.['À contacter']
+      ?? clients.filter((c) => c.statut === 'À contacter').length;
     return { rdvPris, myVentes, aContacter };
-  }, [rdvs, allVentes, clients, user.id]);
+  }, [rdvs, allVentes, clients, user.id, exacts, monthStart]);
 
   // Objectifs individuels = part de l'objectif global / nb de commerciaux
   const objRdvIndiv = params?.objectif_rdv ? Math.max(1, Math.round(params.objectif_rdv / nbCommerciaux)) : 0;

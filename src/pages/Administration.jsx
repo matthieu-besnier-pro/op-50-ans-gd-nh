@@ -75,7 +75,9 @@ export default function Administration() {
       setGlobalStats({
         clients: exacts?.clients?.total ?? allClients.length,
         materiels: exacts?.parc?.total ?? allMateriels.length,
-        rdvs: exacts?.rdv?.total ?? allRdvs.length,
+        // Le serveur exclut les RDV annulés : le repli doit compter pareil,
+        // sinon le chiffre change tout seul quand les stats arrivent.
+        rdvs: exacts?.rdv?.total ?? allRdvs.filter((r) => r.statut !== 'Annulé').length,
         ventes: exacts?.ventes?.total ?? allVentes.length,
         users: users.length,
         badges: exacts?.badges?.total ?? allBadges.length

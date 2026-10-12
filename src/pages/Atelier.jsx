@@ -53,7 +53,7 @@ export default function Atelier() {
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
   // Comptage exact côté serveur ; repli sur la liste chargée en attendant.
-  const rdvPris = exacts?.rdv?.atelier_hors_annule_du_mois ?? rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
+  const rdvPris = exacts?.rdv?.operation?.atelier ?? exacts?.rdv?.atelier_hors_annule_du_mois ?? rdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
   const aVenir = rdvs.filter((r) => r.statut !== 'Annulé').sort((a, b) => a.date_heure.localeCompare(b.date_heure));
 
   return (
@@ -69,7 +69,7 @@ export default function Atelier() {
       </div>
 
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <StatCard label="RDV hivernage pris (mois)" value={rdvPris} icon={Wrench} accent />
+        <StatCard label="RDV hivernage pris" value={rdvPris} icon={Wrench} accent />
       </div>
 
       <div className="rounded-xl border border-border bg-card shadow-sm">

@@ -148,10 +148,10 @@ export default function TableauDeBord() {
   // RDV pris : comptés dès la prise de rendez-vous (hors RDV annulés).
   const rdvMoisPris = scopedRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart);
   // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
-  const rdvMaterielMonth = exacts?.rdv?.commercial_pris_du_mois ?? rdvMoisPris.filter((r) => r.type !== 'RDV atelier hivernage' && r.type !== 'RDV agri. précision').length;
-  const rdvAtelierMonth = exacts?.rdv?.atelier_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV atelier hivernage').length;
-  const rdvAgriMonth = exacts?.rdv?.agri_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV agri. précision').length;
-  const rdvTotalMonth = exacts?.rdv?.pris_du_mois ?? rdvMoisPris.length;
+  const rdvMaterielMonth = exacts?.rdv?.operation?.commercial ?? exacts?.rdv?.commercial_pris_du_mois ?? rdvMoisPris.filter((r) => r.type !== 'RDV atelier hivernage' && r.type !== 'RDV agri. précision').length;
+  const rdvAtelierMonth = exacts?.rdv?.operation?.atelier ?? exacts?.rdv?.atelier_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV atelier hivernage').length;
+  const rdvAgriMonth = exacts?.rdv?.operation?.agri ?? exacts?.rdv?.agri_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV agri. précision').length;
+  const rdvTotalMonth = exacts?.rdv?.operation?.pris ?? exacts?.rdv?.pris_du_mois ?? rdvMoisPris.length;
 
   const ventesValidees = scopedVentes.filter((v) => v.statut_validation === 'Validé');
   const ventesParMachine = TYPES_MACHINE.map((t) => ({ name: t, value: exacts?.ventes?.par_type_machine?.[t] ?? ventesValidees.filter((v) => v.type_machine === t).length })).filter((d) => d.value > 0);
@@ -207,9 +207,9 @@ export default function TableauDeBord() {
         {showCountdownRdv && (
           <StatCard label="Fin prise de RDV" value={`${countdownRdv} j`} sublabel={params?.date_fin_prise_rdv} icon={Timer} accent />
         )}
-        <StatCard label="RDV Matériel (mois)" value={rdvMaterielMonth} icon={CheckCircle2} />
-        <StatCard label="RDV Atelier (mois)" value={rdvAtelierMonth} icon={Timer} />
-        <StatCard label="RDV Agri. précision (mois)" value={rdvAgriMonth} icon={Satellite} />
+        <StatCard label="RDV Matériel" value={rdvMaterielMonth} icon={CheckCircle2} />
+        <StatCard label="RDV Atelier" value={rdvAtelierMonth} icon={Timer} />
+        <StatCard label="RDV Agri. précision" value={rdvAgriMonth} icon={Satellite} />
       </div>
 
       {/* Objectives */}

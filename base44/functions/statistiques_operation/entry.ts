@@ -126,6 +126,17 @@ export default async function (req) {
     });
 
     const moisDebut = debutDuMois();
+    // Période de l'opération : c'est elle qui fait foi pour les compteurs affichés.
+    // Sans elle (paramètres non renseignés), on retombe sur le mois calendaire.
+    const opDebut = params?.date_debut_operation || null;
+    const opFin = params?.date_fin_operation || null;
+    const dansOperation = (iso) => {
+      if (!iso) return false;
+      const j = String(iso).slice(0, 10);
+      if (opDebut && j < opDebut) return false;
+      if (opFin && j > opFin) return false;
+      return true;
+    };
     const sprintDebut = params?.date_debut_prise_rdv || null;
     const sprintFin = params?.date_fin_prise_rdv || null;
     const rdvParStatut = {};
@@ -151,6 +162,7 @@ export default async function (req) {
     let sprintCommercial = 0;
     let sprintRealises = 0;
     let rdvAnnules = 0;
+    let rdvOpPris = 0, rdvOpRealises = 0, rdvOpCommercial = 0, rdvOpAtelier = 0, rdvOpAgri = 0;
 
     const jourAujourdhui = new Date().toISOString().slice(0, 10);
     rdvs.forEach((r) => {
@@ -168,6 +180,15 @@ export default async function (req) {
 
       const duMois = Boolean(r.date_heure) && r.date_heure >= moisDebut;
       const realise = st === 'Réalisé';
+
+      // Comptages sur la période de l'opération (les annulés sont déjà écartés).
+      if (dansOperation(r.date_heure)) {
+        rdvOpPris += 1;
+        if (realise) rdvOpRealises += 1;
+        if (atelier) rdvOpAtelier += 1;
+        else if (agriPrecision) rdvOpAgri += 1;
+        else rdvOpCommercial += 1;
+      }
       if (duMois) {
         rdvMois += 1;
         if (pris) rdvPrisMois += 1;
@@ -199,11 +220,12 @@ export default async function (req) {
       }
 
       if (r.commercial_id) {
-        const e = (rdvParCommercial[r.commercial_id] = rdvParCommercial[r.commercial_id] || { total: 0, realises_mois: 0, du_mois: 0, pris_mois: 0, pris_jour: 0 });
+        const e = (rdvParCommercial[r.commercial_id] = rdvParCommercial[r.commercial_id] || { total: 0, realises_mois: 0, du_mois: 0, pris_mois: 0, pris_jour: 0, pris_operation: 0 });
         e.total += 1;
         if (duMois) e.du_mois += 1;
         if (duMois && pris) e.pris_mois += 1;
         if (pris && jour === jourAujourdhui) e.pris_jour += 1;
+        if (dansOperation(r.date_heure)) e.pris_operation += 1;
         if (duMois && realise) e.realises_mois += 1;
       }
     });
@@ -216,18 +238,28 @@ export default async function (req) {
     const ventesParTypeVente = {};
     const ventesParReprise = {};
     const ventesParCommercial = {};
+    const ventesOpParCommercial = {};
     let ventesValidees = 0;
+    let ventesValideesMois = 0; // même période que les RDV du mois : taux comparables
+    let ventesValideesOp = 0;   // sur la période de l'opération
 
     ventes.forEach((v) => {
       if (v.statut_validation !== 'Validé') return;
       ventesValidees += 1;
+      if (v.date_vente && v.date_vente >= moisDebut.slice(0, 10)) ventesValideesMois += 1;
+      if (dansOperation(v.date_vente)) ventesValideesOp += 1;
       const tm = v.type_machine || 'Autre';
       ventesParMachine[tm] = (ventesParMachine[tm] || 0) + 1;
       const tv = v.type_vente || 'Autre';
       ventesParTypeVente[tv] = (ventesParTypeVente[tv] || 0) + 1;
       const rp = v.reprise || 'Sans reprise';
       ventesParReprise[rp] = (ventesParReprise[rp] || 0) + 1;
-      if (v.commercial_id) ventesParCommercial[v.commercial_id] = (ventesParCommercial[v.commercial_id] || 0) + 1;
+      if (v.commercial_id) {
+        ventesParCommercial[v.commercial_id] = (ventesParCommercial[v.commercial_id] || 0) + 1;
+        if (dansOperation(v.date_vente)) {
+          ventesOpParCommercial[v.commercial_id] = (ventesOpParCommercial[v.commercial_id] || 0) + 1;
+        }
+      }
     });
 
     return Response.json({
@@ -261,12 +293,22 @@ export default async function (req) {
         agri_du_mois: rdvAgriMois,
         agri_pris_du_mois: rdvAgriPrisMois,
         agri_realises_du_mois: rdvAgriRealisesMois,
+        // null si les dates d'opération ne sont pas renseignées : les pages
+        // retombent alors proprement sur les chiffres du mois.
+        operation: (opDebut && opFin) ? {
+          debut: opDebut, fin: opFin,
+          pris: rdvOpPris, realises: rdvOpRealises,
+          commercial: rdvOpCommercial, atelier: rdvOpAtelier, agri: rdvOpAgri
+        } : null,
         sprint: { debut: sprintDebut, fin: sprintFin, total: sprintTotal, atelier: sprintAtelier, agri: sprintAgri, commercial: sprintCommercial, realises: sprintRealises }
       },
       ventes: {
         total: ventes.length,
         validees: ventesValidees,
+        validees_du_mois: ventesValideesMois,
+        validees_operation: (opDebut && opFin) ? ventesValideesOp : null,
         par_commercial: ventesParCommercial,
+        operation_par_commercial: (opDebut && opFin) ? ventesOpParCommercial : null,
         par_type_machine: ventesParMachine,
         par_type_vente: ventesParTypeVente,
         par_reprise: ventesParReprise

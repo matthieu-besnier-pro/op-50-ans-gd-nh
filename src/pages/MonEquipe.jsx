@@ -103,8 +103,15 @@ export default function MonEquipe() {
       const myVentes = ventes.filter((v) => v.commercial_id === c.id);
       const ventesValidees = ventesExactes !== undefined ? ventesExactes : myVentes.filter((v) => v.statut_validation === 'Validé').length;
       const rdvPrisToday = rdvExact?.pris_jour ?? myRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure?.slice(0, 10) === todayStr).length;
-      const rdvPrisMonth = rdvExact ? (rdvExact.pris_mois || 0) : myRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
-      const tauxTransfo = rdvPrisMonth > 0 ? Math.round((ventesValidees / rdvPrisMonth) * 100) : 0;
+      // Période de l'opération si elle est définie, sinon le mois — des deux côtés,
+      // sinon le taux compare des ventes de toujours à des RDV du mois.
+      const rdvPrisMonth = rdvExact
+        ? (rdvExact.pris_operation ?? rdvExact.pris_mois ?? 0)
+        : myRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
+      const ventesPeriode = stats?.ventes?.operation_par_commercial
+        ? (stats.ventes.operation_par_commercial[c.id] || 0)
+        : ventesValidees;
+      const tauxTransfo = rdvPrisMonth > 0 ? Math.round((ventesPeriode / rdvPrisMonth) * 100) : 0;
       const repartition = exact
         ? statuts.map((s) => exact.par_statut[s.nom] || 0)
         : statuts.map((s) => myClients.filter((cl) => cl.statut === s.nom).length);
@@ -161,7 +168,7 @@ export default function MonEquipe() {
 
       {/* KPIs agrégés */}
       <div className="mb-6 grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard label="RDV équipe (mois)" value={teamKpis.totalRdv} icon={Calendar} />
+        <StatCard label="RDV équipe" value={teamKpis.totalRdv} icon={Calendar} />
         <StatCard label="Ventes validées" value={teamKpis.totalVentes} icon={TrendingUp} />
         <StatCard label="Tx transfo moyen" value={`${teamKpis.avgTransfo}%`} icon={Percent} />
       </div>
