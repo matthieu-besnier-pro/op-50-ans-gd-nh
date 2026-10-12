@@ -241,6 +241,13 @@ export default function GrandEcran() {
     return m;
   }, [badges]);
 
+  // Seuls les badges encore au catalogue sont affichés : les attributions d'anciens
+  // badges supprimés (reliquats) ne doivent plus apparaître sur le mur.
+  const badgesAffiches = useMemo(
+    () => badgeObtenus.filter((bo) => badgeMap[bo.badge_id]),
+    [badgeObtenus, badgeMap]
+  );
+
   // Phase detection
   const phase = useMemo(() => {
     if (demoMode) return demoMode.phase;
@@ -435,10 +442,10 @@ export default function GrandEcran() {
               </h3>
               {/* Deux colonnes : deux fois plus de badges visibles. */}
               <div className="grid grid-cols-2 gap-2">
-                {badgeObtenus.length === 0 ? (
+                {badgesAffiches.length === 0 ? (
                   <p className="col-span-2 text-sm text-white/40 py-4 text-center">Aucun badge encore — que le sprint commence !</p>
                 ) : (
-                  badgeObtenus.slice(0, 12).map((bo, i) => {
+                  badgesAffiches.slice(0, 12).map((bo, i) => {
                     const b = badgeMap[bo.badge_id];
                     return (
                       <motion.div key={bo.id || i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
