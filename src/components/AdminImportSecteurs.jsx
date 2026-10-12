@@ -81,13 +81,14 @@ export default function AdminImportSecteurs({ onReload }) {
       if (!siren) return null;
       let c = clientMap.get(siren);
       if (!c) {
-        c = { raison_sociale: base.raison_sociale, siren, adresse_complete: base.adresse_complete || null, code_commune: base.code_commune || null, departement: base.departement || null, tel_mobile: base.tel_mobile || null, tel_fixe: base.tel_fixe || null, secteur: base.secteur || null, usages: [], statut: 'À contacter', nb_tentatives_contact: 0, sources_donnees: ['SIV'] };
+        c = { raison_sociale: base.raison_sociale, siren, adresse_complete: base.adresse_complete || null, code_commune: base.code_commune || null, departement: base.departement || null, tel_mobile: base.tel_mobile || null, tel_fixe: base.tel_fixe || null, secteur: base.secteur || null, usages: [], priorite_commercial: false, statut: 'À contacter', nb_tentatives_contact: 0, sources_donnees: ['SIV'] };
         clientMap.set(siren, c); nbCli++;
       } else {
         if (!c.secteur && base.secteur) c.secteur = base.secteur;
         if (!c.adresse_complete && base.adresse_complete) c.adresse_complete = base.adresse_complete;
         if (!c.tel_mobile && base.tel_mobile) c.tel_mobile = base.tel_mobile;
       }
+      if (base.priorite) c.priorite_commercial = true; // cible choisie par le commercial
       addUsage(c, u);
       return c;
     };
@@ -122,14 +123,23 @@ export default function AdminImportSecteurs({ onReload }) {
         const cat = sheetName;
         for (let r = h + 1; r < rows.length; r++) {
           const row = rows[r];
-          const siren = sirenClean(get(row, 'SIREN'));
+          // Les prospects ajoutés à la main (hors SIV) peuvent avoir une clé « AJ… » : on la conserve telle quelle.
+          const sirenRaw = str(get(row, 'SIREN'));
+          const siren = sirenRaw && /^AJ/i.test(sirenRaw) ? sirenRaw.toUpperCase() : sirenClean(sirenRaw);
           if (!siren) continue;
           const secteur = str(get(row, 'Secteur vendeur'));
           const insee = str(get(row, 'Code commune'));
           const dept = deptOf(insee, str(get(row, 'Adresse')));
-          upsert(siren, { raison_sociale: str(get(row, 'Client')) || 'Client', adresse_complete: str(get(row, 'Adresse')), code_commune: insee, departement: dept, tel_mobile: str(get(row, 'Mobile')), tel_fixe: str(get(row, 'Fixe')), secteur }, usageSel);
-          materiels.push({ _siren: siren, usage: usageSel, categorie_op: canonCategorie(cat), secteur, marque: str(get(row, 'Marque')), modele: str(get(row, 'Modèle')), categorie_1: str(get(row, 'Type')), num_plaque: str(get(row, 'Plaque')), vin: str(get(row, 'VIN')), premiere_immat: parseDate(get(row, '1re immat.')), annee_immat: parseInt(get(row, 'Année immat.')) || null, occasion_neuf: parseON(get(row, 'Neuf/Occ.')) });
-          nbMat++;
+          const prio = norm(get(row, 'Priorité', 'Priorite')) === 'oui';
+          upsert(siren, { raison_sociale: str(get(row, 'Client')) || 'Client', adresse_complete: str(get(row, 'Adresse')), code_commune: insee, departement: dept, tel_mobile: str(get(row, 'Mobile')), tel_fixe: str(get(row, 'Fixe')), secteur, priorite: prio }, usageSel);
+          const marque = str(get(row, 'Marque')); const modele = str(get(row, 'Modèle'));
+          const plaque = str(get(row, 'Plaque')); const vin = str(get(row, 'VIN'));
+          const immat = parseDate(get(row, '1re immat.'));
+          // On ne crée pas de matériel « vide » (prospect ajouté sans machine) : la fiche client suffit.
+          if (marque || modele || plaque || vin || immat) {
+            materiels.push({ _siren: siren, usage: usageSel, categorie_op: canonCategorie(cat), secteur, priorite: prio, marque, modele, categorie_1: str(get(row, 'Type')), num_plaque: plaque, vin, premiere_immat: immat, annee_immat: parseInt(get(row, 'Année immat.')) || null, occasion_neuf: parseON(get(row, 'Neuf/Occ.')) });
+            nbMat++;
+          }
         }
       }
     }
@@ -163,8 +173,16 @@ export default function AdminImportSecteurs({ onReload }) {
       // 1) Rattachement secteur -> user_id via structure_commerciale
       setStatus('Préparation des affectations…');
       const structure = await base44.entities.structure_commerciale.list('-nom_commercial', 500).catch(() => []);
+      // Rattachement insensible à l'ordre prénom/nom et aux accents.
+      const sortTokens = (s) => norm(s).split(' ').filter(Boolean).sort().join(' ');
       const secteurToUser = {};
-      structure.forEach((s) => { if (s.user_id && s.nom_commercial) secteurToUser[norm(s.nom_commercial)] = s.user_id; });
+      structure.forEach((s) => {
+        if (s.user_id && s.nom_commercial) {
+          secteurToUser[norm(s.nom_commercial)] = s.user_id;
+          secteurToUser[sortTokens(s.nom_commercial)] = s.user_id;
+        }
+      });
+      const matchUser = (secteur) => secteur ? (secteurToUser[norm(secteur)] || secteurToUser[sortTokens(secteur)] || null) : null;
 
       // Agrégat du parc par client : total + répartition par catégorie (pour le
       // bandeau pictogrammes et les stats). Clés = categorie_op déjà canonisée.
@@ -178,7 +196,7 @@ export default function AdminImportSecteurs({ onReload }) {
       });
 
       const clients = [...clientMap.values()].map((c) => {
-        const uid = c.secteur ? secteurToUser[norm(c.secteur)] : null;
+        const uid = matchUser(c.secteur);
         const parc = parcBySiren[c.siren];
         return {
           ...c,
@@ -206,7 +224,8 @@ export default function AdminImportSecteurs({ onReload }) {
         marque: m.marque, modele: m.modele, categorie_1: m.categorie_1 || null,
         num_plaque: m.num_plaque || null, vin: m.vin || null,
         premiere_immat: m.premiere_immat || null, occasion_neuf: m.occasion_neuf || 'Inconnu',
-        annee_immat: m.annee_immat || null, categorie_op: m.categorie_op, usage: m.usage, secteur: m.secteur || null
+        annee_immat: m.annee_immat || null, categorie_op: m.categorie_op, usage: m.usage, secteur: m.secteur || null,
+        priorite: m.priorite || false
       })).filter((m) => m.client_id);
 
       let matCrees = 0;

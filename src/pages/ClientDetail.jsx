@@ -23,7 +23,7 @@ import CoachCommercial from '@/components/CoachCommercial';
 import ClientRdvsEntete from '@/components/ClientRdvsEntete';
 import {
   ArrowLeft, Phone, MapPin, Calendar, Wrench, ShoppingBag,
-  MessageSquare, Plus, Tractor, Mail, Euro, FileText
+  MessageSquare, Plus, Tractor, Mail, Euro, FileText, Star
 } from 'lucide-react';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
@@ -147,8 +147,16 @@ export default function ClientDetail() {
       <div className="mb-6 rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-extrabold text-gd-navy-dark">{client.raison_sociale}</h1>
+            <h1 className="text-2xl font-extrabold text-gd-navy-dark flex items-center gap-2">
+              {client.priorite_commercial && <Star className="h-5 w-5 shrink-0 text-gd-orange" fill="currentColor" aria-label="Cible prioritaire" />}
+              {client.raison_sociale}
+            </h1>
             <div className="mt-2 flex flex-wrap items-center gap-3">
+              {client.priorite_commercial && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-gd-orange/30 bg-gd-orange/10 px-2.5 py-0.5 text-xs font-semibold text-gd-orange">
+                  <Star className="h-3 w-3" fill="currentColor" /> Cible prioritaire
+                </span>
+              )}
               <StatusBadge statut={client.statut} />
               <AppetenceGauge niveau={client.niveau_appetence} score={client.score_appetence} className="min-w-[8.5rem]" />
               {client.type_structure && <span className="text-xs font-medium text-muted-foreground">{client.type_structure}</span>}

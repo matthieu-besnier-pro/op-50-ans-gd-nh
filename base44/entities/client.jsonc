@@ -151,6 +151,11 @@
       },
       "description": "Usages du client : commerce / atelier (r\u00e9colte) / agriculture de pr\u00e9cision"
     },
+    "priorite_commercial": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cible prioritaire choisie par le commercial (surlign\u00e9e en jaune dans son fichier) \u2014 priorit\u00e9 d'appel"
+    },
     "parc_total": {
       "type": "number",
       "description": "Nombre de machines du parc client (calcul\u00e9 \u00e0 l'import)"

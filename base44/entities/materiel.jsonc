@@ -165,6 +165,11 @@
     "annee_immat": {
       "type": "number",
       "description": "Ann\u00e9e d'immatriculation"
+    },
+    "priorite": {
+      "type": "boolean",
+      "default": false,
+      "description": "Mat\u00e9riel cibl\u00e9 en priorit\u00e9 par le commercial (surlign\u00e9 en jaune)"
     }
   },
   "required": [
