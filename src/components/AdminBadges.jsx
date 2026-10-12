@@ -52,6 +52,25 @@ export default function AdminBadges() {
   const [form, setForm] = useState({ nom: '', description: '', icone: '🏆', condition_type: 'premier_rdv', condition_seuil: 1 });
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [recalc, setRecalc] = useState(false);
+
+  // Repasse sur tous les commerciaux : retire les badges devenus immérités
+  // (rendez-vous annulé, vente invalidée…) et ajoute ceux qui manquent.
+  const recalculerTous = async () => {
+    if (!window.confirm('Recalculer les badges de tous les commerciaux ? Les badges dont la condition n\'est plus remplie seront retirés.')) return;
+    setRecalc(true);
+    try {
+      const res = await base44.functions.invoke('verifier_badges', { tous: true });
+      const d = res?.data ?? res;
+      if (d?.error) throw new Error(d.error);
+      window.alert(`Recalcul terminé : ${d.badges_ajoutes || 0} badge(s) ajouté(s), ${d.badges_retires || 0} retiré(s) sur ${d.utilisateurs || 0} commerciaux.`);
+      load();
+    } catch (e) {
+      window.alert(e?.message || 'Le recalcul a échoué.');
+    } finally {
+      setRecalc(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -112,7 +131,10 @@ export default function AdminBadges() {
   return (
     <div className="space-y-4">
       {!isForm && (
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button onClick={recalculerTous} disabled={recalc} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy/10">
+            {recalc ? 'Recalcul…' : '🔄 Recalculer tous les badges'}
+          </Button>
           <Button onClick={ajouterRecommandes} disabled={seeding} variant="outline" className="border-gd-orange text-gd-navy hover:bg-gd-orange/10">
             {seeding ? 'Ajout…' : '✨ Ajouter les badges recommandés'}
           </Button>

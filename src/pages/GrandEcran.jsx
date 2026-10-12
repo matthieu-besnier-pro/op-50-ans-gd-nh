@@ -70,14 +70,14 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank }) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`relative flex items-center gap-3 rounded-2xl px-4 py-3 ${rank <= 3 ? 'bg-white/10 border border-gd-orange/30' : 'bg-white/5 border border-white/5'}`}
+      className={`relative flex items-center gap-4 rounded-2xl px-5 py-4 ${rank <= 3 ? 'bg-white/10 border border-gd-orange/30' : 'bg-white/5 border border-white/5'}`}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center text-xl font-extrabold text-white">
-        {rank <= 3 ? medals[rank - 1] : <span className="text-base text-white/50">{rank}</span>}
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center text-2xl font-extrabold text-white">
+        {rank <= 3 ? medals[rank - 1] : <span className="text-lg text-white/50">{rank}</span>}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-base font-bold text-white truncate">{name}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-bold text-white truncate">{name}</span>
           {isAtelier && <Wrench className="h-4 w-4 text-gd-orange shrink-0" />}
           {movedUp && (
             <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center text-gd-orange">
@@ -85,7 +85,7 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank }) {
             </motion.span>
           )}
         </div>
-        <div className="mt-1.5 h-2 w-full rounded-full bg-white/10 overflow-hidden">
+        <div className="mt-2 h-2.5 w-full rounded-full bg-white/10 overflow-hidden">
           <motion.div
             className="h-full rounded-full bg-gradient-to-r from-gd-orange to-yellow-300"
             initial={{ width: 0 }}
@@ -95,8 +95,8 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank }) {
         </div>
       </div>
       <div className="text-right shrink-0">
-        <AnimatedCounter value={count} className="text-2xl font-extrabold text-white tabular-nums" />
-        <p className="text-[10px] text-white/40">RDV</p>
+        <AnimatedCounter value={count} className="text-3xl font-extrabold text-white tabular-nums" />
+        <p className="text-xs text-white/40">RDV</p>
       </div>
     </motion.div>
   );
@@ -427,19 +427,20 @@ export default function GrandEcran() {
               <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/70 mb-3">
                 <Award className="h-4 w-4 text-gd-orange" /> Badges débloqués
               </h3>
-              <div className="space-y-2">
+              {/* Deux colonnes : deux fois plus de badges visibles. */}
+              <div className="grid grid-cols-2 gap-2">
                 {badgeObtenus.length === 0 ? (
-                  <p className="text-sm text-white/40 py-4 text-center">Aucun badge encore — que le sprint commence !</p>
+                  <p className="col-span-2 text-sm text-white/40 py-4 text-center">Aucun badge encore — que le sprint commence !</p>
                 ) : (
-                  badgeObtenus.slice(0, 5).map((bo, i) => {
+                  badgeObtenus.slice(0, 12).map((bo, i) => {
                     const b = badgeMap[bo.badge_id];
                     return (
                       <motion.div key={bo.id || i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                        className="flex items-center gap-3 rounded-xl bg-gd-orange/10 border border-gd-orange/20 px-3 py-2">
-                        <span className="text-2xl shrink-0">{b?.icone || '🏆'}</span>
+                        className="flex items-center gap-2 rounded-xl bg-gd-orange/10 border border-gd-orange/20 px-2.5 py-2">
+                        <span className="text-xl shrink-0">{b?.icone || '🏆'}</span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold text-white truncate">{b?.nom || 'Badge'}</p>
-                          <p className="text-xs text-white/60 truncate">{nameMap[bo.utilisateur_id] || 'Commercial'}</p>
+                          <p className="text-xs font-bold text-white truncate">{b?.nom || 'Badge'}</p>
+                          <p className="text-[11px] text-white/60 truncate">{nameMap[bo.utilisateur_id] || 'Commercial'}</p>
                         </div>
                       </motion.div>
                     );
@@ -460,11 +461,10 @@ export default function GrandEcran() {
                   <span className="h-2 w-2 rounded-full bg-gd-orange animate-pulse" /> Temps réel
                 </span>
               </div>
-              {/* Deux colonnes : deux fois plus de commerciaux visibles à l'écran. */}
-              <div className="grid flex-1 grid-cols-2 content-start gap-x-4 gap-y-2.5">
+              <div className="space-y-3 flex-1">
                 <AnimatePresence>
                   {(phase === 'sprint' ? leaderboard : ventesLeaderboard).length === 0 ? (
-                    <div className="col-span-2 flex flex-col items-center justify-center py-20 text-center">
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
                       <Flame className="h-12 w-12 text-gd-orange/50 mb-3" />
                       <p className="text-lg font-semibold text-white/60">En attente du premier RDV…</p>
                       <p className="text-sm text-white/40 mt-1">Que la meilleure équipe gagne !</p>
