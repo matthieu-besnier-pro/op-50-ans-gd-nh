@@ -66,9 +66,38 @@ export function listerPartage(entite, tri, limite) {
   return promesse;
 }
 
+/**
+ * Liste complète des clients du périmètre de l'utilisateur (fonction serveur
+ * lister_clients, en asServiceRole). Volumineuse : on la mutualise entre les
+ * pages au lieu de la redemander à chaque écran.
+ */
+export function fetchClients() {
+  const k = 'fn|lister_clients';
+  const connu = cache.get(k);
+  if (connu && Date.now() - connu.at < (TTL.client ?? TTL_DEFAUT)) return Promise.resolve(connu.data);
+  if (enVol.has(k)) return enVol.get(k);
+
+  const promesse = base44.functions.invoke('lister_clients', {})
+    .then((res) => {
+      const d = res?.data || {};
+      const resultat = { clients: d.clients || [], capped: Boolean(d.capped), scope: d.scope || null };
+      cache.set(k, { at: Date.now(), data: resultat });
+      return resultat;
+    })
+    .catch(() => {
+      const precedent = cache.get(k);
+      return precedent ? precedent.data : { clients: [], capped: false, scope: null };
+    })
+    .finally(() => enVol.delete(k));
+
+  enVol.set(k, promesse);
+  return promesse;
+}
+
 /** Oublie le cache d'une entité (après une écriture), ou tout si non précisé. */
 export function invalider(entite) {
   if (!entite) { cache.clear(); return; }
+  if (entite === 'client') cache.delete('fn|lister_clients');
   [...cache.keys()].forEach((k) => { if (k.startsWith(`${entite}|`)) cache.delete(k); });
 }
 

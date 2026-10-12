@@ -57,7 +57,9 @@ export default async function(req) {
       return Response.json({ materiels: mats });
     }
 
-    const limit = Math.min(Number(body.limit) || 1000, 20000);
+    // Par défaut on renvoie TOUT le périmètre du rôle : un plafond à 1000
+    // tronquait les listes et faussait les comptages affichés.
+    const limit = Math.min(Number(body.limit) || 20000, 20000);
     const estDirection = user.role === 'admin' || user.app_role === 'direction';
 
     // Périmètre « atelier » : chef d'atelier / responsable SAV → les clients des

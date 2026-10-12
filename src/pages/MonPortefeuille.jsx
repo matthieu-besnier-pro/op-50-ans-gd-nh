@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Loader from '@/components/Loader';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { listerPartage, invalider } from '@/lib/donneesPartagees';
+import { listerPartage, invalider, fetchClients } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import { isDirection, getAppRole } from '@/lib/permissions';
 import Layout from '@/components/Layout';
@@ -84,6 +84,7 @@ export default function MonPortefeuille() {
   const [rdvOpen, setRdvOpen] = useState(false);
   const [ajoutOpen, setAjoutOpen] = useState(false);
   const [annulationId, setAnnulationId] = useState(null);
+  const [tronque, setTronque] = useState(false);
 
   const effectiveId = persona.mode === 'commercial' ? persona.ids[0] : user?.id;
 
@@ -103,23 +104,15 @@ export default function MonPortefeuille() {
       // Démo « Voir en tant que » prioritaire ; sinon on passe par la fonction backend
       // lister_clients (asServiceRole) qui scope par rôle et garantit la remontée
       // (Direction/Marketing = tous, Responsable = son équipe, Commercial = les siens).
-      let clientList;
-      let scopeFrais = null;
-      if (persona.mode === 'commercial' && persona.clientFilter) {
-        // Portefeuille du commercial (rattachement par secteur) : chargé en entier.
-        clientList = await base44.entities.client.filter(persona.clientFilter, '-created_date', 2000);
-      } else if (persona.mode === 'manager' || persona.mode === 'atelier') {
-        // Équipe du manager / sites du référent d'atelier : tout le périmètre d'un coup.
-        clientList = persona.clientFilter
-          ? await base44.entities.client.filter(persona.clientFilter, '-created_date', 5000)
-          : [];
-        setPerimetre(null);
-      } else {
-        const res = await base44.functions.invoke('lister_clients', {});
-        clientList = (res?.data?.clients) || [];
-        scopeFrais = res?.data?.scope || null;
-        setPerimetre(scopeFrais);
-      }
+      // Source unique : la fonction serveur renvoie TOUT le périmètre du rôle
+      // (plus de plafond à 1000/2000/5000 qui tronquait la liste et les totaux).
+      const res = await fetchClients();
+      let clientList = res.clients;
+      setTronque(res.capped);
+      const scopeFrais = persona.mode ? null : res.scope;
+      setPerimetre(scopeFrais);
+      // « Voir en tant que » : on restreint localement au périmètre simulé.
+      if (persona.mode) clientList = clientList.filter(persona.matchClient);
       setClients(clientList);
       // Le périmètre vient d'être lu par le serveur : on l'applique aux RDV et ventes
       // dans la foulée (le state n'est pas encore disponible dans ce rendu).
@@ -428,7 +421,7 @@ export default function MonPortefeuille() {
         </div>
       )}
 
-      {kpis.totalClients > clients.length && (
+      {tronque && kpis.totalClients > clients.length && (
         <p className="mb-2 text-xs text-muted-foreground">
           {clients.length.toLocaleString('fr-FR')} clients chargés sur {kpis.totalClients.toLocaleString('fr-FR')} — la recherche et les filtres portent sur les clients affichés.
         </p>

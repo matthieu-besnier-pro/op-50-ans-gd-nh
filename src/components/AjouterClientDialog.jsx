@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import { getAppRole } from '@/lib/permissions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -43,6 +44,7 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
         priorite_commercial: prioritaire
       });
       if (res?.data?.error) { setErreur(res.data.error); return; }
+      invalider('client'); // le nouveau client doit apparaître dans les listes
       onCreated?.(res?.data?.client);
       onOpenChange(false);
       setForm(VIDE);

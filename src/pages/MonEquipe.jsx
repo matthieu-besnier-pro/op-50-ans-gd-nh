@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
-import { listerPartage, invalider } from '@/lib/donneesPartagees';
+import { listerPartage, invalider, fetchClients } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
@@ -36,7 +36,7 @@ export default function MonEquipe() {
         setCommerciaux(members);
         const memberIds = members.map((m) => m.id);
         const [allClients, allRdvs, allVentes] = await Promise.all([
-          base44.entities.client.list('-created_date', 2000),
+          fetchClients().then((r) => r.clients),
           listerPartage('rdv', '-date_heure', 1000),
           listerPartage('vente', '-date_vente', 1000)
         ]);
@@ -71,7 +71,7 @@ export default function MonEquipe() {
       const memberIds = members.map((m) => m.id);
 
       const [allClients, allRdvs, allVentes] = await Promise.all([
-        base44.entities.client.list('-created_date', 2000),
+        fetchClients().then((r) => r.clients),
         listerPartage('rdv', '-date_heure', 1000),
         listerPartage('vente', '-date_vente', 1000)
       ]);
