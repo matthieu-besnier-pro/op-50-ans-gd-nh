@@ -1,0 +1,90 @@
+{
+  "name": "statut_client",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string",
+      "description": "Libell\u00e9 du statut, affich\u00e9 partout dans l'application"
+    },
+    "ordre": {
+      "type": "number",
+      "default": 0,
+      "description": "Ordre d'affichage (croissant)"
+    },
+    "tonalite": {
+      "type": "string",
+      "enum": [
+        "neutre",
+        "discret",
+        "orange",
+        "ambre",
+        "bleu",
+        "indigo",
+        "violet",
+        "cyan",
+        "teal",
+        "vert",
+        "rouge"
+      ],
+      "default": "neutre",
+      "description": "Couleur du badge de statut"
+    },
+    "systeme": {
+      "type": "boolean",
+      "default": false,
+      "description": "Statut li\u00e9 \u00e0 un automatisme de l'outil : nom verrouill\u00e9 et suppression impossible"
+    },
+    "usage": {
+      "type": "string",
+      "description": "Automatisme li\u00e9 \u00e0 ce statut (affich\u00e9 \u00e0 la Direction)"
+    }
+  },
+  "required": [
+    "nom"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "app_role": "direction"
+          }
+        }
+      ]
+    }
+  }
+}
