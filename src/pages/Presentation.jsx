@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import OpLogo from '@/components/OpLogo';
-import { PARCOURS } from '@/lib/parcoursOperation';
+import { GESTES } from '@/lib/gestesOperation';
 import { ArrowRight, ArrowLeft, Check, X } from 'lucide-react';
 
-// Déroulé : ouverture → carte du parcours → une étape par écran → conclusion.
-const SLIDES = ['hero', 'carte', ...PARCOURS.map((e) => e.id), 'fin'];
+// Déroulé court : ouverture → les 4 gestes d'un coup d'œil → un geste par écran → conclusion.
+const SLIDES = ['hero', 'apercu', ...GESTES.map((g) => g.id), 'fin'];
 
 export default function Presentation() {
   const navigate = useNavigate();
@@ -26,8 +26,7 @@ export default function Presentation() {
   }, [next, prev, navigate]);
 
   const id = SLIDES[current];
-  const etape = PARCOURS.find((e) => e.id === id);
-  const indexEtape = PARCOURS.findIndex((e) => e.id === id);
+  const geste = GESTES.find((g) => g.id === id);
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-gd-navy-dark select-none">
@@ -37,12 +36,12 @@ export default function Presentation() {
           initial={{ opacity: 0, x: 60 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -60 }}
-          transition={{ duration: 0.45, ease: 'easeOut' }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
           className="absolute inset-0"
         >
           {id === 'hero' && <Hero />}
-          {id === 'carte' && <Carte />}
-          {etape && <Etape etape={etape} index={indexEtape} />}
+          {id === 'apercu' && <Apercu />}
+          {geste && <GesteSlide geste={geste} />}
           {id === 'fin' && <Fin />}
         </motion.div>
       </AnimatePresence>
@@ -101,19 +100,29 @@ function Hero() {
         <OpLogo className="h-28 w-28 rounded-3xl object-contain" fallback={null} />
       </motion.div>
 
+      <motion.p
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-gd-orange"
+      >
+        Cockpit<span className="text-white">OP</span> · vos outils de l'opération
+      </motion.p>
+
       <motion.h1
         initial={{ y: 30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.35 }}
+        transition={{ delay: 0.4 }}
         className="mb-5 text-6xl font-extrabold leading-tight text-white md:text-7xl"
       >
-        Cockpit<span className="text-gd-orange">OP</span>
+        Votre journée,<br />
+        <span className="text-gd-orange">en 4 gestes</span>
       </motion.h1>
 
       <motion.div
         initial={{ scaleX: 0 }}
         animate={{ scaleX: 1 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
+        transition={{ delay: 0.55, duration: 0.5 }}
         className="mb-6 h-1.5 w-28 rounded-full bg-gd-orange"
         style={{ transform: 'skewX(-12deg)' }}
       />
@@ -121,72 +130,45 @@ function Hero() {
       <motion.p
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-gd-orange"
-      >
-        Opération 50 ans Gonnin Duris × New Holland
-      </motion.p>
-
-      <motion.p
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.75 }}
-        className="max-w-2xl text-xl text-white/60"
+        transition={{ delay: 0.7 }}
+        className="text-lg text-white/60"
       >
         Du 13 au 30 octobre 2026
-      </motion.p>
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="mt-14 text-base text-white/40"
-      >
-        De l'inscription du commercial jusqu'à la vente
       </motion.p>
     </div>
   );
 }
 
-/* ---------- Carte du parcours ---------- */
+/* ---------- Les 4 gestes d'un coup d'œil ---------- */
 
-function Carte() {
+function Apercu() {
   return (
     <div className="flex h-full flex-col justify-center px-10 md:px-20">
-      <motion.p
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="mb-2 text-sm font-semibold uppercase tracking-[0.25em] text-gd-orange"
-      >
-        Le parcours
-      </motion.p>
       <motion.h2
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="mb-12 text-4xl font-extrabold text-white md:text-5xl"
+        className="mb-10 text-4xl font-extrabold text-white md:text-5xl"
       >
-        Neuf moments, une seule ligne droite
+        Quatre gestes, rien d'autre à retenir
       </motion.h2>
 
-      <div className="grid grid-cols-3 gap-4 md:grid-cols-5">
-        {PARCOURS.map((e, i) => {
-          const Icon = e.icon;
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {GESTES.map((g, i) => {
+          const Icon = g.icon;
           return (
             <motion.div
-              key={e.id}
+              key={g.id}
               initial={{ y: 24, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 + i * 0.07 }}
-              className="rounded-2xl border border-white/10 bg-white/5 p-5"
+              transition={{ delay: 0.15 + i * 0.08 }}
+              className="rounded-2xl border border-white/10 bg-white/5 p-6"
             >
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-gd-orange/15">
-                <Icon className="h-5 w-5 text-gd-orange" />
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gd-orange/15">
+                <Icon className="h-6 w-6 text-gd-orange" />
               </div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
-                {String(i + 1).padStart(2, '0')}
-              </p>
-              <p className="mt-1 font-bold leading-snug text-white">{e.etape}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{g.num}</p>
+              <p className="mt-1 text-xl font-bold text-white">{g.geste}</p>
+              <p className="mt-2 text-sm leading-snug text-white/60">{g.accroche}</p>
             </motion.div>
           );
         })}
@@ -195,14 +177,14 @@ function Carte() {
   );
 }
 
-/* ---------- Une étape ---------- */
+/* ---------- Un geste ---------- */
 
-function Etape({ etape, index }) {
-  const Icon = etape.icon;
+function GesteSlide({ geste }) {
+  const Icon = geste.icon;
   return (
     <div className="flex h-full items-center px-10 md:px-24">
-      <div className="grid w-full items-center gap-12 lg:grid-cols-[1.15fr_1fr]">
-        {/* Discours */}
+      <div className="grid w-full items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
+        {/* Le geste */}
         <div>
           <motion.div
             initial={{ x: -24, opacity: 0 }}
@@ -214,9 +196,9 @@ function Etape({ etape, index }) {
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/40">
-                Étape {String(index + 1).padStart(2, '0')}
+                Geste {geste.num}
               </p>
-              <p className="text-lg font-bold text-gd-orange">{etape.etape}</p>
+              <p className="text-lg font-bold text-gd-orange">{geste.geste}</p>
             </div>
           </motion.div>
 
@@ -226,7 +208,7 @@ function Etape({ etape, index }) {
             transition={{ delay: 0.12 }}
             className="mb-5 text-4xl font-extrabold leading-tight text-white md:text-5xl"
           >
-            {etape.titre}
+            {geste.titre}
           </motion.h2>
 
           <motion.p
@@ -235,11 +217,11 @@ function Etape({ etape, index }) {
             transition={{ delay: 0.24 }}
             className="max-w-xl text-xl leading-relaxed text-white/60"
           >
-            {etape.accroche}
+            {geste.accroche}
           </motion.p>
         </div>
 
-        {/* Ce que ça change */}
+        {/* Ce que ça vous change */}
         <motion.div
           initial={{ x: 30, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -247,10 +229,10 @@ function Etape({ etape, index }) {
           className="rounded-3xl border border-white/10 bg-white/5 p-8"
         >
           <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/40">
-            Ce que ça change
+            Ce que ça vous change
           </p>
           <ul className="space-y-5">
-            {etape.points.map((p, i) => (
+            {geste.points.map((p, i) => (
               <motion.li
                 key={p}
                 initial={{ x: 16, opacity: 0 }}
@@ -274,11 +256,6 @@ function Etape({ etape, index }) {
 /* ---------- Conclusion ---------- */
 
 function Fin() {
-  const promesses = [
-    'Il entre sans friction',
-    'Il appelle sans se perdre',
-    'Il vend sans ressaisir'
-  ];
   return (
     <div className="flex h-full flex-col items-center justify-center px-10 text-center">
       <motion.p
@@ -286,29 +263,30 @@ function Fin() {
         animate={{ y: 0, opacity: 1 }}
         className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-gd-orange"
       >
-        En une phrase
+        Vous n'avez que ça à retenir
       </motion.p>
 
       <motion.h2
         initial={{ y: 26, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.12 }}
-        className="mb-14 max-w-4xl text-5xl font-extrabold leading-tight text-white md:text-6xl"
+        className="mb-12 max-w-4xl text-5xl font-extrabold leading-tight text-white md:text-6xl"
       >
-        Un outil qui se fait oublier,<br />
-        <span className="text-gd-orange">pour qu'ils pensent au client</span>
+        Le 13 au matin,<br />
+        <span className="text-gd-orange">vous vous connectez et vous appelez.</span>
       </motion.h2>
 
-      <div className="mb-16 flex flex-wrap items-center justify-center gap-4">
-        {promesses.map((p, i) => (
+      <div className="mb-14 flex flex-wrap items-center justify-center gap-3">
+        {GESTES.map((g, i) => (
           <motion.div
-            key={p}
+            key={g.id}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.35 + i * 0.12 }}
-            className="rounded-full border border-gd-orange/30 bg-gd-orange/10 px-6 py-3 text-lg font-semibold text-white"
+            transition={{ delay: 0.35 + i * 0.1 }}
+            className="flex items-center gap-2 rounded-full border border-gd-orange/30 bg-gd-orange/10 px-5 py-2.5 text-lg font-semibold text-white"
           >
-            {p}
+            <span className="text-sm font-bold text-gd-orange">{g.num}</span>
+            {g.geste}
           </motion.div>
         ))}
       </div>
@@ -316,12 +294,12 @@ function Fin() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.85 }}
-        className="flex flex-col items-center gap-4"
+        transition={{ delay: 0.8 }}
+        className="flex flex-col items-center gap-3"
       >
         <OpLogo className="h-16 w-16 rounded-2xl object-contain" fallback={null} />
         <p className="text-sm uppercase tracking-[0.25em] text-white/40">
-          50 ans Gonnin Duris × New Holland
+          Tout le reste, c'est notre affaire
         </p>
       </motion.div>
     </div>
