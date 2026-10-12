@@ -151,6 +151,18 @@
       },
       "description": "Usages du client : commerce / atelier (r\u00e9colte) / agriculture de pr\u00e9cision"
     },
+    "sources_agri_precision": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Tracteurs",
+          "CX 5/6",
+          "Trimble"
+        ]
+      },
+      "description": "Origine du ciblage agriculture de pr\u00e9cision : Tracteurs (fichiers AGP), CX 5/6 (moissonneuses), Trimble (mat\u00e9riel agri pr\u00e9cision) \u2014 sert \u00e0 adapter l'appel"
+    },
     "priorite_commercial": {
       "type": "boolean",
       "default": false,

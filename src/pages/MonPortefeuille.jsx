@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { isDirection, getAppRole } from '@/lib/permissions';
 import Layout from '@/components/Layout';
 import AppetenceGauge from '@/components/AppetenceGauge';
-import { UsagesClient } from '@/components/MaterielPicto';
+import { UsagesClient, SourcesAgriPrecision } from '@/components/MaterielPicto';
 import ParcPictos from '@/components/ParcPictos';
 import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
@@ -443,6 +443,7 @@ export default function MonPortefeuille() {
                     </p>
                     <p className="text-xs text-muted-foreground">{c.type_structure || 'Exploitation'} · {c.siren || '—'}</p>
                     {Array.isArray(c.usages) && c.usages.length > 0 && <UsagesClient usages={c.usages} className="mt-1" />}
+                    <SourcesAgriPrecision sources={c.sources_agri_precision} className="mt-1" />
                     {/* Tablette / petit écran : le parc remonte sous le nom (sa colonne dédiée revient en grand écran) */}
                     <div className="mt-1.5 xl:hidden"><ParcPictos pictos={c.parc_pictos} /></div>
                   </td>

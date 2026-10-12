@@ -77,4 +77,30 @@ export function UsagesClient({ usages, className = '' }) {
   );
 }
 
+// Origine du ciblage Agriculture de précision : sert à différencier l'appel selon la source.
+export const SOURCES_AGRI_PRECISION = {
+  'Tracteurs': { emoji: '🚜', label: 'Tracteurs immatriculés 2014-2020 (fichiers AGP)' },
+  'CX 5/6': { emoji: '🌾', label: 'Moissonneuses CX 5 / CX 6 (fichier AGP)' },
+  'Trimble': { emoji: '🛰️', label: 'Client des listes Trimble (agri. précision)' },
+};
+
+export function SourcesAgriPrecision({ sources, className = '' }) {
+  const list = Array.isArray(sources) ? sources : [];
+  if (list.length === 0) return null;
+  return (
+    <div className={`flex flex-wrap items-center gap-1 ${className}`}>
+      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Agri. précision :</span>
+      {list.map((s) => (
+        <span
+          key={s}
+          title={SOURCES_AGRI_PRECISION[s]?.label || s}
+          className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700"
+        >
+          <span role="img" aria-hidden="true">{SOURCES_AGRI_PRECISION[s]?.emoji || '🛰️'}</span> {s}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default MaterielPicto;
