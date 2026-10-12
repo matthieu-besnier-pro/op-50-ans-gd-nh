@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Loader from '@/components/Loader';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
@@ -13,9 +13,10 @@ import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star } from 'lucide-react';
+import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, Phone, CalendarPlus } from 'lucide-react';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import { useDemoPersona } from '@/lib/useDemoPersona';
+import RdvExpress from '@/components/RdvExpress';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
 const FILTRES_INIT = {
@@ -25,6 +26,11 @@ const FILTRES_INIT = {
   commercial: 'all',
   suivi: 'all'
 };
+
+// Numéro à appeler en priorité (mobile, sinon fixe).
+function telClient(c) {
+  return c.tel_mobile || c.tel_fixe || null;
+}
 
 // Niveau d'appétence du client (mêmes seuils que la jauge AppetenceGauge).
 export function niveauAppetence(client) {
@@ -51,14 +57,22 @@ export default function MonPortefeuille() {
   const [filters, setFilters] = useState(FILTRES_INIT);
   const [sortByPriority, setSortByPriority] = useState(true);
   const [prioriteOnly, setPrioriteOnly] = useState(false);
+  const [rdvClient, setRdvClient] = useState(null);
+  const [rdvOpen, setRdvOpen] = useState(false);
 
   const effectiveId = persona.mode === 'commercial' ? persona.ids[0] : user?.id;
+
+  // Périmètre des RDV/ventes : persona « Voir en tant que » prioritaire, sinon rôle réel.
+  const rdvScope = useCallback((r) => {
+    if (persona.mode) return persona.matchCommercialId(r.commercial_id);
+    if (isDirection(user)) return true;
+    if (getAppRole(user) === 'responsable') return r.base_responsable_id === user?.id;
+    return r.commercial_id === user?.id;
+  }, [user, persona.mode, persona.ids.join(',')]);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const direction = isDirection(user);
-      const role = getAppRole(user);
       // Démo « Voir en tant que » prioritaire ; sinon on passe par la fonction backend
       // lister_clients (asServiceRole) qui scope par rôle et garantit la remontée
       // (Direction/Marketing = tous, Responsable = son équipe, Commercial = les siens).
@@ -84,14 +98,8 @@ export default function MonPortefeuille() {
         base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
       ]);
       setStructure(structList);
-      const scopeRdv = (r) => {
-        if (persona.mode) return persona.matchCommercialId(r.commercial_id);
-        if (direction) return true;
-        if (role === 'responsable') return r.base_responsable_id === user.id;
-        return r.commercial_id === user.id;
-      };
-      setRdvs(rdvList.filter(scopeRdv));
-      setVentes(venteList.filter(scopeRdv));
+      setRdvs(rdvList.filter(rdvScope));
+      setVentes(venteList.filter(rdvScope));
       setParams(paramList[0] || null);
 
       if (!persona.mode) {
@@ -112,6 +120,16 @@ export default function MonPortefeuille() {
   useEffect(() => {
     if (user?.id || persona.mode) loadAll();
   }, [user?.id, persona.mode, persona.ids.join(',')]);
+
+  // Après un RDV pris depuis la liste : on rafraîchit les RDV et la ligne du client.
+  const reloadApresRdv = async () => {
+    const [rdvList, maj] = await Promise.all([
+      base44.entities.rdv.list('-date_heure', 1000),
+      rdvClient?.id ? base44.entities.client.get(rdvClient.id).catch(() => null) : Promise.resolve(null)
+    ]);
+    setRdvs(rdvList.filter(rdvScope));
+    if (maj) setClients((list) => list.map((c) => (c.id === maj.id ? { ...c, ...maj } : c)));
+  };
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
@@ -306,17 +324,18 @@ export default function MonPortefeuille() {
           <thead>
             <tr className="border-b border-border bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Raison sociale</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Téléphone</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Parc cible</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Appétence</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prochain RDV</th>
               {showCommercial && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Commercial</th>}
-              <th className="px-4 py-3 w-8"></th>
+              <th className="px-4 py-3 w-44"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={showCommercial ? 7 : 6}><Loader compact /></td></tr>
+              <tr><td colSpan={showCommercial ? 9 : 8}><Loader compact /></td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={showCommercial ? 7 : 6} className="px-4 py-12 text-center text-sm text-muted-foreground">
                 {clients.length === 0
@@ -334,12 +353,36 @@ export default function MonPortefeuille() {
                     <p className="text-xs text-muted-foreground">{c.type_structure || 'Exploitation'} · {c.siren || '—'}</p>
                     {Array.isArray(c.usages) && c.usages.length > 0 && <UsagesClient usages={c.usages} className="mt-1" />}
                   </td>
+                  <td className="px-4 py-3">
+                    {telClient(c) ? (
+                      <a
+                        href={`tel:${telClient(c).replace(/[^+\d]/g, '')}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gd-navy hover:text-gd-orange whitespace-nowrap"
+                      >
+                        <Phone className="h-3.5 w-3.5" />{telClient(c)}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3"><ParcPictos pictos={c.parc_pictos} /></td>
                   <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
                   <td className="px-4 py-3"><AppetenceGauge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_prochain_rdv || '—'}</td>
                   {showCommercial && <td className="px-4 py-3 text-sm text-foreground">{commercialNames(c)}</td>}
-                  <td className="px-4 py-3"><ChevronRight className="h-4 w-4 text-muted-foreground" /></td>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => { setRdvClient(c); setRdvOpen(true); }}
+                        className="bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark font-semibold whitespace-nowrap"
+                      >
+                        <CalendarPlus className="h-3.5 w-3.5 mr-1.5" /> Ajout RDV
+                      </Button>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -361,6 +404,13 @@ export default function MonPortefeuille() {
           </p>
         </div>
       )}
+      <RdvExpress
+        open={rdvOpen}
+        onOpenChange={setRdvOpen}
+        client={rdvClient}
+        commercialId={effectiveId}
+        onSaved={reloadApresRdv}
+      />
     </Layout>
   );
 }
