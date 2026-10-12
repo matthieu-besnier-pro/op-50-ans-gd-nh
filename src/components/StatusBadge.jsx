@@ -6,10 +6,11 @@ const STATUT_STYLES = {
   'Injoignable': 'bg-orange-50 text-orange-700 border-orange-200',
   'À rappeler': 'bg-amber-50 text-amber-700 border-amber-200',
   'Contacté sans suite': 'bg-slate-100 text-slate-500 border-slate-200',
-  'RDV obtenu': 'bg-blue-50 text-blue-700 border-blue-200',
-  'Prise de RDV atelier': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  'RDV Commercial obtenu': 'bg-blue-50 text-blue-700 border-blue-200',
+  'RDV Atelier obtenu': 'bg-indigo-50 text-indigo-700 border-indigo-200',
   'Devis en cours': 'bg-violet-50 text-violet-700 border-violet-200',
   'Offre magasin à proposer': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  'Offre agri. précision à proposer': 'bg-teal-50 text-teal-700 border-teal-200',
   'Vente conclue': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'Refus': 'bg-red-50 text-red-700 border-red-200'
 };

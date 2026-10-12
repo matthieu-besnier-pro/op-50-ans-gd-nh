@@ -190,7 +190,7 @@ function conversionProbability(client, materiels) {
   if ((client.ca_total_12m || 0) >= 20000) prob += 10;
   if (client.statut === 'Devis en cours') prob += 20;
   if (client.statut === 'Offre magasin à proposer') prob += 15;
-  if (client.statut === 'RDV obtenu') prob += 10;
+  if (client.statut === 'RDV Commercial obtenu') prob += 10;
   if (['Vente conclue', 'Refus', 'Contacté sans suite'].includes(client.statut)) prob = client.statut === 'Vente conclue' ? 100 : 0;
   return Math.min(Math.round(prob), 100);
 }

@@ -16,8 +16,8 @@ import {
 import { ChevronDown, Loader2, Check } from 'lucide-react';
 
 export const STATUTS = [
-  'À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu',
-  'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'
+  'À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV Commercial obtenu',
+  'RDV Atelier obtenu', 'Devis en cours', 'Offre magasin à proposer', 'Offre agri. précision à proposer', 'Vente conclue', 'Refus'
 ];
 const MOTIFS_REFUS = ['Pas de besoin', 'Concurrent', 'Budget', 'Autre'];
 

@@ -72,8 +72,12 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
         type,
         statut: 'Planifié'
       });
-      const updates = { date_prochain_rdv: day };
-      if (type === 'RDV atelier hivernage') { updates.statut = 'Prise de RDV atelier'; updates.date_dernier_contact = dayISO(0); }
+      // Le statut se coche tout seul : prendre le rendez-vous, c'est l'avoir obtenu.
+      const updates = {
+        date_prochain_rdv: day,
+        date_dernier_contact: dayISO(0),
+        statut: type === 'RDV atelier hivernage' ? 'RDV Atelier obtenu' : 'RDV Commercial obtenu'
+      };
       await base44.entities.client.update(client.id, updates).catch(() => {});
       try { await base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }); } catch (e) { /* ignore */ }
 

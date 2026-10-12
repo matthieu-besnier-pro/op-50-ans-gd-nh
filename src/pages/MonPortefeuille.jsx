@@ -21,7 +21,7 @@ import TelephoneClient from '@/components/TelephoneClient';
 import AjouterClientDialog from '@/components/AjouterClientDialog';
 import { villeClientTexte } from '@/lib/localisationClient';
 
-const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
+const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV Commercial obtenu', 'RDV Atelier obtenu', 'Devis en cours', 'Offre magasin à proposer', 'Offre agri. précision à proposer', 'Vente conclue', 'Refus'];
 const FILTRES_INIT = {
   search: '',
   statut: 'all',
@@ -412,7 +412,7 @@ export default function MonPortefeuille() {
               <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">Appétence</th>
               <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">Prochain RDV</th>
               {showCommercial && <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">Commercial</th>}
-              <th className="px-4 py-3 w-44"></th>
+              <th className="px-4 py-3 w-52"></th>
             </tr>
           </thead>
           <tbody>
@@ -451,27 +451,37 @@ export default function MonPortefeuille() {
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
                       {rdvPris ? (
-                        <>
-                          <span
-                            title={`Rendez-vous ${formatRdvLong(rdvPris.date_heure)}`}
-                            className="inline-flex h-10 cursor-default items-center rounded-md bg-muted px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap xl:h-8"
-                          >
-                            <CalendarCheck className="mr-1.5 h-4 w-4 xl:h-3.5 xl:w-3.5" />
-                            RDV {formatRdvCourt(rdvPris.date_heure)}
-                          </span>
+                        <div className="flex flex-col items-end gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              title={`Rendez-vous ${formatRdvLong(rdvPris.date_heure)}`}
+                              className="inline-flex h-9 cursor-default items-center rounded-md bg-muted px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap xl:h-8"
+                            >
+                              <CalendarCheck className="mr-1.5 h-4 w-4 xl:h-3.5 xl:w-3.5" />
+                              RDV {formatRdvCourt(rdvPris.date_heure)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => annulerRdv(rdvPris, c)}
+                              disabled={annulationId === rdvPris.id}
+                              title="Annuler le rendez-vous"
+                              aria-label="Annuler le rendez-vous"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-gd-red hover:bg-gd-red/10 hover:text-gd-red disabled:opacity-50"
+                            >
+                              {annulationId === rdvPris.id
+                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : <X className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                          {/* Un client peut avoir un RDV matériel ET un RDV atelier. */}
                           <button
                             type="button"
-                            onClick={() => annulerRdv(rdvPris, c)}
-                            disabled={annulationId === rdvPris.id}
-                            title="Annuler le rendez-vous"
-                            aria-label="Annuler le rendez-vous"
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-gd-red hover:bg-gd-red/10 hover:text-gd-red disabled:opacity-50"
+                            onClick={() => { setRdvClient(c); setRdvOpen(true); }}
+                            className="inline-flex h-7 items-center rounded-md border border-gd-orange/50 px-2 text-xs font-semibold text-gd-orange whitespace-nowrap transition hover:bg-gd-orange hover:text-gd-navy-dark"
                           >
-                            {annulationId === rdvPris.id
-                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              : <X className="h-3.5 w-3.5" />}
+                            <CalendarPlus className="mr-1 h-3 w-3" /> Autre RDV
                           </button>
-                        </>
+                        </div>
                       ) : (
                         <Button
                           size="sm"

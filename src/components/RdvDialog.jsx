@@ -76,11 +76,12 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
       const rdv = await base44.entities.rdv.create(payload);
 
       // Mettre à jour date_prochain_rdv du client
-      const updates = { date_prochain_rdv: new Date(form.date_heure).toISOString().slice(0, 10) };
-      if (form.type === 'RDV atelier hivernage') {
-        updates.statut = 'Prise de RDV atelier';
-        updates.date_dernier_contact = new Date().toISOString().slice(0, 10);
-      }
+      // Le statut se coche tout seul : prendre le rendez-vous, c'est l'avoir obtenu.
+      const updates = {
+        date_prochain_rdv: new Date(form.date_heure).toISOString().slice(0, 10),
+        date_dernier_contact: new Date().toISOString().slice(0, 10),
+        statut: form.type === 'RDV atelier hivernage' ? 'RDV Atelier obtenu' : 'RDV Commercial obtenu'
+      };
       await base44.entities.client.update(client.id, updates);
 
       // Vérifier les badges

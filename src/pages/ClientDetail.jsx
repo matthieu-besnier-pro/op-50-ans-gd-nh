@@ -26,7 +26,7 @@ import {
   MessageSquare, Plus, Tractor, Mail, FileText, Star
 } from 'lucide-react';
 
-const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
+const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV Commercial obtenu', 'RDV Atelier obtenu', 'Devis en cours', 'Offre magasin à proposer', 'Offre agri. précision à proposer', 'Vente conclue', 'Refus'];
 const MOTIFS_REFUS = ['Pas de besoin', 'Concurrent', 'Budget', 'Autre'];
 
 export default function ClientDetail() {
@@ -102,7 +102,7 @@ export default function ClientDetail() {
     if (statutEdit === 'Devis en cours' && montantDevis) updates.montant_devis = Number(montantDevis);
 
     await base44.entities.client.update(id, updates);
-    if (statutEdit === 'RDV obtenu' || statutEdit === 'Offre magasin à proposer') {
+    if (statutEdit === 'RDV Commercial obtenu' || statutEdit === 'Offre magasin à proposer') {
       setPulseRow(true);
       setTimeout(() => setPulseRow(false), 600);
     }
