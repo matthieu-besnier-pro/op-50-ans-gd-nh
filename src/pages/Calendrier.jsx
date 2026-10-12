@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
@@ -22,7 +23,7 @@ export default function Calendrier() {
 
   const load = async () => {
     try {
-      let list = await base44.entities.rdv.list('-date_heure', 1000);
+      let list = await listerPartage('rdv', '-date_heure', 1000);
       if (persona.mode) {
         list = list.filter((r) => persona.matchCommercialId(r.commercial_id));
       } else if (isDirection(user)) {
@@ -33,7 +34,7 @@ export default function Calendrier() {
         list = list.filter((r) => r.commercial_id === user.id);
       }
       setRdvs(list);
-      const structList = await base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => []);
+      const structList = await listerPartage('structure_commerciale', '-nom_commercial', 300).catch(() => []);
       // Clients des RDV du périmètre, chargés par lots : nécessaires pour nommer et localiser les RDV dans l'export .ics.
       const idsClients = [...new Set(list.map((r) => r.client_id).filter(Boolean))].slice(0, 600);
       const map = {};

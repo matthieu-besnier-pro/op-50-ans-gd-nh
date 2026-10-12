@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { fetchOperationStats } from '@/lib/operationStats';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -155,13 +156,13 @@ export default function GrandEcran() {
   const load = useCallback(async () => {
     try {
       const [p, r, v, u, bo, st, bdg, statsRes] = await Promise.all([
-        base44.entities.parametres_operation.list('-created_date', 1),
-        base44.entities.rdv.list('-date_heure', 500),
-        base44.entities.vente.list('-date_vente', 500),
-        base44.entities.User.list('-created_date', 50).catch(() => []),
-        base44.entities.badge_obtenu.list('-created_date', 100),
-        base44.entities.structure_commerciale.list('-nom_commercial', 200),
-        base44.entities.badge.list('-created_date', 50).catch(() => []),
+        listerPartage('parametres_operation', '-created_date', 1),
+        listerPartage('rdv', '-date_heure', 500),
+        listerPartage('vente', '-date_vente', 500),
+        listerPartage('User', '-created_date', 50).catch(() => []),
+        listerPartage('badge_obtenu', '-created_date', 100),
+        listerPartage('structure_commerciale', '-nom_commercial', 200),
+        listerPartage('badge', '-created_date', 50).catch(() => []),
         fetchOperationStats()
       ]);
       setExacts(statsRes || null);

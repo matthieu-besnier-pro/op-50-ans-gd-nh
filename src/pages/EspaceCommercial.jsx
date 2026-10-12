@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
@@ -66,14 +67,14 @@ export default function EspaceCommercial() {
     const load = async () => {
       try {
         const [p, myRdv, myClients, b, aRdv, aVentes, users, structList] = await Promise.all([
-          base44.entities.parametres_operation.list('-created_date', 1),
+          listerPartage('parametres_operation', '-created_date', 1),
           base44.entities.rdv.filter({ commercial_id: user.id }, '-date_heure', 500).catch(() => []),
           base44.entities.client.filter({ commerciaux_assignes: user.id }, '-created_date', 500).catch(() => []),
-          base44.entities.badge.list('-created_date', 50),
-          base44.entities.rdv.list('-date_heure', 1000).catch(() => []),
-          base44.entities.vente.list('-date_vente', 1000).catch(() => []),
-          base44.entities.User.list('-created_date', 300).catch(() => []),
-          base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
+          listerPartage('badge', '-created_date', 50),
+          listerPartage('rdv', '-date_heure', 1000).catch(() => []),
+          listerPartage('vente', '-date_vente', 1000).catch(() => []),
+          listerPartage('User', '-created_date', 300).catch(() => []),
+          listerPartage('structure_commerciale', '-nom_commercial', 300).catch(() => [])
         ]);
         setParams(p[0] || null);
         setRdvs(myRdv);

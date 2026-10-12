@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
@@ -23,8 +24,8 @@ export default function Magasin() {
   const load = async () => {
     try {
       const [o, p] = await Promise.all([
-        base44.entities.offre_magasin.list('-date_debut', 200),
-        base44.entities.parametres_operation.list('-created_date', 1)
+        listerPartage('offre_magasin', '-date_debut', 200),
+        listerPartage('parametres_operation', '-created_date', 1)
       ]);
       setOffres(o);
       setParams(p[0] || null);

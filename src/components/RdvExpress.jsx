@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { base44 } from '@/api/base44Client';
+import { invalider } from '@/lib/donneesPartagees';
 import confetti from 'canvas-confetti';
 import { Search, Tractor, Wrench, Sprout, ChevronLeft, Check, Loader2, CalendarDays, PartyPopper } from 'lucide-react';
 
@@ -85,6 +86,7 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
         statut: STATUT_PAR_TYPE[type] || 'RDV Commercial obtenu'
       };
       await base44.entities.client.update(client.id, updates).catch(() => {});
+      invalider('rdv'); // le nouveau rendez-vous doit apparaître tout de suite
       try { await base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }); } catch (e) { /* ignore */ }
 
       // Récompense visuelle (sans son côté saisie ; le son est réservé au Grand Écran)

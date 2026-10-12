@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { base44 } from '@/api/base44Client';
+import { invalider } from '@/lib/donneesPartagees';
 import { AlertTriangle } from 'lucide-react';
 
 // Le statut client se coche tout seul : prendre le rendez-vous, c'est l'avoir obtenu.
@@ -91,6 +92,7 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
       await base44.entities.client.update(client.id, updates);
 
       // Vérifier les badges
+      invalider('rdv');
       try { await base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }); } catch (e) { /* ignore */ }
 
       onSaved?.(rdv);

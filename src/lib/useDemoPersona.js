@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
+import { listerPartage } from '@/lib/donneesPartagees';
 import { normNom } from '@/lib/nomCle';
 
 /**
@@ -24,9 +25,11 @@ export function useDemoPersona() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Référentiel mutualisé : rechargé une fois, pas à chaque page ni à chaque
+    // changement de « Voir en tant que ».
     Promise.all([
-      base44.entities.structure_commerciale.list('-nom_commercial', 200),
-      base44.entities.base.list('-nom', 100)
+      listerPartage('structure_commerciale', '-nom_commercial', 200),
+      listerPartage('base', '-nom', 100)
     ])
       .then(([rows, sites]) => { setStructure(rows); setBases(sites); setLoading(false); })
       .catch(() => setLoading(false));

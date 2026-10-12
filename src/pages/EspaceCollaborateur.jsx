@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
@@ -62,14 +63,14 @@ export default function EspaceCollaborateur() {
     const load = async () => {
       try {
         const [p, r, v, o, b, u, c, st, statsRes] = await Promise.all([
-          base44.entities.parametres_operation.list('-created_date', 1),
-          base44.entities.rdv.list('-date_heure', 500),
-          base44.entities.vente.list('-date_vente', 500),
-          base44.entities.offre_magasin.list('-date_debut', 200),
-          base44.entities.badge.list('-created_date', 50),
-          base44.entities.User.list('-created_date', 200).catch(() => []),
+          listerPartage('parametres_operation', '-created_date', 1),
+          listerPartage('rdv', '-date_heure', 500),
+          listerPartage('vente', '-date_vente', 500),
+          listerPartage('offre_magasin', '-date_debut', 200),
+          listerPartage('badge', '-created_date', 50),
+          listerPartage('User', '-created_date', 200).catch(() => []),
           base44.entities.client.list('-created_date', 200),
-          base44.entities.structure_commerciale.list('-nom_commercial', 200).catch(() => []),
+          listerPartage('structure_commerciale', '-nom_commercial', 200).catch(() => []),
           base44.functions.invoke('statistiques_operation', {}).catch(() => null)
         ]);
         setExacts(statsRes?.data || null);
@@ -143,7 +144,7 @@ export default function EspaceCollaborateur() {
 
   const reloadRdvs = async () => {
     try {
-      const r = await base44.entities.rdv.list('-date_heure', 500);
+      const r = await listerPartage('rdv', '-date_heure', 500);
       setRdvs(r);
     } catch (e) { console.error(e); }
   };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
@@ -36,8 +37,8 @@ export default function MonEquipe() {
         const memberIds = members.map((m) => m.id);
         const [allClients, allRdvs, allVentes] = await Promise.all([
           base44.entities.client.list('-created_date', 2000),
-          base44.entities.rdv.list('-date_heure', 1000),
-          base44.entities.vente.list('-date_vente', 1000)
+          listerPartage('rdv', '-date_heure', 1000),
+          listerPartage('vente', '-date_vente', 1000)
         ]);
         setClients(allClients.filter((c) => (c.commerciaux_assignes || []).some((id) => memberIds.includes(id))));
         setRdvs(allRdvs.filter((r) => memberIds.includes(r.commercial_id)));
@@ -49,7 +50,7 @@ export default function MonEquipe() {
       // d'import (structure_commerciale), enrichie des comptes utilisateurs existants.
       const [res, structRows] = await Promise.all([
         base44.functions.invoke('lister_equipe', {}),
-        base44.entities.structure_commerciale.list('-nom_commercial', 200)
+        listerPartage('structure_commerciale', '-nom_commercial', 200)
       ]);
       const equipeMembers = res.data?.members || [];
       const userById = {};
@@ -71,8 +72,8 @@ export default function MonEquipe() {
 
       const [allClients, allRdvs, allVentes] = await Promise.all([
         base44.entities.client.list('-created_date', 2000),
-        base44.entities.rdv.list('-date_heure', 1000),
-        base44.entities.vente.list('-date_vente', 1000)
+        listerPartage('rdv', '-date_heure', 1000),
+        listerPartage('vente', '-date_vente', 1000)
       ]);
       setClients(allClients);
       setRdvs(allRdvs.filter((r) => memberIds.includes(r.commercial_id)));

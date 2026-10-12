@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Loader from '@/components/Loader';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import { isDirection, getAppRole } from '@/lib/permissions';
 import Layout from '@/components/Layout';
@@ -118,10 +119,10 @@ export default function MonPortefeuille() {
       const dansPortee = (r) => (scopeFrais ? (scopeFrais.commercial_ids || []).includes(r.commercial_id) : rdvScope(r));
 
       const [rdvList, venteList, paramList, structList] = await Promise.all([
-        base44.entities.rdv.list('-date_heure', 1000),
-        base44.entities.vente.list('-date_vente', 1000),
-        base44.entities.parametres_operation.list('-created_date', 1),
-        base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
+        listerPartage('rdv', '-date_heure', 1000),
+        listerPartage('vente', '-date_vente', 1000),
+        listerPartage('parametres_operation', '-created_date', 1),
+        listerPartage('structure_commerciale', '-nom_commercial', 300).catch(() => [])
       ]);
       setStructure(structList);
       setRdvs(rdvList.filter(dansPortee));
@@ -132,7 +133,7 @@ export default function MonPortefeuille() {
         const obtenus = await base44.entities.badge_obtenu.filter({ utilisateur_id: user.id }, '-created_date', 50);
         if (obtenus.length > 0) {
           const badgeIds = obtenus.map((o) => o.badge_id);
-          const allBadges = await base44.entities.badge.list('-created_date', 50);
+          const allBadges = await listerPartage('badge', '-created_date', 50);
           setBadges(allBadges.filter((b) => badgeIds.includes(b.id)));
         }
       }
@@ -159,6 +160,7 @@ export default function MonPortefeuille() {
     setAnnulationId(rdv.id);
     try {
       await base44.entities.rdv.update(rdv.id, { statut: 'Annulé' });
+      invalider('rdv');
       setRdvs((list) => list.map((r) => (r.id === rdv.id ? { ...r, statut: 'Annulé' } : r)));
       // Les badges se recalculent : un badge décroché grâce à ce RDV doit retomber.
       if (rdv.commercial_id) {
@@ -179,7 +181,7 @@ export default function MonPortefeuille() {
   // Après un RDV pris depuis la liste : on rafraîchit les RDV et la ligne du client.
   const reloadApresRdv = async () => {
     const [rdvList, maj] = await Promise.all([
-      base44.entities.rdv.list('-date_heure', 1000),
+      listerPartage('rdv', '-date_heure', 1000),
       rdvClient?.id ? base44.entities.client.get(rdvClient.id).catch(() => null) : Promise.resolve(null)
     ]);
     setRdvs(rdvList.filter(rdvScope));

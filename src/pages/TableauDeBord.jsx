@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { fetchOperationStats } from '@/lib/operationStats';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
@@ -84,12 +85,12 @@ export default function TableauDeBord() {
   const load = useCallback(async () => {
     try {
       const [p, r, v, o, u, s] = await Promise.all([
-        base44.entities.parametres_operation.list('-created_date', 1),
-        base44.entities.rdv.list('-date_heure', 1000),
-        base44.entities.vente.list('-date_vente', 1000),
-        base44.entities.offre_magasin.list('-created_date', 200),
-        base44.entities.User.list('-created_date', 100).catch(() => []),
-        base44.entities.structure_commerciale.list('-nom_commercial', 200)
+        listerPartage('parametres_operation', '-created_date', 1),
+        listerPartage('rdv', '-date_heure', 1000),
+        listerPartage('vente', '-date_vente', 1000),
+        listerPartage('offre_magasin', '-created_date', 200),
+        listerPartage('User', '-created_date', 100).catch(() => []),
+        listerPartage('structure_commerciale', '-nom_commercial', 200)
       ]);
       // Comptages exacts : appel serveur mutualisé (mis en cache) et non bloquant.
       // Les chiffres des listes s'affichent aussitôt, puis sont affinés.

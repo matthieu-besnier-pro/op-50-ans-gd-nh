@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Loader from '@/components/Loader';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
@@ -33,7 +34,7 @@ export default function Atelier() {
         // ou responsable SAV = ceux des commerciaux de ses sites.
         base44.functions.invoke('lister_clients', { limit: 2000 }).then((r) => r?.data?.clients || []).catch(() => []),
         base44.functions.invoke('statistiques_operation', {}).catch(() => null),
-        base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
+        listerPartage('structure_commerciale', '-nom_commercial', 300).catch(() => [])
       ]);
       setExacts(statsRes?.data || null);
       setStructure(structList);
