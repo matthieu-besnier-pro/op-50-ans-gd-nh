@@ -325,11 +325,11 @@ export default function MonPortefeuille() {
             <tr className="border-b border-border bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Raison sociale</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Téléphone</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Parc cible</th>
+              <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">Parc cible</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Appétence</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prochain RDV</th>
-              {showCommercial && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Commercial</th>}
+              <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">Appétence</th>
+              <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">Prochain RDV</th>
+              {showCommercial && <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">Commercial</th>}
               <th className="px-4 py-3 w-44"></th>
             </tr>
           </thead>
@@ -337,7 +337,7 @@ export default function MonPortefeuille() {
             {loading ? (
               <tr><td colSpan={showCommercial ? 9 : 8}><Loader compact /></td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={showCommercial ? 7 : 6} className="px-4 py-12 text-center text-sm text-muted-foreground">
+              <tr><td colSpan={showCommercial ? 9 : 8} className="px-4 py-12 text-center text-sm text-muted-foreground">
                 {clients.length === 0
                   ? 'Aucun client ne vous est affecté pour l\'instant. L\'affectation est gérée par la Direction (Administration → Affectation).'
                   : 'Aucun client ne correspond aux filtres.'}
@@ -352,33 +352,35 @@ export default function MonPortefeuille() {
                     </p>
                     <p className="text-xs text-muted-foreground">{c.type_structure || 'Exploitation'} · {c.siren || '—'}</p>
                     {Array.isArray(c.usages) && c.usages.length > 0 && <UsagesClient usages={c.usages} className="mt-1" />}
+                    {/* Tablette / petit écran : le parc remonte sous le nom (sa colonne dédiée revient en grand écran) */}
+                    <div className="mt-1.5 xl:hidden"><ParcPictos pictos={c.parc_pictos} /></div>
                   </td>
                   <td className="px-4 py-3">
                     {telClient(c) ? (
                       <a
                         href={`tel:${telClient(c).replace(/[^+\d]/g, '')}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gd-navy hover:text-gd-orange whitespace-nowrap"
+                        className="-mx-1 -my-1 inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-semibold text-gd-navy hover:bg-gd-orange/10 hover:text-gd-orange whitespace-nowrap"
                       >
-                        <Phone className="h-3.5 w-3.5" />{telClient(c)}
+                        <Phone className="h-4 w-4 xl:h-3.5 xl:w-3.5" />{telClient(c)}
                       </a>
                     ) : (
                       <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3"><ParcPictos pictos={c.parc_pictos} /></td>
+                  <td className="hidden px-4 py-3 xl:table-cell"><ParcPictos pictos={c.parc_pictos} /></td>
                   <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
-                  <td className="px-4 py-3"><AppetenceGauge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{c.date_prochain_rdv || '—'}</td>
-                  {showCommercial && <td className="px-4 py-3 text-sm text-foreground">{commercialNames(c)}</td>}
+                  <td className="hidden px-4 py-3 xl:table-cell"><AppetenceGauge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
+                  <td className="hidden px-4 py-3 text-sm text-muted-foreground xl:table-cell">{c.date_prochain_rdv || '—'}</td>
+                  {showCommercial && <td className="hidden px-4 py-3 text-sm text-foreground xl:table-cell">{commercialNames(c)}</td>}
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
                       <Button
                         size="sm"
                         onClick={() => { setRdvClient(c); setRdvOpen(true); }}
-                        className="bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark font-semibold whitespace-nowrap"
+                        className="h-10 bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark font-semibold whitespace-nowrap xl:h-8"
                       >
-                        <CalendarPlus className="h-3.5 w-3.5 mr-1.5" /> Ajout RDV
+                        <CalendarPlus className="h-4 w-4 mr-1.5 xl:h-3.5 xl:w-3.5" /> Ajout RDV
                       </Button>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
