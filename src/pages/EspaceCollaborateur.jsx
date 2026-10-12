@@ -82,7 +82,9 @@ export default function EspaceCollaborateur() {
         setClients(c);
         setStructure(st);
         try {
-          const ob = await base44.entities.badge_obtenu.list('-created_date', 200);
+          // Uniquement les badges obtenus par le commercial connecté : les badges des
+          // autres (et ceux d'anciens badges supprimés) ne s'affichent plus comme acquis.
+          const ob = await base44.entities.badge_obtenu.filter({ utilisateur_id: user?.id }, '-created_date', 200);
           setObtenus(ob);
         } catch (e) { /* ignore */ }
       } catch (e) {
@@ -92,7 +94,7 @@ export default function EspaceCollaborateur() {
       }
     };
     load();
-  }, []);
+  }, [user?.id]);
 
   const stats = useMemo(() => {
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();

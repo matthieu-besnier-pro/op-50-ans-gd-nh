@@ -142,8 +142,12 @@ export default async function (req) {
     let rdvPrisMois = 0;
     let rdvAtelierPrisMois = 0;
     let rdvCommercialPrisMois = 0;
+    let rdvAgriMois = 0;
+    let rdvAgriPrisMois = 0;
+    let rdvAgriRealisesMois = 0;
     let sprintTotal = 0;
     let sprintAtelier = 0;
+    let sprintAgri = 0;
     let sprintCommercial = 0;
     let sprintRealises = 0;
     let rdvAnnules = 0;
@@ -160,6 +164,7 @@ export default async function (req) {
       const ty = r.type || '(non renseigné)';
       rdvParType[ty] = (rdvParType[ty] || 0) + 1;
       const atelier = ty === 'RDV atelier hivernage';
+      const agriPrecision = ty === 'RDV agri. précision';
 
       const duMois = Boolean(r.date_heure) && r.date_heure >= moisDebut;
       const realise = st === 'Réalisé';
@@ -173,6 +178,10 @@ export default async function (req) {
             rdvAtelierPrisMois += 1;
           }
           if (realise) rdvAtelierRealisesMois += 1;
+        } else if (agriPrecision) {
+          rdvAgriMois += 1;
+          if (pris) rdvAgriPrisMois += 1;
+          if (realise) rdvAgriRealisesMois += 1;
         } else {
           rdvCommercialMois += 1;
           if (pris) rdvCommercialPrisMois += 1;
@@ -184,7 +193,7 @@ export default async function (req) {
       const jour = (r.date_heure || '').slice(0, 10);
       if (sprintDebut && sprintFin && jour >= sprintDebut && jour <= sprintFin) {
         sprintTotal += 1;
-        if (atelier) sprintAtelier += 1; else sprintCommercial += 1;
+        if (atelier) sprintAtelier += 1; else if (agriPrecision) sprintAgri += 1; else sprintCommercial += 1;
         if (realise) sprintRealises += 1;
         if (r.commercial_id) rdvSprintParCommercial[r.commercial_id] = (rdvSprintParCommercial[r.commercial_id] || 0) + 1;
       }
@@ -245,7 +254,10 @@ export default async function (req) {
         atelier_hors_annule_du_mois: rdvAtelierHorsAnnuleMois,
         commercial_du_mois: rdvCommercialMois,
         commercial_realises_du_mois: rdvCommercialRealisesMois,
-        sprint: { debut: sprintDebut, fin: sprintFin, total: sprintTotal, atelier: sprintAtelier, commercial: sprintCommercial, realises: sprintRealises }
+        agri_du_mois: rdvAgriMois,
+        agri_pris_du_mois: rdvAgriPrisMois,
+        agri_realises_du_mois: rdvAgriRealisesMois,
+        sprint: { debut: sprintDebut, fin: sprintFin, total: sprintTotal, atelier: sprintAtelier, agri: sprintAgri, commercial: sprintCommercial, realises: sprintRealises }
       },
       ventes: {
         total: ventes.length,

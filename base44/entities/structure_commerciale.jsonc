@@ -16,9 +16,10 @@
         "GONNIN",
         "DURIS",
         "DBS",
-        "Quitt\u00e9"
+        "Quitt\u00e9",
+        "AGRI PRECISION"
       ],
-      "description": "Entit\u00e9 juridique"
+      "description": "Entit\u00e9 juridique (ou \u00e9quipe Agriculture de pr\u00e9cision, transversale aux zones)"
     },
     "zone": {
       "type": "string",

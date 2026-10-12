@@ -11,7 +11,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
 import {
-  CalendarClock, Timer, CheckCircle2, Target, Store, TrendingUp, Trophy, AlertCircle
+  CalendarClock, Timer, CheckCircle2, Target, Store, TrendingUp, Trophy, AlertCircle, Satellite
 } from 'lucide-react';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import RdvNiveaux from '@/components/RdvNiveaux';
@@ -135,8 +135,9 @@ export default function TableauDeBord() {
   // RDV pris : comptés dès la prise de rendez-vous (hors RDV annulés).
   const rdvMoisPris = scopedRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart);
   // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
-  const rdvMaterielMonth = exacts?.rdv?.commercial_pris_du_mois ?? rdvMoisPris.filter((r) => r.type !== 'RDV atelier hivernage').length;
+  const rdvMaterielMonth = exacts?.rdv?.commercial_pris_du_mois ?? rdvMoisPris.filter((r) => r.type !== 'RDV atelier hivernage' && r.type !== 'RDV agri. précision').length;
   const rdvAtelierMonth = exacts?.rdv?.atelier_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV atelier hivernage').length;
+  const rdvAgriMonth = exacts?.rdv?.agri_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV agri. précision').length;
   const rdvTotalMonth = exacts?.rdv?.pris_du_mois ?? rdvMoisPris.length;
 
   const ventesValidees = scopedVentes.filter((v) => v.statut_validation === 'Validé');
@@ -188,13 +189,14 @@ export default function TableauDeBord() {
       </div>
 
       {/* Countdowns */}
-      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard label="Fin de l'opération" value={countdownOp !== null ? `${countdownOp} j` : '—'} sublabel={params?.date_fin_operation} icon={CalendarClock} accent />
         {showCountdownRdv && (
           <StatCard label="Fin prise de RDV" value={`${countdownRdv} j`} sublabel={params?.date_fin_prise_rdv} icon={Timer} accent />
         )}
         <StatCard label="RDV Matériel (mois)" value={rdvMaterielMonth} icon={CheckCircle2} />
         <StatCard label="RDV Atelier (mois)" value={rdvAtelierMonth} icon={Timer} />
+        <StatCard label="RDV Agri. précision (mois)" value={rdvAgriMonth} icon={Satellite} />
       </div>
 
       {/* Objectives */}
@@ -209,6 +211,7 @@ export default function TableauDeBord() {
           <div className="mt-3 flex gap-4 text-xs">
             <span className="text-muted-foreground">🚜 Matériel : <span className="font-bold text-gd-navy-dark">{rdvMaterielMonth}</span></span>
             <span className="text-muted-foreground">🔧 Atelier : <span className="font-bold text-gd-navy-dark">{rdvAtelierMonth}</span></span>
+            <span className="text-muted-foreground">🛰️ Agri. précision : <span className="font-bold text-gd-navy-dark">{rdvAgriMonth}</span></span>
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

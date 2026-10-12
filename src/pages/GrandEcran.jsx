@@ -6,7 +6,7 @@ import confetti from 'canvas-confetti';
 import OpLogo from '@/components/OpLogo';
 import {
   Zap, Trophy, Wrench, Flame, Award, Clock, Target,
-  Users, Star, CalendarCheck, TrendingUp, Sparkles, X
+  Users, Star, CalendarCheck, TrendingUp, Sparkles, X, Satellite
 } from 'lucide-react';
 
 /* ---------- Animated counter ---------- */
@@ -268,6 +268,7 @@ export default function GrandEcran() {
   const objRdv = params?.objectif_rdv || 100;
   const sprintAtelierCount = exacts?.rdv?.sprint?.atelier ?? sprintRdvs.filter(r => r.type === 'RDV atelier hivernage').length;
   const sprintCommercialCount = exacts?.rdv?.sprint?.commercial ?? sprintRdvs.filter(r => r.type === 'RDV commercial').length;
+  const sprintAgriCount = exacts?.rdv?.sprint?.agri ?? sprintRdvs.filter(r => r.type === 'RDV agri. précision').length;
 
   // Leaderboard
   const leaderboard = useMemo(() => {
@@ -390,7 +391,7 @@ export default function GrandEcran() {
               {phase === 'sprint' ? (
                 <>
                   <ProgressRing value={sprintRdvCount} max={objRdv} label="RDV Sprint" sublabel={`objectif`} />
-                  <div className="mt-6 grid grid-cols-2 gap-3 w-full">
+                  <div className="mt-6 grid grid-cols-3 gap-3 w-full">
                     <div className="rounded-2xl bg-gd-navy/40 p-3 text-center">
                       <CalendarCheck className="h-5 w-5 mx-auto text-white/60 mb-1" />
                       <p className="text-2xl font-extrabold text-white"><AnimatedCounter value={sprintCommercialCount} /></p>
@@ -400,6 +401,11 @@ export default function GrandEcran() {
                       <Wrench className="h-5 w-5 mx-auto text-gd-orange mb-1" />
                       <p className="text-2xl font-extrabold text-gd-orange"><AnimatedCounter value={sprintAtelierCount} /></p>
                       <p className="text-xs text-white/40 uppercase tracking-wide">Atelier</p>
+                    </div>
+                    <div className="rounded-2xl bg-emerald-500/15 p-3 text-center">
+                      <Satellite className="h-5 w-5 mx-auto text-emerald-400 mb-1" />
+                      <p className="text-2xl font-extrabold text-emerald-400"><AnimatedCounter value={sprintAgriCount} /></p>
+                      <p className="text-xs text-white/40 uppercase tracking-wide">Agri. précision</p>
                     </div>
                   </div>
                 </>
