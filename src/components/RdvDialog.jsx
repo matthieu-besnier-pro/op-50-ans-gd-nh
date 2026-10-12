@@ -12,6 +12,12 @@ import {
 import { base44 } from '@/api/base44Client';
 import { AlertTriangle } from 'lucide-react';
 
+// Le statut client se coche tout seul : prendre le rendez-vous, c'est l'avoir obtenu.
+const STATUT_PAR_TYPE = {
+  'RDV atelier hivernage': 'RDV Atelier obtenu',
+  'RDV agri. précision': 'RDV Agri. précision obtenu'
+};
+
 export default function RdvDialog({ open, onOpenChange, client, commercialId, onSaved }) {
   // Attribution : toujours au commercial affecté au client (la fiche client fait foi).
   // Si l'utilisateur connecté est lui-même affecté au client, on lui attribue ; sinon au 1er commercial du client.
@@ -80,7 +86,7 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
       const updates = {
         date_prochain_rdv: new Date(form.date_heure).toISOString().slice(0, 10),
         date_dernier_contact: new Date().toISOString().slice(0, 10),
-        statut: form.type === 'RDV atelier hivernage' ? 'RDV Atelier obtenu' : 'RDV Commercial obtenu'
+        statut: STATUT_PAR_TYPE[form.type] || 'RDV Commercial obtenu'
       };
       await base44.entities.client.update(client.id, updates);
 
@@ -134,6 +140,7 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
                 <SelectContent>
                   <SelectItem value="RDV commercial">RDV commercial</SelectItem>
                   <SelectItem value="RDV atelier hivernage">RDV atelier hivernage</SelectItem>
+                  <SelectItem value="RDV agri. précision">RDV agri. précision</SelectItem>
                 </SelectContent>
               </Select>
             </div>

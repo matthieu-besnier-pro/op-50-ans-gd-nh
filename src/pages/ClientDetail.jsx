@@ -45,7 +45,6 @@ export default function ClientDetail() {
   const [statutEdit, setStatutEdit] = useState('');
   const [dateRappel, setDateRappel] = useState('');
   const [motifRefus, setMotifRefus] = useState('');
-  const [montantDevis, setMontantDevis] = useState('');
   const [statutError, setStatutError] = useState('');
   const [pulseRow, setPulseRow] = useState(false);
   // Liste des statuts administrée par la Direction (Administration → Statuts).
@@ -101,7 +100,6 @@ export default function ClientDetail() {
     }
     if (statutEdit === 'À rappeler') updates.date_rappel = dateRappel;
     if (statutEdit === 'Refus') updates.motif_refus = motifRefus;
-    if (statutEdit === 'Devis en cours' && montantDevis) updates.montant_devis = Number(montantDevis);
 
     await base44.entities.client.update(id, updates);
     if (statutEdit === 'RDV Commercial obtenu' || statutEdit === 'Offre magasin à proposer') {
@@ -113,7 +111,7 @@ export default function ClientDetail() {
     const badgeUserId = assignes.includes(user.id) ? user.id : (assignes[0] || user.id);
     try { await base44.functions.invoke('verifier_badges', { utilisateur_id: badgeUserId }); } catch (e) { /* ignore */ }
     loadAll();
-    setDateRappel(''); setMotifRefus(''); setMontantDevis('');
+    setDateRappel(''); setMotifRefus('');
   };
 
   const handleAddComment = async () => {
@@ -230,9 +228,6 @@ export default function ClientDetail() {
                   <SelectContent>{MOTIFS_REFUS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-            )}
-            {statutEdit === 'Devis en cours' && (
-              <div className="mt-3"><Label className="text-xs">Montant du devis (€)</Label><Input type="number" value={montantDevis} onChange={(e) => setMontantDevis(e.target.value)} className="mt-1" placeholder="Ex. 45000" /></div>
             )}
             {statutError && <p className="mt-2 text-sm text-destructive">{statutError}</p>}
           </div>

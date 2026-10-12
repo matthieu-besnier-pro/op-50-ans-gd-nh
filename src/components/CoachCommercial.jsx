@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Flame, Tractor, Wrench, Euro, Calendar, PhoneCall,
-  TrendingUp, AlertCircle, Lightbulb, Target, Clock, Award
+  AlertCircle, Lightbulb, Target, Clock, Award
 } from 'lucide-react';
 
 /**
@@ -125,17 +125,6 @@ function generateInsights(client, materiels, rdvs, ventes) {
     });
   }
 
-  // 9. Devis en cours → relance
-  if (statut === 'Devis en cours') {
-    insights.push({
-      priority: 'high',
-      icon: TrendingUp,
-      title: 'Devis en cours — relancez',
-      desc: `Un devis est en cours${client.montant_devis ? ` de ${client.montant_devis.toLocaleString('fr-FR')} €` : ''}. La clé : un suivi rapproché pour transformer en vente.`,
-      cta: 'Relancer le devis'
-    });
-  }
-
   // 10. Offre magasin à proposer
   if (statut === 'Offre magasin à proposer') {
     insights.push({
@@ -188,7 +177,6 @@ function conversionProbability(client, materiels) {
     return (new Date(m.prochain_achat) - new Date()) / (30 * 86400000) <= 6;
   })) prob += 15;
   if ((client.ca_total_12m || 0) >= 20000) prob += 10;
-  if (client.statut === 'Devis en cours') prob += 20;
   if (client.statut === 'Offre magasin à proposer') prob += 15;
   if (client.statut === 'RDV Commercial obtenu') prob += 10;
   if (['Vente conclue', 'Refus', 'Contacté sans suite'].includes(client.statut)) prob = client.statut === 'Vente conclue' ? 100 : 0;

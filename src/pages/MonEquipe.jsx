@@ -7,7 +7,7 @@ import StatCard from '@/components/StatCard';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { ArrowUp, ArrowDown, AlertTriangle, Calendar, TrendingUp, Percent, Wallet } from 'lucide-react';
+import { ArrowUp, ArrowDown, AlertTriangle, Calendar, TrendingUp, Percent } from 'lucide-react';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import { useOperationStats } from '@/lib/useOperationStats';
 import { useStatuts, tonaliteDe } from '@/lib/statuts';
@@ -104,7 +104,6 @@ export default function MonEquipe() {
       const rdvPrisToday = rdvExact?.pris_jour ?? myRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure?.slice(0, 10) === todayStr).length;
       const rdvPrisMonth = rdvExact ? (rdvExact.pris_mois || 0) : myRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
       const tauxTransfo = rdvPrisMonth > 0 ? Math.round((ventesValidees / rdvPrisMonth) * 100) : 0;
-      const pipeDevis = myClients.filter((cl) => cl.statut === 'Devis en cours').reduce((s, cl) => s + (cl.montant_devis || 0), 0);
       const repartition = exact
         ? statuts.map((s) => exact.par_statut[s.nom] || 0)
         : statuts.map((s) => myClients.filter((cl) => cl.statut === s.nom).length);
@@ -112,7 +111,7 @@ export default function MonEquipe() {
         id: c.id, nom: c.full_name || c.email,
         repartition, totalClients: exact ? exact.total : myClients.length,
         rdvToday: rdvPrisToday, rdvMonth: rdvPrisMonth,
-        ventes: ventesValidees, tauxTransfo, pipeDevis
+        ventes: ventesValidees, tauxTransfo
       };
     });
   }, [commerciaux, clients, rdvs, ventes, stats, statuts, todayStr, monthStart]);
@@ -133,8 +132,7 @@ export default function MonEquipe() {
     const totalRdv = rows.reduce((s, r) => s + r.rdvMonth, 0);
     const totalVentes = rows.reduce((s, r) => s + r.ventes, 0);
     const avgTransfo = rows.length > 0 ? Math.round(rows.reduce((s, r) => s + r.tauxTransfo, 0) / rows.length) : 0;
-    const totalPipe = rows.reduce((s, r) => s + r.pipeDevis, 0);
-    return { totalRdv, totalVentes, avgTransfo, totalPipe };
+    return { totalRdv, totalVentes, avgTransfo };
   }, [rows]);
 
   // Alertes
@@ -161,11 +159,10 @@ export default function MonEquipe() {
       </div>
 
       {/* KPIs agrégés */}
-      <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mb-6 grid grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard label="RDV équipe (mois)" value={teamKpis.totalRdv} icon={Calendar} />
         <StatCard label="Ventes validées" value={teamKpis.totalVentes} icon={TrendingUp} />
         <StatCard label="Tx transfo moyen" value={`${teamKpis.avgTransfo}%`} icon={Percent} />
-        <StatCard label="Devis en cours (€)" value={`${teamKpis.totalPipe.toLocaleString('fr-FR')} €`} icon={Wallet} />
       </div>
 
       {/* Alertes */}
@@ -200,14 +197,13 @@ export default function MonEquipe() {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">RDV (auj / mois)</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tx transfo</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ventes validées</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Devis en cours (€)</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7}><Loader compact /></td></tr>
+              <tr><td colSpan={6}><Loader compact /></td></tr>
             ) : sorted.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Aucun commercial dans l'équipe.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">Aucun commercial dans l'équipe.</td></tr>
             ) : sorted.map((r) => (
               <tr key={r.id} className="border-b border-border last:border-0 transition-all duration-500 hover:bg-muted/30">
                 <td className="px-4 py-3">
@@ -234,7 +230,6 @@ export default function MonEquipe() {
                 <td className="px-4 py-3 text-sm"><span className="font-semibold text-foreground">{r.rdvToday}</span> / <span className="text-muted-foreground">{r.rdvMonth}</span></td>
                 <td className="px-4 py-3 text-sm font-semibold text-foreground">{r.tauxTransfo}%</td>
                 <td className="px-4 py-3 text-sm font-bold text-gd-navy">{r.ventes}</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{r.pipeDevis.toLocaleString('fr-FR')} €</td>
               </tr>
             ))}
           </tbody>

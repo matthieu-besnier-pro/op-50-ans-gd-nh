@@ -21,8 +21,7 @@ const MOTIFS_REFUS = ['Pas de besoin', 'Concurrent', 'Budget', 'Autre'];
 // Statuts qui réclament une information complémentaire avant d'être enregistrés.
 const DEMANDE_INFO = {
   'À rappeler': 'rappel',
-  'Refus': 'refus',
-  'Devis en cours': 'devis'
+  'Refus': 'refus'
 };
 
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
@@ -38,7 +37,6 @@ export default function StatutInline({ client, user, onSaved, align = 'start' })
   const [demande, setDemande] = useState(null); // { statut, type }
   const [dateRappel, setDateRappel] = useState('');
   const [motifRefus, setMotifRefus] = useState('');
-  const [montantDevis, setMontantDevis] = useState('');
   const [erreur, setErreur] = useState('');
   // Liste des statuts administrée par la Direction (Administration → Statuts).
   const statuts = useStatuts();
@@ -59,7 +57,7 @@ export default function StatutInline({ client, user, onSaved, align = 'start' })
       }
       onSaved?.({ ...client, ...updates });
       setDemande(null);
-      setDateRappel(''); setMotifRefus(''); setMontantDevis('');
+      setDateRappel(''); setMotifRefus('');
       setOk(true); setTimeout(() => setOk(false), 1200);
     } catch (e) {
       setErreur(e?.message || 'Enregistrement impossible');
@@ -75,7 +73,6 @@ export default function StatutInline({ client, user, onSaved, align = 'start' })
       setErreur('');
       setDateRappel(client.date_rappel || '');
       setMotifRefus(client.motif_refus || '');
-      setMontantDevis(client.montant_devis != null ? String(client.montant_devis) : '');
       setDemande({ statut, type });
       return;
     }
@@ -92,10 +89,6 @@ export default function StatutInline({ client, user, onSaved, align = 'start' })
       if (!motifRefus) { setErreur('Le motif de refus est obligatoire.'); return; }
       return enregistrer(statut, { motif_refus: motifRefus });
     }
-    // Devis : montant facultatif
-    const extra = {};
-    if (montantDevis) extra.montant_devis = Number(montantDevis);
-    return enregistrer(statut, extra);
   };
 
   return (
@@ -152,12 +145,6 @@ export default function StatutInline({ client, user, onSaved, align = 'start' })
                   {MOTIFS_REFUS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-          )}
-          {demande?.type === 'devis' && (
-            <div className="space-y-1.5">
-              <Label>Montant du devis (€)</Label>
-              <Input type="number" inputMode="numeric" value={montantDevis} onChange={(e) => setMontantDevis(e.target.value)} placeholder="Facultatif" />
             </div>
           )}
 

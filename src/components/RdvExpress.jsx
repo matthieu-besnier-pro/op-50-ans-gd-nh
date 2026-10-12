@@ -2,11 +2,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { base44 } from '@/api/base44Client';
 import confetti from 'canvas-confetti';
-import { Search, Tractor, Wrench, ChevronLeft, Check, Loader2, CalendarDays, PartyPopper } from 'lucide-react';
+import { Search, Tractor, Wrench, Sprout, ChevronLeft, Check, Loader2, CalendarDays, PartyPopper } from 'lucide-react';
 
 // Créneaux 08:00 → 18:00 par 30 min
 const SLOTS = [];
 for (let h = 8; h <= 18; h++) { SLOTS.push(`${String(h).padStart(2, '0')}:00`); if (h < 18) SLOTS.push(`${String(h).padStart(2, '0')}:30`); }
+
+// Le statut client se coche tout seul : prendre le rendez-vous, c'est l'avoir obtenu.
+const STATUT_PAR_TYPE = {
+  'RDV atelier hivernage': 'RDV Atelier obtenu',
+  'RDV agri. précision': 'RDV Agri. précision obtenu'
+};
 
 const dayISO = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10); };
 const frDay = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -76,7 +82,7 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
       const updates = {
         date_prochain_rdv: day,
         date_dernier_contact: dayISO(0),
-        statut: type === 'RDV atelier hivernage' ? 'RDV Atelier obtenu' : 'RDV Commercial obtenu'
+        statut: STATUT_PAR_TYPE[type] || 'RDV Commercial obtenu'
       };
       await base44.entities.client.update(client.id, updates).catch(() => {});
       try { await base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }); } catch (e) { /* ignore */ }
@@ -91,7 +97,7 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
     }
   };
 
-  const typeLabel = type === 'RDV atelier hivernage' ? 'Atelier' : 'Matériel';
+  const typeLabel = type === 'RDV atelier hivernage' ? 'Atelier' : type === 'RDV agri. précision' ? 'Agri. précision' : 'Matériel';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -159,6 +165,12 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
                     <Wrench className="h-10 w-10 text-gd-navy" />
                     <span className="text-sm font-bold text-gd-navy-dark">RDV Atelier</span>
                     <span className="text-[11px] text-muted-foreground">Hivernage</span>
+                  </button>
+                  <button onClick={() => { setType('RDV agri. précision'); setStep('slot'); }}
+                    className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-6 transition-all ${type === 'RDV agri. précision' ? 'border-gd-orange bg-gd-orange/10' : 'border-border hover:bg-muted/40'}`}>
+                    <Sprout className="h-10 w-10 text-gd-navy" />
+                    <span className="text-sm font-bold text-gd-navy-dark">RDV Agri. précision</span>
+                    <span className="text-[11px] text-muted-foreground">Agriculture de précision</span>
                   </button>
                 </div>
               )}

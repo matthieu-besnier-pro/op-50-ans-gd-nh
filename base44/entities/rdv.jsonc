@@ -28,7 +28,8 @@
       "type": "string",
       "enum": [
         "RDV commercial",
-        "RDV atelier hivernage"
+        "RDV atelier hivernage",
+        "RDV agri. pr\u00e9cision"
       ],
       "description": "Type de RDV"
     },

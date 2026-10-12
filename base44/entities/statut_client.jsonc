@@ -24,7 +24,8 @@
         "cyan",
         "teal",
         "vert",
-        "rouge"
+        "rouge",
+        "fuchsia"
       ],
       "default": "neutre",
       "description": "Couleur du badge de statut"
