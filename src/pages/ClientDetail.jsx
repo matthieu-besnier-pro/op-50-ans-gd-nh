@@ -62,11 +62,15 @@ export default function ClientDetail() {
       if (!c) { setLoading(false); return; }
       setClient(c);
       setStatutEdit(c.statut || 'À contacter');
+      // Parc lu côté serveur (même canal que le reste de la fiche) : il s'affiche toujours.
+      // Chaque section est isolée : l'échec d'un appel ne vide plus les autres.
       const [mats, coms, rds, vts] = await Promise.all([
-        base44.entities.materiel.filter({ client_id: id }, '-created_date', 500),
-        base44.entities.commentaire.filter({ client_id: id }, '-created_date', 100),
-        base44.entities.rdv.filter({ client_id: id }, '-date_heure', 100),
-        base44.entities.vente.filter({ client_id: id }, '-date_vente', 100)
+        base44.functions.invoke('lister_clients', { materiel_client_id: id })
+          .then((r) => r?.data?.materiels || [])
+          .catch(() => []),
+        base44.entities.commentaire.filter({ client_id: id }, '-created_date', 100).catch(() => []),
+        base44.entities.rdv.filter({ client_id: id }, '-date_heure', 100).catch(() => []),
+        base44.entities.vente.filter({ client_id: id }, '-date_vente', 100).catch(() => [])
       ]);
       setMateriels(mats);
       setCommentaires(coms);

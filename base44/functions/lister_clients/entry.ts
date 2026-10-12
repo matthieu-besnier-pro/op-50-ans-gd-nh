@@ -50,6 +50,13 @@ export default async function(req) {
       return Response.json({ clients: c ? [c] : [] });
     }
 
+    // Parc matériel d'un client (fiche client) : lecture asServiceRole — le parc de la
+    // fiche doit toujours s'afficher, quelles que soient les règles d'accès du navigateur.
+    if (body.materiel_client_id) {
+      const mats = await sr.entities.materiel.filter({ client_id: body.materiel_client_id }, '-created_date', 500);
+      return Response.json({ materiels: mats });
+    }
+
     const limit = Math.min(Number(body.limit) || 1000, 20000);
     const estDirection = user.role === 'admin' || user.app_role === 'direction';
 
