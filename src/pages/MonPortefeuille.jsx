@@ -13,10 +13,11 @@ import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, Phone, CalendarPlus } from 'lucide-react';
+import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, CalendarPlus } from 'lucide-react';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import RdvExpress from '@/components/RdvExpress';
+import TelephoneClient from '@/components/TelephoneClient';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
 const FILTRES_INIT = {
@@ -26,11 +27,6 @@ const FILTRES_INIT = {
   commercial: 'all',
   suivi: 'all'
 };
-
-// Numéro à appeler en priorité (mobile, sinon fixe).
-function telClient(c) {
-  return c.tel_mobile || c.tel_fixe || null;
-}
 
 // Niveau d'appétence du client (mêmes seuils que la jauge AppetenceGauge).
 export function niveauAppetence(client) {
@@ -355,19 +351,7 @@ export default function MonPortefeuille() {
                     {/* Tablette / petit écran : le parc remonte sous le nom (sa colonne dédiée revient en grand écran) */}
                     <div className="mt-1.5 xl:hidden"><ParcPictos pictos={c.parc_pictos} /></div>
                   </td>
-                  <td className="px-4 py-3">
-                    {telClient(c) ? (
-                      <a
-                        href={`tel:${telClient(c).replace(/[^+\d]/g, '')}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="-mx-1 -my-1 inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-semibold text-gd-navy hover:bg-gd-orange/10 hover:text-gd-orange whitespace-nowrap"
-                      >
-                        <Phone className="h-4 w-4 xl:h-3.5 xl:w-3.5" />{telClient(c)}
-                      </a>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">—</span>
-                    )}
-                  </td>
+                  <td className="px-4 py-3"><TelephoneClient client={c} /></td>
                   <td className="hidden px-4 py-3 xl:table-cell"><ParcPictos pictos={c.parc_pictos} /></td>
                   <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
                   <td className="hidden px-4 py-3 xl:table-cell"><AppetenceGauge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
