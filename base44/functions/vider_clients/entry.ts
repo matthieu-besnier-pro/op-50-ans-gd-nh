@@ -30,7 +30,10 @@ export default async function(req) {
 
     // Écran blanc complet : on vide l'activité (RDV, ventes) puis le matériel,
     // et enfin les clients. Ordre = dépendances d'abord. Résumable (lots de BUDGET).
-    const ORDRE = ['rdv', 'vente', 'materiel', 'client'];
+    // Les badges obtenus font partie de l'activité : sans ça, ceux créés par le
+    // mode démonstration (attribués sans condition) survivaient au nettoyage et
+    // restaient affichés sur le Grand Écran.
+    const ORDRE = ['badge_obtenu', 'rdv', 'vente', 'materiel', 'client'];
     let supprimes = 0;
     for (const ent of ORDRE) {
       if (supprimes >= BUDGET) break;
