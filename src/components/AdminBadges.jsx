@@ -53,6 +53,7 @@ export default function AdminBadges() {
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [recalc, setRecalc] = useState(false);
+  const [purge, setPurge] = useState(false);
 
   // Repasse sur tous les commerciaux : retire les badges devenus immérités
   // (rendez-vous annulé, vente invalidée…) et ajoute ceux qui manquent.
@@ -73,6 +74,33 @@ export default function AdminBadges() {
       window.alert(e?.message || 'Le recalcul a échoué.');
     } finally {
       setRecalc(false);
+    }
+  };
+
+  // Remise à zéro franche du mur des badges : aucune condition évaluée.
+  // À utiliser quand des badges hérités de la démo ou d'essais restent affichés.
+  const viderMur = async () => {
+    if (!window.confirm('Supprimer TOUTES les attributions de badges ?\n\nLe catalogue des badges est conservé. Les badges mérités se redécrocheront ensuite (ou via « Recalculer tous les badges »).')) return;
+    setPurge(true);
+    let total = 0;
+    try {
+      for (let i = 0; i < 200; i++) {
+        const res = await base44.functions.invoke('vider_badges', {});
+        const d = res?.data ?? res;
+        if (d?.error) throw new Error(d.error);
+        total += d.supprimes_ce_lot || 0;
+        if (d.bloque) {
+          throw new Error(`Suppression refusée par la base après ${total} badge(s). ${(d.echecs || [])[0] || ''}`);
+        }
+        if (d.done) break;
+        await new Promise((r) => setTimeout(r, 200));
+      }
+      window.alert(`Mur des badges remis à zéro : ${total} attribution(s) supprimée(s).`);
+      load();
+    } catch (e) {
+      window.alert(e?.message || 'La remise à zéro a échoué.');
+    } finally {
+      setPurge(false);
     }
   };
 
@@ -136,6 +164,9 @@ export default function AdminBadges() {
     <div className="space-y-4">
       {!isForm && (
         <div className="flex flex-wrap justify-end gap-2">
+          <Button onClick={viderMur} disabled={purge} variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+            {purge ? 'Remise à zéro…' : '🗑️ Vider le mur des badges'}
+          </Button>
           <Button onClick={recalculerTous} disabled={recalc} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy/10">
             {recalc ? 'Recalcul…' : '🔄 Recalculer tous les badges'}
           </Button>
