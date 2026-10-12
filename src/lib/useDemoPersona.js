@@ -28,8 +28,9 @@ export function useDemoPersona() {
   }, []);
 
   const persona = useMemo(() => {
-    // Commercial spécifique — on filtre par l'ID utilisateur lié (les affectations
-    // et les RDV portent le user_id, pas l'ID de la fiche structure_commerciale).
+    // Commercial spécifique — on filtre sur le compte lié (assignations et RDV portent le user_id)
+    // ET sur l'ID de la fiche, car un portefeuille partagé (doublon de secteur) garde
+    // le nom du secteur d'origine et peut encore porter l'ID de la fiche.
     if (viewAsRole === 'commercial' && viewAsCommercial) {
       const record = structure.find((s) => s.id === viewAsCommercial);
       const uid = record?.user_id || viewAsCommercial;
@@ -39,7 +40,9 @@ export function useDemoPersona() {
         label: nom || 'Commercial',
         ids: [uid],
         secteurs: nom ? [nom] : [],
-        clientFilter: nom ? { secteur: nom } : { commerciaux_assignes: uid },
+        clientFilter: nom
+          ? { $or: [{ commerciaux_assignes: uid }, { secteur: nom }] }
+          : { commerciaux_assignes: uid },
         matchClient: (c) => (nom && (c.secteur || '').trim() === nom) || (c.commerciaux_assignes || []).includes(uid),
         matchCommercialId: (id) => id === uid,
       };
