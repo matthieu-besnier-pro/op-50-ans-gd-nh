@@ -12,7 +12,7 @@ import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, CalendarPlus, UserPlus } from 'lucide-react';
+import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, CalendarPlus, UserPlus, CalendarCheck, X, Loader2 } from 'lucide-react';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import StatutInline from '@/components/StatutInline';
 import { useDemoPersona } from '@/lib/useDemoPersona';
@@ -28,6 +28,20 @@ const FILTRES_INIT = {
   appetence: 'all',
   commercial: 'all',
   suivi: 'all'
+};
+
+// Dates de rendez-vous : court pour le bouton, long pour la confirmation d'annulation.
+const formatRdvCourt = (iso) => {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+    + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+};
+const formatRdvLong = (iso) => {
+  const d = new Date(iso);
+  if (isNaN(d)) return 'ce rendez-vous';
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+    + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 };
 
 // Niveau d'appétence du client (mêmes seuils que la jauge AppetenceGauge).
@@ -59,6 +73,7 @@ export default function MonPortefeuille() {
   const [rdvClient, setRdvClient] = useState(null);
   const [rdvOpen, setRdvOpen] = useState(false);
   const [ajoutOpen, setAjoutOpen] = useState(false);
+  const [annulationId, setAnnulationId] = useState(null);
 
   const effectiveId = persona.mode === 'commercial' ? persona.ids[0] : user?.id;
 
@@ -133,6 +148,26 @@ export default function MonPortefeuille() {
   // Statut changé directement dans la liste : on met à jour la ligne sans recharger.
   const majClient = (maj) => {
     setClients((list) => list.map((c) => (c.id === maj.id ? { ...c, ...maj } : c)));
+  };
+
+  // Annulation d'un rendez-vous depuis la liste : on garde la trace (statut « Annulé »)
+  // et on libère le client pour qu'un nouveau rendez-vous puisse être posé.
+  const annulerRdv = async (rdv, client) => {
+    if (!window.confirm(`Annuler le rendez-vous du ${formatRdvLong(rdv.date_heure)} avec ${client.raison_sociale} ?`)) return;
+    setAnnulationId(rdv.id);
+    try {
+      await base44.entities.rdv.update(rdv.id, { statut: 'Annulé' });
+      setRdvs((list) => list.map((r) => (r.id === rdv.id ? { ...r, statut: 'Annulé' } : r)));
+      if (client.date_prochain_rdv) {
+        await base44.entities.client.update(client.id, { date_prochain_rdv: null }).catch(() => {});
+        majClient({ ...client, date_prochain_rdv: null });
+      }
+    } catch (e) {
+      console.error(e);
+      window.alert("L'annulation n'a pas pu être enregistrée.");
+    } finally {
+      setAnnulationId(null);
+    }
   };
 
   // Après un RDV pris depuis la liste : on rafraîchit les RDV et la ligne du client.
@@ -254,6 +289,20 @@ export default function MonPortefeuille() {
   const [affichesMax, setAffichesMax] = useState(200);
   useEffect(() => { setAffichesMax(200); }, [filters, sortByPriority, prioriteOnly]);
   const nbPriorites = useMemo(() => clients.filter((c) => c.priorite_commercial).length, [clients]);
+
+  // Rendez-vous à venir par client (le plus proche, non annulé) : pilote l'état du bouton.
+  const rdvParClient = useMemo(() => {
+    const maintenant = Date.now();
+    const m = {};
+    rdvs.forEach((r) => {
+      if (!r.client_id || r.statut === 'Annulé') return;
+      const t = r.date_heure ? new Date(r.date_heure).getTime() : NaN;
+      if (isNaN(t) || t < maintenant) return;
+      const actuel = m[r.client_id];
+      if (!actuel || t < new Date(actuel.date_heure).getTime()) m[r.client_id] = r;
+    });
+    return m;
+  }, [rdvs]);
   const affiches = filtered.slice(0, affichesMax);
 
   const objRdv = params?.objectif_rdv || 0;
@@ -377,6 +426,7 @@ export default function MonPortefeuille() {
               </td></tr>
             ) : affiches.map((c) => {
               const loc = villeClientTexte(c);
+              const rdvPris = rdvParClient[c.id];
               return (
                 <tr key={c.id} onClick={() => navigate(`/client/${c.id}`)} className={`border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer transition-colors ${c.priorite_commercial ? 'bg-gd-orange/5' : ''}`}>
                   <td className="px-4 py-3">
@@ -400,13 +450,37 @@ export default function MonPortefeuille() {
                   {showCommercial && <td className="hidden px-4 py-3 text-sm text-foreground xl:table-cell">{commercialNames(c)}</td>}
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => { setRdvClient(c); setRdvOpen(true); }}
-                        className="h-10 bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark font-semibold whitespace-nowrap xl:h-8"
-                      >
-                        <CalendarPlus className="h-4 w-4 mr-1.5 xl:h-3.5 xl:w-3.5" /> Ajout RDV
-                      </Button>
+                      {rdvPris ? (
+                        <>
+                          <span
+                            title={`Rendez-vous ${formatRdvLong(rdvPris.date_heure)}`}
+                            className="inline-flex h-10 cursor-default items-center rounded-md bg-muted px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap xl:h-8"
+                          >
+                            <CalendarCheck className="mr-1.5 h-4 w-4 xl:h-3.5 xl:w-3.5" />
+                            RDV {formatRdvCourt(rdvPris.date_heure)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => annulerRdv(rdvPris, c)}
+                            disabled={annulationId === rdvPris.id}
+                            title="Annuler le rendez-vous"
+                            aria-label="Annuler le rendez-vous"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-gd-red hover:bg-gd-red/10 hover:text-gd-red disabled:opacity-50"
+                          >
+                            {annulationId === rdvPris.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <X className="h-3.5 w-3.5" />}
+                          </button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => { setRdvClient(c); setRdvOpen(true); }}
+                          className="h-10 bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark font-semibold whitespace-nowrap xl:h-8"
+                        >
+                          <CalendarPlus className="h-4 w-4 mr-1.5 xl:h-3.5 xl:w-3.5" /> Ajout RDV
+                        </Button>
+                      )}
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </td>
