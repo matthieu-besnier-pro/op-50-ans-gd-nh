@@ -5,7 +5,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.53';
 //  1. retrouve la fiche par email, puis par nom complet (« Alexandre BELLIN » = « BELLIN Alexandre »),
 //  2. renseigne la fiche (compte lié, email, statut Actif) et déduit le rôle du compte,
 //  3. remplace l'ID de fiche par l'ID du compte dans les clients, les matériels et les commentaires,
-//  4. pour un responsable : pose le responsable sur les clients et matériels de son équipe.
+//  4. pour un responsable : pose le responsable sur les clients et matériels de son équipe,
+//  5. pour un chef d'atelier ou un responsable SAV : attribue son rôle depuis le référentiel des sites.
 // Idempotent : un compte déjà rattaché ne redéclenche aucun traitement lourd.
 
 const norm = (v) => String(v || '')
@@ -129,15 +130,27 @@ export default async function(req) {
     // 2. Équipe du compte s'il est responsable (les managers n'ont pas toujours de fiche à leur nom).
     const equipe = fiches.filter((f) => correspond(f.manager));
 
-    if (!fiche && equipe.length === 0) {
-      return Response.json({ ok: true, rattache: false, motif: `Aucune fiche au nom de ${compte.full_name || compte.email}` });
+    // 3. Référentiel des sites : chef d'atelier ou responsable SAV.
+    const sites = await sr.entities.base.list('nom', 200);
+    const ateliersChef = sites.filter((b) => (b.chefs_atelier || []).some(correspond));
+    const ateliersSav = sites.filter((b) => (b.responsables_sav || []).some(correspond));
+
+    const roleCible = equipe.length > 0 ? 'responsable'
+      : fiche ? 'commercial'
+      : ateliersChef.length > 0 ? 'chef_atelier'
+      : ateliersSav.length > 0 ? 'responsable_sav'
+      : null;
+
+    if (!roleCible) {
+      return Response.json({ ok: true, rattache: false, motif: `Aucun rattachement au nom de ${compte.full_name || compte.email}` });
     }
 
     // Rôle déduit du rattachement, sans écraser un rôle déjà choisi par la Direction.
-    const roleCible = equipe.length > 0 ? 'responsable' : 'commercial';
     const roleActuel = compte.app_role || null;
     const patchCompte = {};
     if ((!roleActuel || roleActuel === 'collaborateur') && roleActuel !== roleCible) patchCompte.app_role = roleCible;
+    // Un chef d'atelier n'a qu'un seul site : on le renseigne (un responsable SAV en couvre plusieurs).
+    if (roleCible === 'chef_atelier' && ateliersChef.length === 1 && !compte.base_id) patchCompte.base_id = ateliersChef[0].nom;
 
     const dejaLie = !!fiche && fiche.user_id === compte.id;
     if (dejaLie && Object.keys(patchCompte).length === 0) {
@@ -185,6 +198,7 @@ export default async function(req) {
       compte: compte.email,
       fiche: fiche ? fiche.nom_commercial : null,
       equipe: equipe.length,
+      ateliers: [...ateliersChef, ...ateliersSav].map((b) => b.nom),
       role: patchCompte.app_role || roleActuel,
       ...bilan
     });

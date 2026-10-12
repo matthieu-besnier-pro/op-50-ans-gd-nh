@@ -4,7 +4,7 @@
   "properties": {
     "nom": {
       "type": "string",
-      "description": "Nom du site"
+      "description": "Nom du site (atelier)"
     },
     "zone": {
       "type": "string",
@@ -26,6 +26,20 @@
     "responsable_id": {
       "type": "string",
       "description": "Responsable commercial du site (User)"
+    },
+    "chefs_atelier": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Chef(s) d'atelier du site"
+    },
+    "responsables_sav": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Responsable(s) SAV du site"
     }
   },
   "required": [

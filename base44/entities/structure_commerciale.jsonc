@@ -20,6 +20,25 @@
       ],
       "description": "Entit\u00e9 juridique"
     },
+    "zone": {
+      "type": "string",
+      "enum": [
+        "Centre",
+        "Ouest"
+      ],
+      "description": "Zone g\u00e9ographique"
+    },
+    "concession": {
+      "type": "string",
+      "enum": [
+        "DBS",
+        "DUBREUIL",
+        "DURIS",
+        "GMA",
+        "QUITTE"
+      ],
+      "description": "Concession de rattachement"
+    },
     "codes_communes": {
       "type": "array",
       "items": {
