@@ -7,7 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   Search, RotateCcw, SlidersHorizontal, Gauge, Flag, User,
-  CalendarClock, ArrowDownWideNarrow
+  CalendarClock, ArrowDownWideNarrow, Tractor
 } from 'lucide-react';
 
 const APPETENCES = ['Fort', 'Moyen', 'Faible'];
@@ -46,6 +46,7 @@ export default function PortefeuilleFiltres({
   onReset,
   statutCounts = {},
   commercials = [],
+  parcOptions = [],
   showCommercial = false,
   sortByAppetence,
   onToggleSort,
@@ -125,6 +126,23 @@ export default function PortefeuilleFiltres({
             </SelectContent>
           </Select>
         </Champ>
+
+        {/* Parc cible : ne montrer que les clients ayant tel type de machine */}
+        {parcOptions.length > 0 && (
+          <Champ label="Parc cible" icone={Tractor} actif={actif('parc')}>
+            <Select value={filters.parc || 'all'} onValueChange={(v) => onChange('parc', v)}>
+              <SelectTrigger className={triggerClass(actif('parc'))}><SelectValue /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="all">Tout le parc</SelectItem>
+                {parcOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.emoji} {o.label} ({o.nb})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Champ>
+        )}
 
         {showCommercial && commercials.length > 0 && (
           <Champ label="Commercial" icone={User} actif={actif('commercial')}>

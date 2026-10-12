@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { isDirection, getAppRole } from '@/lib/permissions';
 import Layout from '@/components/Layout';
 import AppetenceGauge from '@/components/AppetenceGauge';
-import { UsagesClient, SourcesAgriPrecision } from '@/components/MaterielPicto';
+import { UsagesClient, SourcesAgriPrecision, categorieMeta } from '@/components/MaterielPicto';
 import ParcPictos from '@/components/ParcPictos';
 import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
@@ -28,8 +28,15 @@ const FILTRES_INIT = {
   statut: 'all',
   appetence: 'all',
   commercial: 'all',
-  suivi: 'all'
+  suivi: 'all',
+  parc: 'all'
 };
+
+// Catégories de machines présentes dans le parc d'un client (« TRACTEURS:3 »).
+const categoriesDuParc = (client) =>
+  (client.parc_pictos || [])
+    .map((p) => { const [cat, n] = String(p).split(':'); return (Number(n) || 0) > 0 ? cat : null; })
+    .filter(Boolean);
 
 // Dates de rendez-vous : court pour le bouton, long pour la confirmation d'annulation.
 const formatRdvCourt = (iso) => {
@@ -244,6 +251,9 @@ export default function MonPortefeuille() {
 
     let list = clients.filter((c) => {
       if (prioriteOnly && !c.priorite_commercial) return false;
+
+      // Parc cible : ne garder que les clients possédant ce type de machine.
+      if (filters.parc !== 'all' && !categoriesDuParc(c).includes(filters.parc)) return false;
       if (filters.statut !== 'all' && c.statut !== filters.statut) return false;
 
       if (filters.appetence !== 'all' && niveauAppetence(c) !== filters.appetence) return false;
@@ -275,11 +285,22 @@ export default function MonPortefeuille() {
 
       return true;
     });
+    // Nombre de machines d'une catégorie donnée (pour trier par parc cible).
+    const nbDansCategorie = (c, cat) => {
+      const trouve = (c.parc_pictos || []).find((p) => String(p).split(':')[0] === cat);
+      return trouve ? (Number(String(trouve).split(':')[1]) || 0) : 0;
+    };
+
     // Les cibles choisies par le commercial remontent toujours en tête.
     list = [...list].sort((a, b) => {
       const pa = a.priorite_commercial ? 1 : 0;
       const pb = b.priorite_commercial ? 1 : 0;
       if (pa !== pb) return pb - pa;
+      // Parc cible sélectionné : les plus gros parcs de ce type d'abord.
+      if (filters.parc !== 'all') {
+        const ecart = nbDansCategorie(b, filters.parc) - nbDansCategorie(a, filters.parc);
+        if (ecart !== 0) return ecart;
+      }
       if (sortByPriority) return (b.score_appetence || 0) - (a.score_appetence || 0);
       return 0;
     });
@@ -297,6 +318,18 @@ export default function MonPortefeuille() {
   const [affichesMax, setAffichesMax] = useState(200);
   useEffect(() => { setAffichesMax(200); }, [filters, sortByPriority, prioriteOnly]);
   const nbPriorites = useMemo(() => clients.filter((c) => c.priorite_commercial).length, [clients]);
+
+  // Catégories proposées au filtre « Parc cible » : seulement celles réellement
+  // présentes, avec le nombre de clients qui en possèdent.
+  const parcOptions = useMemo(() => {
+    const compte = {};
+    clients.forEach((c) => {
+      new Set(categoriesDuParc(c)).forEach((cat) => { compte[cat] = (compte[cat] || 0) + 1; });
+    });
+    return Object.entries(compte)
+      .map(([value, nb]) => ({ value, nb, label: categorieMeta(value).label, emoji: categorieMeta(value).emoji }))
+      .sort((a, b) => b.nb - a.nb);
+  }, [clients]);
 
   // Rendez-vous à venir par client (le plus proche, non annulé) : pilote l'état du bouton.
   const rdvParClient = useMemo(() => {
@@ -370,6 +403,7 @@ export default function MonPortefeuille() {
         onReset={() => setFilters(FILTRES_INIT)}
         statutCounts={statutCounts}
         commercials={commercialOptions}
+        parcOptions={parcOptions}
         showCommercial={showCommercial}
         sortByAppetence={sortByPriority}
         onToggleSort={() => setSortByPriority((v) => !v)}
