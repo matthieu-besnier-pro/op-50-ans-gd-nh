@@ -256,25 +256,16 @@ export default function MonPortefeuille() {
 
   return (
     <Layout>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mes clients</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {kpis.totalClients.toLocaleString('fr-FR')} client{kpis.totalClients > 1 ? 's' : ''} assigné{kpis.totalClients > 1 ? 's' : ''} · {kpis.aContacter.toLocaleString('fr-FR')} à contacter
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mes clients</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {kpis.totalClients.toLocaleString('fr-FR')} client{kpis.totalClients > 1 ? 's' : ''} assigné{kpis.totalClients > 1 ? 's' : ''} · {kpis.aContacter.toLocaleString('fr-FR')} à contacter
+        </p>
+        {sitesAtelier.length > 0 && (
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-gd-navy/70">
+            {persona.mode === 'atelier' && persona.label ? `${persona.label} · ` : ''}Atelier{sitesAtelier.length > 1 ? 's' : ''} : {sitesAtelier.join(' · ')}
           </p>
-          {sitesAtelier.length > 0 && (
-            <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-gd-navy/70">
-              {persona.mode === 'atelier' && persona.label ? `${persona.label} · ` : ''}Atelier{sitesAtelier.length > 1 ? 's' : ''} : {sitesAtelier.join(' · ')}
-            </p>
-          )}
-        </div>
-        <Button
-          onClick={() => setAjoutOpen(true)}
-          variant="outline"
-          className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white"
-        >
-          <UserPlus className="h-4 w-4 mr-1.5" /> Ajouter un client
-        </Button>
+        )}
       </div>
 
       {/* KPIs */}
@@ -341,6 +332,19 @@ export default function MonPortefeuille() {
           {clients.length.toLocaleString('fr-FR')} clients chargés sur {kpis.totalClients.toLocaleString('fr-FR')} — la recherche et les filtres portent sur les clients affichés.
         </p>
       )}
+
+      {/* Ajout manuel d'un client absent de la liste */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Listing clients
+        </p>
+        <Button
+          onClick={() => setAjoutOpen(true)}
+          className="bg-gd-navy text-white hover:bg-gd-navy/90 font-semibold"
+        >
+          <UserPlus className="h-4 w-4 mr-1.5" /> Ajouter un client
+        </Button>
+      </div>
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
