@@ -67,7 +67,7 @@ export default function ParcMaterielTable({ materiels }) {
   }, [materiels]);
 
   if (!materiels || materiels.length === 0) {
-    return <p className="text-sm text-muted-foreground py-4">Aucun matériel éligible à l'opération chez ce client — pensez aux offres magasin et agri. précision.</p>;
+    return <p className="text-sm text-muted-foreground py-4">Aucune machine au parc de cette exploitation dans nos fichiers (aucun matériel connu à ce jour) — pensez aux offres magasin et agri. précision.</p>;
   }
 
   return (
