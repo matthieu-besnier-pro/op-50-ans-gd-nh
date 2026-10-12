@@ -37,6 +37,6 @@
       ]
     }
   },
-  "description": "\u00c0 chaque connexion (Microsoft 365, Google ou mot de passe), relie le compte \u00e0 sa fiche commerciale, \u00e0 son portefeuille clients et \u00e0 son parc mat\u00e9riel. Sans effet si le compte est d\u00e9j\u00e0 rattach\u00e9.",
+  "description": "\u00c0 chaque connexion (Google ou identifiant / mot de passe), relie le compte \u00e0 sa fiche commerciale, \u00e0 son portefeuille clients et \u00e0 son parc mat\u00e9riel. Sans effet si le compte est d\u00e9j\u00e0 rattach\u00e9.",
   "name": "Rattachement automatique des comptes"
 }

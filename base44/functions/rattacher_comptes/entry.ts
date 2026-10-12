@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.53';
 
-// Rattache automatiquement un compte connecté (Microsoft 365, Google ou mot de passe)
+// Rattache automatiquement un compte connecté (Google ou identifiant / mot de passe)
 // à sa fiche commerciale, sans aucune intervention humaine :
 //  1. retrouve la fiche par email, puis par nom complet (« Alexandre BELLIN » = « BELLIN Alexandre »),
 //  2. renseigne la fiche (compte lié, email, statut Actif) et déduit le rôle du compte,

@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
-import MicrosoftIcon from "@/components/MicrosoftIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Login() {
@@ -35,10 +34,6 @@ export default function Login() {
 
   const handleGoogle = () => {
     base44.auth.loginWithProvider("google", returnTo);
-  };
-
-  const handleMicrosoft = () => {
-    base44.auth.loginWithProvider("microsoft", returnTo);
   };
 
   return (
@@ -113,15 +108,6 @@ export default function Login() {
           <span className="bg-card px-3 text-muted-foreground">ou</span>
         </div>
       </div>
-
-      <Button
-        variant="outline"
-        className="w-full h-11 text-sm font-medium mb-3"
-        onClick={handleMicrosoft}
-      >
-        <MicrosoftIcon className="w-5 h-5 mr-2" />
-        Continuer avec Microsoft 365
-      </Button>
 
       <Button
         variant="outline"
