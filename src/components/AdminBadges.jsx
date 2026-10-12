@@ -63,7 +63,11 @@ export default function AdminBadges() {
       const res = await base44.functions.invoke('verifier_badges', { tous: true });
       const d = res?.data ?? res;
       if (d?.error) throw new Error(d.error);
-      window.alert(`Recalcul terminé : ${d.badges_ajoutes || 0} badge(s) ajouté(s), ${d.badges_retires || 0} retiré(s) sur ${d.utilisateurs || 0} commerciaux.`);
+      const base = `Recalcul terminé : ${d.badges_ajoutes || 0} badge(s) ajouté(s), ${d.badges_retires || 0} retiré(s) sur ${d.utilisateurs || 0} commerciaux.`;
+      const souci = d.nb_echecs > 0
+        ? `\n\n⚠️ ${d.nb_echecs} suppression(s) ont échoué : ${(d.echecs || []).map((e) => e.badge_nom).join(', ')}`
+        : '';
+      window.alert(base + souci);
       load();
     } catch (e) {
       window.alert(e?.message || 'Le recalcul a échoué.');

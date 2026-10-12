@@ -27,12 +27,26 @@ async function synchroniser(sr, userId, badges, clients, p) {
     sr.entities.vente.filter({ commercial_id: userId }, '-created_date', 500)
   ]);
 
+  // Les badges récompensent l'OPÉRATION : tout ce qui est hors période (essais,
+  // reliquats d'anciens tests) ne doit rien débloquer. Sans bornes, on ne filtre pas.
+  const debutOp = p.date_debut_operation || null;
+  const finOp = p.date_fin_operation || null;
+  const dansOperation = (iso) => {
+    if (!iso) return false;
+    const j = String(iso).slice(0, 10);
+    if (debutOp && j < debutOp) return false;
+    if (finOp && j > finOp) return false;
+    return true;
+  };
+
   // Un rendez-vous annulé ne compte pour aucun badge : il est soustrait d'emblée.
-  const rdvs = tousRdvs.filter((r) => r.statut !== 'Annulé');
+  const rdvs = tousRdvs.filter((r) => r.statut !== 'Annulé' && dansOperation(r.date_heure));
+  const ventesOp = ventes.filter((v) => dansOperation(v.date_vente));
 
   const obtenuParBadge = new Map(obtenus.map((o) => [o.badge_id, o]));
   const nouveaux = [];
   const retires = [];
+  const echecs = [];
 
   const debutRdv = p.date_debut_prise_rdv ? new Date(p.date_debut_prise_rdv) : null;
   const finRdv = p.date_fin_prise_rdv ? new Date(p.date_fin_prise_rdv + 'T23:59:59') : null;
@@ -54,13 +68,13 @@ async function synchroniser(sr, userId, badges, clients, p) {
         break;
       }
       case 'closeur':
-        atteint = ventes.some((v) => v.statut_validation === 'Validé');
+        atteint = ventesOp.some((v) => v.statut_validation === 'Validé');
         break;
       case 'portefeuille_nettoye':
         atteint = mesClients.length > 0 && !mesClients.some((c) => c.statut === 'À contacter');
         break;
       case 'chasseur_reprises':
-        atteint = ventes.filter((v) => v.reprise && v.reprise !== 'Sans reprise').length >= (badge.condition_seuil || 5);
+        atteint = ventesOp.filter((v) => v.reprise && v.reprise !== 'Sans reprise').length >= (badge.condition_seuil || 5);
         break;
       case 'premier_devis':
         atteint = mesClients.some((c) => c.montant_devis > 0);
@@ -69,8 +83,8 @@ async function synchroniser(sr, userId, badges, clients, p) {
         // 3 jours consécutifs avec au moins une action (RDV, statut, vente)
         const dates = new Set();
         rdvs.forEach((r) => r.date_heure && dates.add(r.date_heure.slice(0, 10)));
-        ventes.forEach((v) => v.date_vente && dates.add(v.date_vente));
-        mesClients.forEach((c) => c.date_dernier_contact && dates.add(c.date_dernier_contact));
+        ventesOp.forEach((v) => dates.add(v.date_vente));
+        mesClients.forEach((c) => dansOperation(c.date_dernier_contact) && dates.add(c.date_dernier_contact));
         const sorted = [...dates].sort();
         let streak = 1, max = sorted.length > 0 ? 1 : 0;
         for (let i = 1; i < sorted.length; i++) {
@@ -84,13 +98,13 @@ async function synchroniser(sr, userId, badges, clients, p) {
         atteint = rdvs.filter((r) => r.statut === 'Réalisé').length >= (badge.condition_seuil || 10);
         break;
       case 'ventes_volume':
-        atteint = ventes.filter((v) => v.statut_validation === 'Validé').length >= (badge.condition_seuil || 3);
+        atteint = ventesOp.filter((v) => v.statut_validation === 'Validé').length >= (badge.condition_seuil || 3);
         break;
       case 'vente_tracteur':
-        atteint = ventes.filter((v) => v.statut_validation === 'Validé' && v.type_machine === 'Tracteur').length >= (badge.condition_seuil || 3);
+        atteint = ventesOp.filter((v) => v.statut_validation === 'Validé' && v.type_machine === 'Tracteur').length >= (badge.condition_seuil || 3);
         break;
       case 'polyvalent': {
-        const familles = new Set(ventes.filter((v) => v.statut_validation === 'Validé' && v.type_machine).map((v) => v.type_machine));
+        const familles = new Set(ventesOp.filter((v) => v.statut_validation === 'Validé' && v.type_machine).map((v) => v.type_machine));
         atteint = familles.size >= (badge.condition_seuil || 3);
         break;
       }
@@ -114,8 +128,14 @@ async function synchroniser(sr, userId, badges, clients, p) {
       await sr.entities.badge_obtenu.create({ badge_id: badge.id, utilisateur_id: userId });
       nouveaux.push({ badge_id: badge.id, badge_nom: badge.nom, badge_icone: badge.icone });
     } else if (!atteint && deja) {
-      await sr.entities.badge_obtenu.delete(deja.id).catch(() => {});
-      retires.push({ badge_id: badge.id, badge_nom: badge.nom });
+      // On ne déclare un retrait que s'il a réellement eu lieu : sinon le rapport
+      // annoncerait un nettoyage qui n'a pas été fait.
+      try {
+        await sr.entities.badge_obtenu.delete(deja.id);
+        retires.push({ badge_id: badge.id, badge_nom: badge.nom });
+      } catch (e) {
+        echecs.push({ badge_nom: badge.nom, utilisateur_id: userId, raison: e?.message || String(e) });
+      }
     }
   }
 
@@ -124,12 +144,16 @@ async function synchroniser(sr, userId, badges, clients, p) {
   const catalogue = new Set(badges.map((b) => b.id));
   for (const o of obtenus) {
     if (!catalogue.has(o.badge_id)) {
-      await sr.entities.badge_obtenu.delete(o.id).catch(() => {});
-      retires.push({ badge_id: o.badge_id, badge_nom: '(badge supprimé du catalogue)' });
+      try {
+        await sr.entities.badge_obtenu.delete(o.id);
+        retires.push({ badge_id: o.badge_id, badge_nom: '(badge supprimé du catalogue)' });
+      } catch (e) {
+        echecs.push({ badge_nom: '(badge supprimé)', utilisateur_id: userId, raison: e?.message || String(e) });
+      }
     }
   }
 
-  return { nouveaux, retires };
+  return { nouveaux, retires, echecs };
 }
 
 export default async function (req) {
@@ -165,19 +189,28 @@ export default async function (req) {
       });
 
       let ajoutes = 0, supprimes = 0;
+      const echecs = [];
       for (const id of ids) {
         const r = await synchroniser(sr, id, badges, clients, p);
         ajoutes += r.nouveaux.length;
         supprimes += r.retires.length;
+        echecs.push(...r.echecs);
         await sleep(60);
       }
-      return Response.json({ ok: true, utilisateurs: ids.size, badges_ajoutes: ajoutes, badges_retires: supprimes });
+      return Response.json({
+        ok: true,
+        utilisateurs: ids.size,
+        badges_ajoutes: ajoutes,
+        badges_retires: supprimes,
+        echecs: echecs.slice(0, 20),
+        nb_echecs: echecs.length
+      });
     }
 
     // --- Recalcul d'un seul commercial ---
     const userId = body.utilisateur_id || user.id;
-    const { nouveaux, retires } = await synchroniser(sr, userId, badges, clients, p);
-    return Response.json({ utilisateur_id: userId, nouveaux_badges: nouveaux, badges_retires: retires });
+    const { nouveaux, retires, echecs } = await synchroniser(sr, userId, badges, clients, p);
+    return Response.json({ utilisateur_id: userId, nouveaux_badges: nouveaux, badges_retires: retires, echecs });
   } catch (error) {
     return Response.json({ error: `[verifier_badges] ${error?.message || String(error)}` }, { status: 500 });
   }
