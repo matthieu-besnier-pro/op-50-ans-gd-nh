@@ -3,10 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import OpLogo from '@/components/OpLogo';
 import { GESTES } from '@/lib/gestesOperation';
+import EcranClients from '@/components/presentation/EcranClients';
+import EcranAppels from '@/components/presentation/EcranAppels';
+import EcranRdv from '@/components/presentation/EcranRdv';
+import EcranVente from '@/components/presentation/EcranVente';
 import { ArrowRight, ArrowLeft, Check, X } from 'lucide-react';
 
 // Déroulé court : ouverture → les 4 gestes d'un coup d'œil → un geste par écran → conclusion.
 const SLIDES = ['hero', 'apercu', ...GESTES.map((g) => g.id), 'fin'];
+
+// Écran d'illustration associé à chaque geste (données d'exemple).
+const ECRANS = {
+  clients: EcranClients,
+  appeler: EcranAppels,
+  rdv: EcranRdv,
+  vente: EcranVente
+};
 
 export default function Presentation() {
   const navigate = useNavigate();
@@ -198,24 +210,25 @@ function Apercu() {
 
 function GesteSlide({ geste }) {
   const Icon = geste.icon;
+  const Ecran = ECRANS[geste.id];
   return (
-    <div className="flex h-full items-center px-10 md:px-24">
-      <div className="grid w-full items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
+    <div className="flex h-full items-center px-10 md:px-16">
+      <div className="grid w-full items-center gap-10 lg:grid-cols-[0.85fr_1.15fr]">
         {/* Le geste */}
         <div>
           <motion.div
             initial={{ x: -24, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="mb-6 flex items-center gap-4"
+            className="mb-5 flex items-center gap-4"
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gd-orange">
-              <Icon className="h-7 w-7 text-gd-navy-dark" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gd-orange">
+              <Icon className="h-6 w-6 text-gd-navy-dark" />
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/40">
                 Geste {geste.num}
               </p>
-              <p className="text-lg font-bold text-gd-orange">{geste.geste}</p>
+              <p className="text-base font-bold text-gd-orange">{geste.geste}</p>
             </div>
           </motion.div>
 
@@ -223,7 +236,7 @@ function GesteSlide({ geste }) {
             initial={{ y: 26, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.12 }}
-            className="mb-5 text-4xl font-extrabold leading-tight text-white md:text-5xl"
+            className="mb-4 text-3xl font-extrabold leading-tight text-white md:text-4xl"
           >
             {geste.titre}
           </motion.h2>
@@ -232,38 +245,37 @@ function GesteSlide({ geste }) {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.24 }}
-            className="max-w-xl text-xl leading-relaxed text-white/60"
+            className="mb-6 max-w-lg text-lg leading-relaxed text-white/60"
           >
             {geste.accroche}
           </motion.p>
-        </div>
 
-        {/* Ce que ça vous change */}
-        <motion.div
-          initial={{ x: 30, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-3xl border border-white/10 bg-white/5 p-8"
-        >
-          <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/40">
-            Ce que ça vous change
-          </p>
-          <ul className="space-y-5">
+          <ul className="space-y-3">
             {geste.points.map((p, i) => (
               <motion.li
                 key={p}
                 initial={{ x: 16, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.42 + i * 0.1 }}
+                transition={{ delay: 0.36 + i * 0.1 }}
                 className="flex gap-3"
               >
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gd-orange/20">
-                  <Check className="h-3.5 w-3.5 text-gd-orange" />
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gd-orange/20">
+                  <Check className="h-3 w-3 text-gd-orange" />
                 </span>
-                <span className="text-lg leading-snug text-white/85">{p}</span>
+                <span className="text-base leading-snug text-white/85">{p}</span>
               </motion.li>
             ))}
           </ul>
+        </div>
+
+        {/* L'écran, illustré avec des données d'exemple */}
+        <motion.div
+          initial={{ x: 30, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mx-auto w-full max-w-[680px]"
+        >
+          {Ecran && <Ecran />}
         </motion.div>
       </div>
     </div>
