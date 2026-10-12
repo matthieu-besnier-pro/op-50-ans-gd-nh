@@ -13,10 +13,8 @@ import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
 import { Button } from '@/components/ui/button';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { Search, Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, ListFilter, Star } from 'lucide-react';
+import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star } from 'lucide-react';
+import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
@@ -28,33 +26,14 @@ const FILTRES_INIT = {
   suivi: 'all'
 };
 
-export function priorityScore(client) {
-  if (STATUTS_TERMINAUX.includes(client.statut)) return 0;
-  let score = client.score_appetence || 0;
-  if (client.statut === 'À contacter') score += 30;
-  if (!client.date_dernier_contact) {
-    score += 30;
-  } else {
-    const days = Math.floor((Date.now() - new Date(client.date_dernier_contact).getTime()) / 86400000);
-    if (days > 7) score += 15;
-    else if (days > 3) score += 8;
-  }
-  if (client.statut === 'À rappeler' && client.date_rappel) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const rappel = new Date(client.date_rappel);
-    if (rappel <= today) score += 40;
-  }
-  score = Math.round(Math.min(score, 150));
-  // Cible choisie par le commercial (surlignée dans son fichier) = priorité d'appel absolue.
-  if (client.priorite_commercial) score += 1000;
-  return score;
-}
-
-export function priorityLabel(score) {
-  if (score >= 80) return { label: 'Haute', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-  if (score >= 40) return { label: 'Moyenne', className: 'bg-gd-orange/15 text-gd-orange border-gd-orange/30' };
-  return { label: 'Normale', className: 'bg-muted text-muted-foreground border-border' };
+// Niveau d'appétence du client (mêmes seuils que la jauge AppetenceGauge).
+export function niveauAppetence(client) {
+  if (client.niveau_appetence) return client.niveau_appetence;
+  const s = client.score_appetence;
+  if (s == null) return null;
+  if (s >= 66) return 'Fort';
+  if (s >= 36) return 'Moyen';
+  return 'Faible';
 }
 
 export default function MonPortefeuille() {
@@ -190,15 +169,47 @@ export default function MonPortefeuille() {
 
     let list = clients.filter((c) => {
       if (prioriteOnly && !c.priorite_commercial) return false;
-      if (statutFilter !== 'all' && c.statut !== statutFilter) return false;
-      if (search && !(c.raison_sociale || '').toLowerCase().includes(search.toLowerCase()) && !(c.siren || '').includes(search)) return false;
+      if (filters.statut !== 'all' && c.statut !== filters.statut) return false;
+
+      if (filters.appetence !== 'all' && niveauAppetence(c) !== filters.appetence) return false;
+
+      if (filters.commercial !== 'all') {
+        const assigned = c.commerciaux_assignes || [];
+        if (filters.commercial.startsWith('secteur:')) {
+          if (assigned.length > 0 || c.secteur !== filters.commercial.slice(8)) return false;
+        } else if (!assigned.includes(filters.commercial)) return false;
+      }
+
+      if (filters.suivi !== 'all') {
+        if (filters.suivi === 'rdv') {
+          const next = c.date_prochain_rdv ? new Date(c.date_prochain_rdv) : null;
+          if (!next || next < today) return false;
+        }
+        if (filters.suivi === 'rappel') {
+          const rappel = c.date_rappel ? new Date(c.date_rappel) : null;
+          if (c.statut !== 'À rappeler' || !rappel || rappel > today) return false;
+        }
+      }
+
+      if (filters.search) {
+        const s = filters.search.toLowerCase();
+        const hay = [c.raison_sociale, c.siren, c.code_commune, c.adresse_complete, c.secteur, commercialNames(c)]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(s)) return false;
+      }
+
       return true;
     });
-    if (sortByPriority) {
-      list = [...list].sort((a, b) => (b.score_appetence || 0) - (a.score_appetence || 0));
-    }
+    // Les cibles choisies par le commercial remontent toujours en tête.
+    list = [...list].sort((a, b) => {
+      const pa = a.priorite_commercial ? 1 : 0;
+      const pb = b.priorite_commercial ? 1 : 0;
+      if (pa !== pb) return pb - pa;
+      if (sortByPriority) return (b.score_appetence || 0) - (a.score_appetence || 0);
+      return 0;
+    });
     return list;
-  }, [clients, search, statutFilter, sortByPriority, prioriteOnly]);
+  }, [clients, filters, sortByPriority, prioriteOnly, commByUser, structure]);
 
   const statutCounts = useMemo(() => {
     const counts = {};
@@ -209,7 +220,7 @@ export default function MonPortefeuille() {
   }, [clients, stats]);
 
   const [affichesMax, setAffichesMax] = useState(200);
-  useEffect(() => { setAffichesMax(200); }, [search, statutFilter, sortByPriority, prioriteOnly]);
+  useEffect(() => { setAffichesMax(200); }, [filters, sortByPriority, prioriteOnly]);
   const nbPriorites = useMemo(() => clients.filter((c) => c.priorite_commercial).length, [clients]);
   const affiches = filtered.slice(0, affichesMax);
 
@@ -257,36 +268,31 @@ export default function MonPortefeuille() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="mb-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Rechercher (raison sociale, SIREN)…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-        </div>
-        <Select value={statutFilter} onValueChange={setStatutFilter}>
-          <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous les statuts</SelectItem>
-            {STATUTS.map((s) => (<SelectItem key={s} value={s}>{s} ({statutCounts[s] || 0})</SelectItem>))}
-          </SelectContent>
-        </Select>
-        <Button
-          variant={sortByPriority ? 'default' : 'outline'}
-          onClick={() => setSortByPriority(!sortByPriority)}
-          className={sortByPriority ? 'bg-gd-navy hover:bg-gd-navy-dark text-white' : 'border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white'}
-        >
-          <ListFilter className="h-4 w-4 mr-1.5" /> Priorité
-        </Button>
-        {nbPriorites > 0 && (
+      {/* Filtres du portefeuille */}
+      <PortefeuilleFiltres
+        filters={filters}
+        onChange={(key, value) => setFilters((f) => ({ ...f, [key]: value }))}
+        onReset={() => setFilters(FILTRES_INIT)}
+        statutCounts={statutCounts}
+        commercials={commercialOptions}
+        showCommercial={showCommercial}
+        sortByAppetence={sortByPriority}
+        onToggleSort={() => setSortByPriority((v) => !v)}
+        count={filtered.length}
+        total={clients.length}
+      />
+
+      {nbPriorites > 0 && (
+        <div className="mb-4">
           <Button
             variant={prioriteOnly ? 'default' : 'outline'}
-            onClick={() => setPrioriteOnly(!prioriteOnly)}
+            onClick={() => setPrioriteOnly((v) => !v)}
             className={prioriteOnly ? 'bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark' : 'border-gd-orange text-gd-orange hover:bg-gd-orange hover:text-gd-navy-dark'}
           >
-            <Star className="h-4 w-4 mr-1.5" fill="currentColor" /> Mes cibles ({nbPriorites})
+            <Star className="h-4 w-4 mr-1.5" fill="currentColor" /> Mes cibles prioritaires ({nbPriorites})
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {kpis.totalClients > clients.length && (
         <p className="mb-2 text-xs text-muted-foreground">
