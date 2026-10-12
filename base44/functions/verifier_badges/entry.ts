@@ -24,8 +24,11 @@ export default async function(req) {
     // Un rendez-vous annulé ne compte pour aucun badge : il est soustrait d'emblée.
     const rdvs = tousRdvs.filter((r) => r.statut !== 'Annulé');
 
-    const dejaObtenus = new Set(obtenus.map((o) => o.badge_id));
+    // Les badges sont RECALCULÉS à chaque passage, pas seulement ajoutés : si la
+    // condition n'est plus remplie (RDV annulé, vente invalidée…), le badge est retiré.
+    const obtenuParBadge = new Map(obtenus.map((o) => [o.badge_id, o]));
     const nouveaux = [];
+    const retires = [];
 
     const now = new Date();
     const p = params[0] || {};
@@ -33,7 +36,6 @@ export default async function(req) {
     const finRdv = p.date_fin_prise_rdv ? new Date(p.date_fin_prise_rdv + "T23:59:59") : null;
 
     for (const badge of badges) {
-      if (dejaObtenus.has(badge.id)) continue;
       let atteint = false;
       switch (badge.condition_type) {
         case "premier_rdv":
@@ -113,13 +115,18 @@ export default async function(req) {
           atteint = clients.filter((c) => (c.commerciaux_assignes || []).includes(userId) && c.statut === "Offre magasin à proposer").length >= (badge.condition_seuil || 1);
           break;
       }
-      if (atteint) {
-        const o = await sr.entities.badge_obtenu.create({ badge_id: badge.id, utilisateur_id: userId });
+      const deja = obtenuParBadge.get(badge.id);
+      if (atteint && !deja) {
+        await sr.entities.badge_obtenu.create({ badge_id: badge.id, utilisateur_id: userId });
         nouveaux.push({ badge_id: badge.id, badge_nom: badge.nom, badge_icone: badge.icone });
+      } else if (!atteint && deja) {
+        // Condition plus remplie : on retire le badge pour que les compteurs restent justes.
+        await sr.entities.badge_obtenu.delete(deja.id).catch(() => {});
+        retires.push({ badge_id: badge.id, badge_nom: badge.nom });
       }
     }
 
-    return Response.json({ utilisateur_id: userId, nouveaux_badges: nouveaux });
+    return Response.json({ utilisateur_id: userId, nouveaux_badges: nouveaux, badges_retires: retires });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

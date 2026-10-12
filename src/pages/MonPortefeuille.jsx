@@ -158,6 +158,10 @@ export default function MonPortefeuille() {
     try {
       await base44.entities.rdv.update(rdv.id, { statut: 'Annulé' });
       setRdvs((list) => list.map((r) => (r.id === rdv.id ? { ...r, statut: 'Annulé' } : r)));
+      // Les badges se recalculent : un badge décroché grâce à ce RDV doit retomber.
+      if (rdv.commercial_id) {
+        base44.functions.invoke('verifier_badges', { utilisateur_id: rdv.commercial_id }).catch(() => {});
+      }
       if (client.date_prochain_rdv) {
         await base44.entities.client.update(client.id, { date_prochain_rdv: null }).catch(() => {});
         majClient({ ...client, date_prochain_rdv: null });
