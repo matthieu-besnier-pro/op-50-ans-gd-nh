@@ -5,7 +5,6 @@ import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { isDirection, getAppRole } from '@/lib/permissions';
 import Layout from '@/components/Layout';
-import StatusBadge from '@/components/StatusBadge';
 import AppetenceGauge from '@/components/AppetenceGauge';
 import { UsagesClient } from '@/components/MaterielPicto';
 import ParcPictos from '@/components/ParcPictos';
@@ -15,6 +14,7 @@ import ProgressBar from '@/components/ProgressBar';
 import { Button } from '@/components/ui/button';
 import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, CalendarPlus, UserPlus } from 'lucide-react';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
+import StatutInline from '@/components/StatutInline';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import RdvExpress from '@/components/RdvExpress';
 import TelephoneClient from '@/components/TelephoneClient';
@@ -129,6 +129,11 @@ export default function MonPortefeuille() {
   useEffect(() => {
     if (user?.id || persona.mode) loadAll();
   }, [user?.id, persona.mode, persona.ids.join(',')]);
+
+  // Statut changé directement dans la liste : on met à jour la ligne sans recharger.
+  const majClient = (maj) => {
+    setClients((list) => list.map((c) => (c.id === maj.id ? { ...c, ...maj } : c)));
+  };
 
   // Après un RDV pris depuis la liste : on rafraîchit les RDV et la ligne du client.
   const reloadApresRdv = async () => {
@@ -387,7 +392,9 @@ export default function MonPortefeuille() {
                   </td>
                   <td className="px-4 py-3"><TelephoneClient client={c} /></td>
                   <td className="hidden px-4 py-3 xl:table-cell"><ParcPictos pictos={c.parc_pictos} /></td>
-                  <td className="px-4 py-3"><StatusBadge statut={c.statut} /></td>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <StatutInline client={c} user={user} onSaved={majClient} />
+                  </td>
                   <td className="hidden px-4 py-3 xl:table-cell"><AppetenceGauge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
                   <td className="hidden px-4 py-3 text-sm text-muted-foreground xl:table-cell">{c.date_prochain_rdv || '—'}</td>
                   {showCommercial && <td className="hidden px-4 py-3 text-sm text-foreground xl:table-cell">{commercialNames(c)}</td>}
