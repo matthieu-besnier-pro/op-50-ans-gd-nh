@@ -61,7 +61,9 @@ export default function ParcMaterielTable({ materiels }) {
     });
     const catList = Object.values(cats).sort((a, b) => b.count - a.count);
     const usageList = Object.entries(usages).sort((a, b) => b[1] - a[1]);
-    return { total: materiels.length, topBrands, types, withImmat, oldestAge: oldestAge !== null ? Math.round(oldestAge) : null, catList, usageList };
+    // Matériel envoyé pour l'agriculture de précision (fichiers AGP)
+    const agriCount = materiels.filter((m) => m.agri_precision).length;
+    return { total: materiels.length, topBrands, types, withImmat, oldestAge: oldestAge !== null ? Math.round(oldestAge) : null, catList, usageList, agriCount };
   }, [materiels]);
 
   if (!materiels || materiels.length === 0) {
@@ -82,6 +84,11 @@ export default function ParcMaterielTable({ materiels }) {
           {summary.types.Neuf > 0 && <span className="text-emerald-600 font-medium">{summary.types.Neuf} neuf{summary.types.Neuf > 1 ? 's' : ''}</span>}
           {summary.types.Occasion > 0 && <span className="text-amber-600 font-medium">{summary.types.Occasion} occasion{summary.types.Occasion > 1 ? 's' : ''}</span>}
           {summary.oldestAge !== null && <span className="text-muted-foreground">· plus ancienne : {summary.oldestAge} ans</span>}
+          {summary.agriCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
+              <span role="img" aria-label="Agriculture de précision">🛰️</span> {summary.agriCount} en agri. précision
+            </span>
+          )}
         </div>
       )}
 
@@ -134,8 +141,10 @@ export default function ParcMaterielTable({ materiels }) {
                       <div className="flex items-center gap-2">
                         <MaterielPicto categorie_op={m.categorie_op} size="md" />
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                          <p className="text-sm font-semibold text-foreground flex flex-wrap items-center gap-1.5">
                             {m.modele || '—'}
+                            {/* Démarcation Agriculture de précision sur les machines envoyées pour l'agri précision */}
+                            {m.agri_precision && m.usage !== 'agri_precision' && <UsageChip usage="agri_precision" />}
                             {m.usage && <UsageChip usage={m.usage} />}
                           </p>
                           <p className="text-xs text-muted-foreground">{m.categorie_2 || m.categorie_1 || m.famille_materiel || categorieMeta(m.categorie_op).label}</p>
