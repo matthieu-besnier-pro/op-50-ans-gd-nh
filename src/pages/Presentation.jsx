@@ -300,10 +300,9 @@ function Fin() {
         initial={{ y: 26, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.12 }}
-        className="mb-10 max-w-4xl text-5xl font-extrabold leading-tight text-white md:text-6xl"
+        className="mb-10 text-6xl font-extrabold uppercase leading-none tracking-tight text-white md:text-8xl xl:text-9xl"
       >
-        Le 13 au matin,<br />
-        <span className="text-gd-orange">vous vous connectez et vous appelez.</span>
+        À vous de <span className="text-gd-orange">jouer !</span>
       </motion.h2>
 
       <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
