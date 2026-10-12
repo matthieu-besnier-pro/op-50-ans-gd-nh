@@ -136,8 +136,16 @@ export default function EspaceCollaborateur() {
   const updateRdvStatus = async (rdvId, statut) => {
     setUpdatingRdv(rdvId);
     try {
+      const concerne = rdvs.find((r) => r.id === rdvId);
       await base44.entities.rdv.update(rdvId, { statut });
       setRdvs((prev) => prev.map((r) => (r.id === rdvId ? { ...r, statut } : r)));
+      invalider('rdv');
+      // Les badges dépendent des RDV : annuler en retire, « Réalisé » peut en
+      // débloquer. Sans ce recalcul, un badge resterait affiché sans raison.
+      const commercialDuRdv = concerne?.commercial_id || user?.id;
+      if (commercialDuRdv) {
+        base44.functions.invoke('verifier_badges', { utilisateur_id: commercialDuRdv }).catch(() => {});
+      }
     } catch (e) { console.error(e); }
     finally { setUpdatingRdv(null); }
   };
