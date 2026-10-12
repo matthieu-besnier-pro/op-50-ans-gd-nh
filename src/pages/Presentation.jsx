@@ -7,6 +7,7 @@ import EcranClients from '@/components/presentation/EcranClients';
 import EcranAppels from '@/components/presentation/EcranAppels';
 import EcranRdv from '@/components/presentation/EcranRdv';
 import EcranVente from '@/components/presentation/EcranVente';
+import FlashCode from '@/components/presentation/FlashCode';
 import { ArrowRight, ArrowLeft, Check, X } from 'lucide-react';
 
 // Déroulé court : ouverture → les 4 gestes d'un coup d'œil → un geste par écran → conclusion.
@@ -299,13 +300,13 @@ function Fin() {
         initial={{ y: 26, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.12 }}
-        className="mb-12 max-w-4xl text-5xl font-extrabold leading-tight text-white md:text-6xl"
+        className="mb-10 max-w-4xl text-5xl font-extrabold leading-tight text-white md:text-6xl"
       >
         Le 13 au matin,<br />
         <span className="text-gd-orange">vous vous connectez et vous appelez.</span>
       </motion.h2>
 
-      <div className="mb-14 flex flex-wrap items-center justify-center gap-3">
+      <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
         {GESTES.map((g, i) => (
           <motion.div
             key={g.id}
@@ -319,6 +320,15 @@ function Fin() {
           </motion.div>
         ))}
       </div>
+
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.65 }}
+        className="mb-10 flex w-full justify-center"
+      >
+        <FlashCode />
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0 }}
