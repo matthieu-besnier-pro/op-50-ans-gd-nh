@@ -49,7 +49,7 @@ export default function BriefingAnimateur() {
           <div className="min-w-0">
             <h1 className="text-3xl font-extrabold text-gd-navy-dark">Mémo animateur</h1>
             <p className="mt-1 text-lg text-muted-foreground">
-              Devant des commerciaux : leurs 4 gestes, rien d'autre.
+              Séance du 13 octobre au matin. Devant des commerciaux : leurs 4 gestes, rien d'autre.
             </p>
             <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-gd-orange">
               Opération 50 ans Gonnin Duris × New Holland · 13 au 30 octobre 2026

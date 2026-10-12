@@ -106,7 +106,7 @@ function Hero() {
         transition={{ delay: 0.3 }}
         className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-gd-orange"
       >
-        Cockpit<span className="text-white">OP</span> · vos outils de l'opération
+        Opération 50 ans Gonnin Duris × New Holland
       </motion.p>
 
       <motion.h1
@@ -115,8 +115,7 @@ function Hero() {
         transition={{ delay: 0.4 }}
         className="mb-5 text-6xl font-extrabold leading-tight text-white md:text-7xl"
       >
-        Votre journée,<br />
-        <span className="text-gd-orange">en 4 gestes</span>
+        Cockpit<span className="text-gd-orange">OP</span>
       </motion.h1>
 
       <motion.div
@@ -130,10 +129,28 @@ function Hero() {
       <motion.p
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.7 }}
-        className="text-lg text-white/60"
+        transition={{ delay: 0.65 }}
+        className="mb-3 text-2xl font-semibold text-white"
       >
-        Du 13 au 30 octobre 2026
+        Prise de RDV · Suivi · Animation
+      </motion.p>
+
+      <motion.p
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.78 }}
+        className="mb-2 text-xl text-white/70"
+      >
+        Votre journée, en 4 gestes
+      </motion.p>
+
+      <motion.p
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.9 }}
+        className="text-lg text-white/50"
+      >
+        Présentation du 13 octobre au matin · opération du 13 au 30 octobre 2026
       </motion.p>
     </div>
   );
