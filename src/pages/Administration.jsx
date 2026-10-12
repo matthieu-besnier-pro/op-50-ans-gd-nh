@@ -23,6 +23,7 @@ import AdminClientsListing from '@/components/AdminClientsListing';
 import AdminImportDonnees from '@/components/AdminImportDonnees';
 import AdminImportSecteurs from '@/components/AdminImportSecteurs';
 import AdminViderClients from '@/components/AdminViderClients';
+import AdminCiblesPrioritaires from '@/components/AdminCiblesPrioritaires';
 import AdminComptesDemo from '@/components/AdminComptesDemo';
 import AdminDonneesDemo from '@/components/AdminDonneesDemo';
 import AdminDiagnostic from '@/components/AdminDiagnostic';
@@ -437,6 +438,7 @@ export default function Administration() {
           <div className="space-y-5">
             <AdminViderClients onReload={load} />
             <AdminImportSecteurs onReload={load} />
+            <AdminCiblesPrioritaires onReload={load} />
             <details className="rounded-xl border border-border bg-card p-4">
               <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">Ancien import (MISTRA / SIV / PAC)</summary>
               <div className="mt-4"><AdminImportDonnees onReload={load} /></div>
