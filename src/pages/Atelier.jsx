@@ -7,6 +7,7 @@ import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
 import StatusBadge from '@/components/StatusBadge';
 import RdvExpress from '@/components/RdvExpress';
+import { nomCommercial } from '@/lib/commercialNom';
 import { Button } from '@/components/ui/button';
 import { Wrench, Plus } from 'lucide-react';
 
@@ -19,18 +20,21 @@ export default function Atelier() {
   const [rdvOpen, setRdvOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [exacts, setExacts] = useState(null);
+  const [structure, setStructure] = useState([]);
 
   const load = async () => {
     try {
       let list = await base44.entities.rdv.filter({ type: 'RDV atelier hivernage' }, '-date_heure', 500);
       setRdvs(list);
       const clientIds = [...new Set(list.map((r) => r.client_id))];
-      const [clientList, all, statsRes] = await Promise.all([
+      const [clientList, all, statsRes, structList] = await Promise.all([
         Promise.all(clientIds.slice(0, 50).map((id) => base44.entities.client.get(id).catch(() => null))),
         base44.entities.client.list('-raison_sociale', 2000).catch(() => []),
-        base44.functions.invoke('statistiques_operation', {}).catch(() => null)
+        base44.functions.invoke('statistiques_operation', {}).catch(() => null),
+        base44.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
       ]);
       setExacts(statsRes?.data || null);
+      setStructure(structList);
       const map = {};
       clientList.filter(Boolean).forEach((c) => { map[c.id] = c; });
       setClients(map);
@@ -75,6 +79,7 @@ export default function Atelier() {
           <div className="divide-y divide-border">
             {aVenir.map((r) => {
               const client = clients[r.client_id];
+              const commercial = nomCommercial(r.commercial_id, structure);
               return (
                 <div key={r.id} onClick={() => navigate(`/client/${r.client_id}`)} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/30 cursor-pointer transition-colors">
                   <div className="flex h-10 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-muted text-gd-navy">
@@ -83,7 +88,10 @@ export default function Atelier() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{client?.raison_sociale || 'Client'}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(r.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · {r.duree_minutes || 30} min</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(r.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · {r.duree_minutes || 30} min
+                      {commercial && <span className="font-semibold text-gd-navy"> · Pris par {commercial}</span>}
+                    </p>
                   </div>
                   <StatusBadge statut={r.statut} />
                 </div>

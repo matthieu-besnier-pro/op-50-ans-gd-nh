@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StatusBadge from '@/components/StatusBadge';
+import { base44 } from '@/api/base44Client';
+import { nomCommercial } from '@/lib/commercialNom';
 import { Calendar } from 'lucide-react';
 
 const fmtDate = (d) => new Date(d).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
@@ -8,6 +10,12 @@ const fmtHeure = (d) => new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit
 // RDV du client affichés dans l'en-tête de sa fiche :
 // les RDV à venir d'abord (le prochain mis en avant), puis les RDV passés.
 export default function ClientRdvsEntete({ rdvs = [] }) {
+  // Fiches commerciales : nomme l'auteur de chaque RDV (indispensable sur un portefeuille partagé).
+  const [structure, setStructure] = useState([]);
+  useEffect(() => {
+    base44.entities.structure_commerciale.list('-nom_commercial', 300).then(setStructure).catch(() => {});
+  }, []);
+
   const now = new Date();
   const tries = [...rdvs].sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const aVenir = tries.filter((r) => new Date(r.date_heure) >= now);
@@ -34,6 +42,7 @@ export default function ClientRdvsEntete({ rdvs = [] }) {
         <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto pr-1">
           {liste.map((r) => {
             const prochain = r.id === prochainId;
+            const commercial = nomCommercial(r.commercial_id, structure);
             return (
               <div
                 key={r.id}
@@ -48,7 +57,9 @@ export default function ClientRdvsEntete({ rdvs = [] }) {
                   {fmtDate(r.date_heure)} · {fmtHeure(r.date_heure)}
                 </p>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{r.type} · {r.duree_minutes || 30} min</span>
+                  <span className="text-xs text-muted-foreground">
+                    {r.type} · {r.duree_minutes || 30} min{commercial && ` · Pris par ${commercial}`}
+                  </span>
                   <StatusBadge statut={r.statut} />
                 </div>
               </div>
