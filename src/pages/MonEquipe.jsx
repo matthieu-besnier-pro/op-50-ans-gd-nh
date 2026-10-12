@@ -10,14 +10,14 @@ import {
 import { ArrowUp, ArrowDown, AlertTriangle, Calendar, TrendingUp, Percent, Wallet } from 'lucide-react';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import { useOperationStats } from '@/lib/useOperationStats';
-
-const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV Commercial obtenu', 'RDV Atelier obtenu', 'Devis en cours', 'Offre magasin à proposer', 'Offre agri. précision à proposer', 'Vente conclue', 'Refus'];
-const STATUT_COLORS = ['bg-slate-300', 'bg-orange-400', 'bg-amber-400', 'bg-slate-400', 'bg-blue-400', 'bg-indigo-400', 'bg-violet-400', 'bg-cyan-400', 'bg-emerald-400', 'bg-red-400'];
+import { useStatuts, tonaliteDe } from '@/lib/statuts';
 
 export default function MonEquipe() {
   const { user } = useAuth();
   const persona = useDemoPersona();
   const stats = useOperationStats();
+  // Liste des statuts administrée par la Direction (Administration → Statuts).
+  const statuts = useStatuts();
   const [commerciaux, setCommerciaux] = useState([]);
   const [clients, setClients] = useState([]);
   const [rdvs, setRdvs] = useState([]);
@@ -106,8 +106,8 @@ export default function MonEquipe() {
       const tauxTransfo = rdvPrisMonth > 0 ? Math.round((ventesValidees / rdvPrisMonth) * 100) : 0;
       const pipeDevis = myClients.filter((cl) => cl.statut === 'Devis en cours').reduce((s, cl) => s + (cl.montant_devis || 0), 0);
       const repartition = exact
-        ? STATUTS.map((s) => exact.par_statut[s] || 0)
-        : STATUTS.map((s) => myClients.filter((cl) => cl.statut === s).length);
+        ? statuts.map((s) => exact.par_statut[s.nom] || 0)
+        : statuts.map((s) => myClients.filter((cl) => cl.statut === s.nom).length);
       return {
         id: c.id, nom: c.full_name || c.email,
         repartition, totalClients: exact ? exact.total : myClients.length,
@@ -115,7 +115,7 @@ export default function MonEquipe() {
         ventes: ventesValidees, tauxTransfo, pipeDevis
       };
     });
-  }, [commerciaux, clients, rdvs, ventes, stats, todayStr, monthStart]);
+  }, [commerciaux, clients, rdvs, ventes, stats, statuts, todayStr, monthStart]);
 
   const sorted = useMemo(() => {
     const arr = [...rows].sort((a, b) => sortBy === 'rdv' ? b.rdvMonth - a.rdvMonth : b.ventes - a.ventes);
@@ -224,7 +224,7 @@ export default function MonEquipe() {
                     <>
                       <div className="flex h-2 w-32 overflow-hidden rounded-full bg-muted">
                         {r.repartition.map((count, i) => count > 0 && (
-                          <div key={i} className={STATUT_COLORS[i]} style={{ width: `${(count / r.totalClients) * 100}%` }} title={`${STATUTS[i]}: ${count}`} />
+                          <div key={i} className={tonaliteDe(statuts[i]?.tonalite).point} style={{ width: `${(count / r.totalClients) * 100}%` }} title={`${statuts[i]?.nom}: ${count}`} />
                         ))}
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">{r.totalClients} clients</p>

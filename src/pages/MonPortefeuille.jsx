@@ -20,8 +20,8 @@ import RdvExpress from '@/components/RdvExpress';
 import TelephoneClient from '@/components/TelephoneClient';
 import AjouterClientDialog from '@/components/AjouterClientDialog';
 import { villeClientTexte } from '@/lib/localisationClient';
+import { useStatuts } from '@/lib/statuts';
 
-const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV Commercial obtenu', 'RDV Atelier obtenu', 'Devis en cours', 'Offre magasin à proposer', 'Offre agri. précision à proposer', 'Vente conclue', 'Refus'];
 const FILTRES_INIT = {
   search: '',
   statut: 'all',
@@ -59,6 +59,8 @@ export default function MonPortefeuille() {
   const navigate = useNavigate();
   const persona = useDemoPersona();
   const stats = useOperationStats();
+  // Liste des statuts administrée par la Direction (Administration → Statuts).
+  const statuts = useStatuts();
   const [clients, setClients] = useState([]);
   const [rdvs, setRdvs] = useState([]);
   const [ventes, setVentes] = useState([]);
@@ -285,10 +287,10 @@ export default function MonPortefeuille() {
   const statutCounts = useMemo(() => {
     const counts = {};
     const exacts = stats?.clients?.par_statut;
-    STATUTS.forEach((s) => { counts[s] = exacts ? (exacts[s] || 0) : 0; });
+    statuts.forEach((s) => { counts[s.nom] = exacts ? (exacts[s.nom] || 0) : 0; });
     if (!exacts) clients.forEach((c) => { if (counts[c.statut] !== undefined) counts[c.statut]++; });
     return counts;
-  }, [clients, stats]);
+  }, [clients, stats, statuts]);
 
   const [affichesMax, setAffichesMax] = useState(200);
   useEffect(() => { setAffichesMax(200); }, [filters, sortByPriority, prioriteOnly]);

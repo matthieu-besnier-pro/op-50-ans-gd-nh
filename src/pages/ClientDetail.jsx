@@ -17,6 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { canSeePac } from '@/lib/permissions';
+import { useStatuts } from '@/lib/statuts';
 import ParcMaterielTable from '@/components/ParcMaterielTable';
 import { UsagesClient } from '@/components/MaterielPicto';
 import CoachCommercial from '@/components/CoachCommercial';
@@ -26,7 +27,6 @@ import {
   MessageSquare, Plus, Tractor, Mail, FileText, Star
 } from 'lucide-react';
 
-const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV Commercial obtenu', 'RDV Atelier obtenu', 'Devis en cours', 'Offre magasin à proposer', 'Offre agri. précision à proposer', 'Vente conclue', 'Refus'];
 const MOTIFS_REFUS = ['Pas de besoin', 'Concurrent', 'Budget', 'Autre'];
 
 export default function ClientDetail() {
@@ -48,6 +48,8 @@ export default function ClientDetail() {
   const [montantDevis, setMontantDevis] = useState('');
   const [statutError, setStatutError] = useState('');
   const [pulseRow, setPulseRow] = useState(false);
+  // Liste des statuts administrée par la Direction (Administration → Statuts).
+  const statuts = useStatuts();
 
   const loadAll = async () => {
     setLoading(true);
@@ -212,7 +214,7 @@ export default function ClientDetail() {
               <Select value={statutEdit} onValueChange={setStatutEdit}>
                 <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {STATUTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {statuts.map((s) => <SelectItem key={s.nom} value={s.nom}>{s.nom}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button onClick={handleStatutChange} className="bg-gd-navy hover:bg-gd-navy-dark text-white">Mettre à jour</Button>

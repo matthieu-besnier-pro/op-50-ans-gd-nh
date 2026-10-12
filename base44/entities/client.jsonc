@@ -215,21 +215,8 @@
     },
     "statut": {
       "type": "string",
-      "enum": [
-        "\u00c0 contacter",
-        "Injoignable",
-        "\u00c0 rappeler",
-        "Contact\u00e9 sans suite",
-        "RDV Commercial obtenu",
-        "RDV Atelier obtenu",
-        "Devis en cours",
-        "Offre magasin \u00e0 proposer",
-        "Offre agri. pr\u00e9cision \u00e0 proposer",
-        "Vente conclue",
-        "Refus"
-      ],
       "default": "\u00c0 contacter",
-      "description": "Statut du client dans l'op\u00e9ration"
+      "description": "Statut du client dans l'op\u00e9ration \u2014 liste administr\u00e9e dans Administration \u2192 Statuts"
     },
     "nb_tentatives_contact": {
       "type": "number",

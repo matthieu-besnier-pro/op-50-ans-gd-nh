@@ -25,7 +25,7 @@ export const STATUTS_DEFAUT = [
   { nom: 'À contacter', ordre: 1, tonalite: 'neutre', systeme: true, usage: 'Statut par défaut des clients importés ; alimente le compteur « clients à contacter ».' },
   { nom: 'Injoignable', ordre: 2, tonalite: 'orange', systeme: true, usage: 'Incrémente automatiquement le nombre de tentatives de contact.' },
   { nom: 'À rappeler', ordre: 3, tonalite: 'ambre', systeme: true, usage: 'Impose une date de rappel et alimente les relances du jour.' },
-  { nom: 'Contacté sans suite', ordre: 4, tonalite: 'discret', systeme: false, usage: '' },
+  { nom: 'Contacté sans suite', ordre: 4, tonalite: 'discret', systeme: true, usage: 'Clôt le suivi du client : la probabilité de vente retombe à 0.' },
   { nom: 'RDV Commercial obtenu', ordre: 5, tonalite: 'bleu', systeme: true, usage: "Coché automatiquement à la prise d'un rendez-vous commercial." },
   { nom: 'RDV Atelier obtenu', ordre: 6, tonalite: 'indigo', systeme: true, usage: "Coché automatiquement à la prise d'un rendez-vous atelier." },
   { nom: 'Devis en cours', ordre: 7, tonalite: 'violet', systeme: true, usage: 'Demande le montant du devis et alimente le pipeline.' },

@@ -14,11 +14,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { ChevronDown, Loader2, Check } from 'lucide-react';
+import { useStatuts } from '@/lib/statuts';
 
-export const STATUTS = [
-  'À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV Commercial obtenu',
-  'RDV Atelier obtenu', 'Devis en cours', 'Offre magasin à proposer', 'Offre agri. précision à proposer', 'Vente conclue', 'Refus'
-];
 const MOTIFS_REFUS = ['Pas de besoin', 'Concurrent', 'Budget', 'Autre'];
 
 // Statuts qui réclament une information complémentaire avant d'être enregistrés.
@@ -43,6 +40,8 @@ export default function StatutInline({ client, user, onSaved, align = 'start' })
   const [motifRefus, setMotifRefus] = useState('');
   const [montantDevis, setMontantDevis] = useState('');
   const [erreur, setErreur] = useState('');
+  // Liste des statuts administrée par la Direction (Administration → Statuts).
+  const statuts = useStatuts();
 
   const enregistrer = async (statut, extra = {}) => {
     setSaving(true); setErreur('');
@@ -121,10 +120,10 @@ export default function StatutInline({ client, user, onSaved, align = 'start' })
             Changer le statut
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {STATUTS.map((s) => (
-            <DropdownMenuItem key={s} onSelect={() => choisir(s)} className="gap-2">
-              <StatusBadge statut={s} />
-              {s === client.statut && <Check className="ml-auto h-3.5 w-3.5 text-gd-navy" />}
+          {statuts.map((s) => (
+            <DropdownMenuItem key={s.nom} onSelect={() => choisir(s.nom)} className="gap-2">
+              <StatusBadge statut={s.nom} />
+              {s.nom === client.statut && <Check className="ml-auto h-3.5 w-3.5 text-gd-navy" />}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

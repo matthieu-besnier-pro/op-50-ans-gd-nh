@@ -55,6 +55,16 @@ export default function AdminStatuts() {
   const tri = [...statuts].sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
   const nomDejaPris = (nom, saufId) => statuts.some((s) => s.id !== saufId && s.nom.toLowerCase() === nom.toLowerCase());
 
+  // Un changement de libellé peut concerner des milliers de clients : on traite par lots.
+  const basculerClients = async (ancien, nouveau) => {
+    let res = await base44.entities.client.updateMany({ statut: ancien }, { $set: { statut: nouveau } });
+    let tours = 0;
+    while (res?.has_more && tours < 40) {
+      res = await base44.entities.client.updateMany({ statut: ancien }, { $set: { statut: nouveau } });
+      tours += 1;
+    }
+  };
+
   const ajouter = async () => {
     const nom = propre(nouveau.nom);
     if (!nom) { setErreur('Indiquez un nom de statut.'); return; }
@@ -81,7 +91,7 @@ export default function AdminStatuts() {
     setErreur(''); setBusy(s.id);
     try {
       // Les clients portent le libellé : on les renomme tous avant le statut lui-même.
-      await base44.entities.client.updateMany({ statut: s.nom }, { $set: { statut: nom } });
+      await basculerClients(s.nom, nom);
       await base44.entities.statut_client.update(s.id, { nom });
       setStatuts((l) => l.map((x) => (x.id === s.id ? { ...x, nom } : x)));
       setEditId(null);
@@ -103,7 +113,7 @@ export default function AdminStatuts() {
     if (!window.confirm(question)) return;
     setErreur(''); setBusy(s.id);
     try {
-      if (nb > 0) await base44.entities.client.updateMany({ statut: s.nom }, { $set: { statut: remplacant.nom } });
+      if (nb > 0) await basculerClients(s.nom, remplacant.nom);
       await base44.entities.statut_client.delete(s.id);
       setStatuts((l) => l.filter((x) => x.id !== s.id));
       flash(`Statut « ${s.nom} » supprimé.`);

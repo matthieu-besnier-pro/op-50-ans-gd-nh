@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Upload, CheckCircle2, MapPin, X, Plus, Zap, Users, Award, Tractor, Briefcase, Calendar, ShoppingBag } from 'lucide-react';
 import AdminUsers from '@/components/AdminUsers';
 import AdminBadges from '@/components/AdminBadges';
+import AdminStatuts from '@/components/AdminStatuts';
 import AdminBases from '@/components/AdminBases';
 import AdminAffectationManuelle from '@/components/AdminAffectationManuelle';
 import AdminAffectationImport from '@/components/AdminAffectationImport';
@@ -195,6 +196,7 @@ export default function Administration() {
           <TabsTrigger value="import-affectation">Import affectation</TabsTrigger>
           <TabsTrigger value="offres">Offres magasin</TabsTrigger>
           <TabsTrigger value="badges">Badges</TabsTrigger>
+          <TabsTrigger value="statuts">Statuts</TabsTrigger>
           <TabsTrigger value="bases">Bases</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
@@ -422,6 +424,11 @@ export default function Administration() {
         {/* Badges */}
         <TabsContent value="badges">
           <AdminBadges />
+        </TabsContent>
+
+        {/* Statuts clients */}
+        <TabsContent value="statuts">
+          <AdminStatuts />
         </TabsContent>
 
         {/* Bases */}
