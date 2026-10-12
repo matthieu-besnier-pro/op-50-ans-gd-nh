@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { perimetreAtelier, filtreClientsPerimetre } from '../../shared/perimetre.ts';
 
 // Renvoie les clients selon le rôle, en asServiceRole (contourne le RLS navigateur).
 // Optimisé perf : UN seul appel filtré + projection légère (champs de la liste seulement).
@@ -52,11 +53,22 @@ export default async function(req) {
     const limit = Math.min(Number(body.limit) || 1000, 20000);
     const estDirection = user.role === 'admin' || user.app_role === 'direction';
 
+    // Périmètre « atelier » : chef d'atelier / responsable SAV → les clients des
+    // commerciaux rattachés à ses sites (tableau de répartition).
+    const perimetre = await perimetreAtelier(sr, user);
+    const scope = perimetre
+      ? { commercial_ids: perimetre.ids, commerciaux: perimetre.noms, sites: perimetre.sites }
+      : null;
+    if (body.scope_only) return Response.json({ scope });
+
     let raw;
     if (estDirection) {
       raw = await lireTout((skip) => sr.entities.client.list('id', CHUNK, skip), limit);
     } else if (user.app_role === 'responsable') {
       raw = await lireTout((skip) => sr.entities.client.filter({ base_responsable_id: user.id }, 'id', CHUNK, skip), limit);
+    } else if (perimetre) {
+      const filtre = filtreClientsPerimetre(perimetre);
+      raw = await lireTout((skip) => sr.entities.client.filter(filtre, 'id', CHUNK, skip), limit);
     } else {
       raw = await lireTout((skip) => sr.entities.client.filter({ commerciaux_assignes: user.id }, 'id', CHUNK, skip), limit);
     }
@@ -65,7 +77,8 @@ export default async function(req) {
     return Response.json({
       clients: raw.map(pick),
       total: raw.length,
-      capped: raw.length >= limit
+      capped: raw.length >= limit,
+      scope
     });
   } catch (error) {
     return Response.json({ error: `[lister_clients] ${error?.message || String(error)}` }, { status: 500 });

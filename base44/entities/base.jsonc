@@ -40,6 +40,13 @@
         "type": "string"
       },
       "description": "Responsable(s) SAV du site"
+    },
+    "commerciaux": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Commerciaux rattach\u00e9s au site (tableau de r\u00e9partition commerciaux \u00d7 ateliers)"
     }
   },
   "required": [

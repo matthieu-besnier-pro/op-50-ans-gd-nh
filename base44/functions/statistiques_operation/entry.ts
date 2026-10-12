@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { perimetreAtelier, estDansPerimetre } from '../../shared/perimetre.ts';
 
 // Comptages EXACTS de l'opération, calculés côté serveur en parcourant l'intégralité
 // des données : les pages n'affichent plus de totaux issus de listes tronquées
@@ -51,6 +52,15 @@ export default async function (req) {
       portee = 'portefeuille';
       gardeClients = (c) => (c.commerciaux_assignes || []).includes(user.id);
       gardeActivite = (r) => r.commercial_id === user.id;
+    } else if (!estDirection && (role === 'chef_atelier' || role === 'responsable_sav')) {
+      // Périmètre « atelier » : les clients des commerciaux des sites du référent.
+      const perimetre = await perimetreAtelier(sr, user);
+      if (perimetre) {
+        portee = 'atelier';
+        gardeClients = estDansPerimetre(perimetre);
+        const ids = new Set(perimetre.ids);
+        gardeActivite = (r) => ids.has(r.commercial_id);
+      }
     } else if (estDirection && body?.scope) {
       const ids = body.scope.commercial_ids || [];
       const secteurs = (body.scope.secteurs || []).map((s) => String(s).trim().toLowerCase());
