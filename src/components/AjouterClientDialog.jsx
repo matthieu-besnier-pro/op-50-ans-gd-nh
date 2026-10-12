@@ -1,0 +1,127 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
+import { getAppRole } from '@/lib/permissions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { UserPlus } from 'lucide-react';
+
+const VIDE = { raison_sociale: '', siren: '', adresse: '', code_postal: '', ville: '', tel_mobile: '', tel_fixe: '', email: '' };
+
+// Ajout manuel d'un client absent des fichiers d'import (le rattachement au
+// commercial est fait côté serveur par la fonction creer_client_manuel).
+export default function AjouterClientDialog({ open, onOpenChange, commercials = [], onCreated }) {
+  const { user } = useAuth();
+  const role = getAppRole(user);
+  const estCommercial = role === 'commercial' || role === 'agri_precision';
+
+  const [form, setForm] = useState(VIDE);
+  const [commercialId, setCommercialId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [erreur, setErreur] = useState('');
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const fermer = (ouvert) => {
+    if (saving) return;
+    onOpenChange(ouvert);
+    if (!ouvert) { setForm(VIDE); setCommercialId(''); setErreur(''); }
+  };
+
+  const enregistrer = async () => {
+    if (form.raison_sociale.trim().length < 2) { setErreur('Indiquez la raison sociale du client.'); return; }
+    setSaving(true);
+    setErreur('');
+    try {
+      const res = await base44.functions.invoke('creer_client_manuel', {
+        ...form,
+        commercial_id: estCommercial ? null : (commercialId || null)
+      });
+      if (res?.data?.error) { setErreur(res.data.error); return; }
+      onCreated?.(res?.data?.client);
+      onOpenChange(false);
+      setForm(VIDE);
+      setCommercialId('');
+    } catch (e) {
+      setErreur("Le client n'a pas pu être enregistré. Vérifiez les informations et réessayez.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={fermer}>
+      <DialogContent className="max-w-lg max-h-[88vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-gd-navy-dark">
+            <UserPlus className="h-5 w-5 text-gd-orange" /> Ajouter un client
+          </DialogTitle>
+          <DialogDescription>
+            Pour un client rencontré sur le terrain et absent de la liste.
+            Seule la raison sociale est obligatoire.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Label htmlFor="raison">Raison sociale *</Label>
+            <Input id="raison" value={form.raison_sociale} onChange={(e) => set('raison_sociale', e.target.value)} placeholder="EARL DES PRES" className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="siren">SIREN</Label>
+            <Input id="siren" value={form.siren} onChange={(e) => set('siren', e.target.value)} placeholder="9 chiffres" className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="mobile">Téléphone mobile</Label>
+            <Input id="mobile" value={form.tel_mobile} onChange={(e) => set('tel_mobile', e.target.value)} placeholder="06 12 34 56 78" className="mt-1" />
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="adresse">Adresse</Label>
+            <Input id="adresse" value={form.adresse} onChange={(e) => set('adresse', e.target.value)} placeholder="12 rue des Champs" className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="cp">Code postal</Label>
+            <Input id="cp" value={form.code_postal} onChange={(e) => set('code_postal', e.target.value)} placeholder="71000" className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="ville">Ville</Label>
+            <Input id="ville" value={form.ville} onChange={(e) => set('ville', e.target.value)} placeholder="MACON" className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="fixe">Téléphone fixe</Label>
+            <Input id="fixe" value={form.tel_fixe} onChange={(e) => set('tel_fixe', e.target.value)} placeholder="03 85 00 00 00" className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="contact@exemple.fr" className="mt-1" />
+          </div>
+
+          {!estCommercial && commercials.length > 0 && (
+            <div className="sm:col-span-2">
+              <Label>Commercial à affecter</Label>
+              <Select value={commercialId || 'aucun'} onValueChange={(v) => setCommercialId(v === 'aucun' ? '' : v)}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Aucun" /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="aucun">Aucun (à affecter plus tard)</SelectItem>
+                  {commercials.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        {erreur && <p className="text-sm font-medium text-destructive">{erreur}</p>}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => fermer(false)} disabled={saving}>Annuler</Button>
+          <Button onClick={enregistrer} disabled={saving} className="bg-gd-orange text-gd-navy-dark hover:bg-gd-orange/90 font-semibold">
+            {saving ? 'Enregistrement…' : 'Ajouter le client'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

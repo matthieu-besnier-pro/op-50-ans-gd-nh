@@ -13,11 +13,13 @@ import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, CalendarPlus } from 'lucide-react';
+import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, CalendarPlus, UserPlus } from 'lucide-react';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import RdvExpress from '@/components/RdvExpress';
 import TelephoneClient from '@/components/TelephoneClient';
+import AjouterClientDialog from '@/components/AjouterClientDialog';
+import { villeClientTexte } from '@/lib/localisationClient';
 
 const STATUTS = ['À contacter', 'Injoignable', 'À rappeler', 'Contacté sans suite', 'RDV obtenu', 'Prise de RDV atelier', 'Devis en cours', 'Offre magasin à proposer', 'Vente conclue', 'Refus'];
 const FILTRES_INIT = {
@@ -56,6 +58,7 @@ export default function MonPortefeuille() {
   const [prioriteOnly, setPrioriteOnly] = useState(false);
   const [rdvClient, setRdvClient] = useState(null);
   const [rdvOpen, setRdvOpen] = useState(false);
+  const [ajoutOpen, setAjoutOpen] = useState(false);
 
   const effectiveId = persona.mode === 'commercial' ? persona.ids[0] : user?.id;
 
@@ -253,16 +256,25 @@ export default function MonPortefeuille() {
 
   return (
     <Layout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mes clients</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {kpis.totalClients.toLocaleString('fr-FR')} client{kpis.totalClients > 1 ? 's' : ''} assigné{kpis.totalClients > 1 ? 's' : ''} · {kpis.aContacter.toLocaleString('fr-FR')} à contacter
-        </p>
-        {sitesAtelier.length > 0 && (
-          <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-gd-navy/70">
-            {persona.mode === 'atelier' && persona.label ? `${persona.label} · ` : ''}Atelier{sitesAtelier.length > 1 ? 's' : ''} : {sitesAtelier.join(' · ')}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mes clients</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {kpis.totalClients.toLocaleString('fr-FR')} client{kpis.totalClients > 1 ? 's' : ''} assigné{kpis.totalClients > 1 ? 's' : ''} · {kpis.aContacter.toLocaleString('fr-FR')} à contacter
           </p>
-        )}
+          {sitesAtelier.length > 0 && (
+            <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-gd-navy/70">
+              {persona.mode === 'atelier' && persona.label ? `${persona.label} · ` : ''}Atelier{sitesAtelier.length > 1 ? 's' : ''} : {sitesAtelier.join(' · ')}
+            </p>
+          )}
+        </div>
+        <Button
+          onClick={() => setAjoutOpen(true)}
+          variant="outline"
+          className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white"
+        >
+          <UserPlus className="h-4 w-4 mr-1.5" /> Ajouter un client
+        </Button>
       </div>
 
       {/* KPIs */}
@@ -355,12 +367,14 @@ export default function MonPortefeuille() {
                   : 'Aucun client ne correspond aux filtres.'}
               </td></tr>
             ) : affiches.map((c) => {
+              const loc = villeClientTexte(c);
               return (
                 <tr key={c.id} onClick={() => navigate(`/client/${c.id}`)} className={`border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer transition-colors ${c.priorite_commercial ? 'bg-gd-orange/5' : ''}`}>
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                    <p className="font-semibold text-foreground text-sm flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                       {c.priorite_commercial && <Star className="h-3.5 w-3.5 shrink-0 text-gd-orange" fill="currentColor" aria-label="Cible prioritaire" />}
                       {c.raison_sociale}
+                      {loc && <span className="text-xs font-normal text-muted-foreground">· {loc}</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">{c.type_structure || 'Exploitation'} · {c.siren || '—'}</p>
                     {Array.isArray(c.usages) && c.usages.length > 0 && <UsagesClient usages={c.usages} className="mt-1" />}
@@ -406,6 +420,12 @@ export default function MonPortefeuille() {
           </p>
         </div>
       )}
+      <AjouterClientDialog
+        open={ajoutOpen}
+        onOpenChange={setAjoutOpen}
+        commercials={commercialOptions.filter((o) => !String(o.value).startsWith('secteur:'))}
+        onCreated={(client) => client && setClients((l) => [client, ...l])}
+      />
       <RdvExpress
         open={rdvOpen}
         onOpenChange={setRdvOpen}
