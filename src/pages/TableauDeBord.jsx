@@ -57,7 +57,8 @@ export default function TableauDeBord() {
   };
   const scopedRdvs = rdvs.filter((r) => inScope(r.commercial_id, r.base_responsable_id));
   const scopedVentes = ventes.filter((v) => inScope(v.commercial_id, v.base_responsable_id));
-  const mapRdvs = scopedRdvs;
+  // Un rendez-vous annulé ne laisse pas de point sur la carte.
+  const mapRdvs = scopedRdvs.filter((r) => r.statut !== 'Annulé');
 
   const [exacts, setExacts] = useState(null);
   const [tousRdvs, setTousRdvs] = useState([]); // liste complète : indicateurs moi / mon équipe / entreprise

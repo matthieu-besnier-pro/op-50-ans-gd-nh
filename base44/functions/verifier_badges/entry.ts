@@ -12,7 +12,7 @@ export default async function(req) {
 
     const sr = base44.asServiceRole;
 
-    const [badges, obtenus, rdvs, ventes, clients, params] = await Promise.all([
+    const [badges, obtenus, tousRdvs, ventes, clients, params] = await Promise.all([
       sr.entities.badge.list('-created_date', 100),
       sr.entities.badge_obtenu.filter({ utilisateur_id: userId }, '-created_date', 100),
       sr.entities.rdv.filter({ commercial_id: userId }, '-created_date', 500),
@@ -20,6 +20,9 @@ export default async function(req) {
       sr.entities.client.filter({}, '-created_date', 500),
       sr.entities.parametres_operation.list('-created_date', 1)
     ]);
+
+    // Un rendez-vous annulé ne compte pour aucun badge : il est soustrait d'emblée.
+    const rdvs = tousRdvs.filter((r) => r.statut !== 'Annulé');
 
     const dejaObtenus = new Set(obtenus.map((o) => o.badge_id));
     const nouveaux = [];

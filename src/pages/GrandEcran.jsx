@@ -256,6 +256,8 @@ export default function GrandEcran() {
   const sprintRdvs = useMemo(() => {
     if (!params?.date_debut_prise_rdv) return [];
     return rdvs.filter(r => {
+      // Un rendez-vous annulé est soustrait : ni du compteur, ni du classement.
+      if (r.statut === 'Annulé') return false;
       const d = (r.date_heure || '').slice(0, 10);
       return d >= params.date_debut_prise_rdv && d <= params.date_fin_prise_rdv;
     });
@@ -299,7 +301,9 @@ export default function GrandEcran() {
 
   // Live feed (most recent RDVs)
   const liveFeed = useMemo(() => {
-    return [...rdvs]
+    // Un rendez-vous annulé ne doit pas défiler comme une victoire.
+    return rdvs
+      .filter((r) => r.statut !== 'Annulé')
       .sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''))
       .slice(0, 8);
   }, [rdvs]);

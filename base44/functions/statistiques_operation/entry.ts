@@ -146,12 +146,17 @@ export default async function (req) {
     let sprintAtelier = 0;
     let sprintCommercial = 0;
     let sprintRealises = 0;
+    let rdvAnnules = 0;
 
     const jourAujourdhui = new Date().toISOString().slice(0, 10);
     rdvs.forEach((r) => {
       const st = r.statut || '(non renseigné)';
-      const pris = st !== 'Annulé';
       rdvParStatut[st] = (rdvParStatut[st] || 0) + 1;
+      // Un rendez-vous annulé est soustrait de TOUS les comptages : il n'alimente
+      // ni les totaux, ni le mois, ni le sprint, ni le classement par commercial.
+      // Seule la ligne « annulés » (et par_statut) en garde la trace.
+      if (st === 'Annulé') { rdvAnnules += 1; return; }
+      const pris = true;
       const ty = r.type || '(non renseigné)';
       rdvParType[ty] = (rdvParType[ty] || 0) + 1;
       const atelier = ty === 'RDV atelier hivernage';
@@ -224,7 +229,8 @@ export default async function (req) {
       },
       parc: { total: parcTotal, par_categorie: parCategorie },
       rdv: {
-        total: rdvs.length,
+        total: rdvs.length - rdvAnnules, // les annulés sont soustraits
+        annules: rdvAnnules,
         par_statut: rdvParStatut,
         par_type: rdvParType,
         par_commercial: rdvParCommercial,
