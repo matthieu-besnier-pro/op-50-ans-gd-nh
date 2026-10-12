@@ -38,13 +38,16 @@ export default async function (req) {
     // désignent éventuellement le commercial destinataire.
     let commerciaux = [];
     let responsableId = null;
+    let secteur = null; // nom du commercial : sert au ciblage par secteur
     if (user.app_role === 'commercial' || user.app_role === 'agri_precision') {
       commerciaux = [user.id];
+      const moi = await sr.entities.structure_commerciale.filter({ user_id: user.id }, 'nom_commercial', 1);
+      if (moi.length > 0) secteur = moi[0].nom_commercial || null;
     } else {
       const cible = texte(body.commercial_id);
       if (cible) {
         const fiche = await sr.entities.structure_commerciale.filter({ user_id: cible }, 'nom_commercial', 1);
-        if (fiche.length > 0) commerciaux = [cible];
+        if (fiche.length > 0) { commerciaux = [cible]; secteur = fiche[0].nom_commercial || null; }
       }
       if (user.app_role === 'responsable') responsableId = user.id;
     }
@@ -61,6 +64,9 @@ export default async function (req) {
     if (email) data.email = email;
     if (commerciaux.length > 0) data.commerciaux_assignes = commerciaux;
     if (responsableId) data.base_responsable_id = responsableId;
+    if (secteur) data.secteur = secteur;
+    // Prospect ajouté à la main et déjà ciblé par le commercial.
+    if (body.priorite_commercial) data.priorite_commercial = true;
 
     const client = await sr.entities.client.create(data);
     return Response.json({ client });

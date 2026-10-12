@@ -20,6 +20,7 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
 
   const [form, setForm] = useState(VIDE);
   const [commercialId, setCommercialId] = useState('');
+  const [prioritaire, setPrioritaire] = useState(false);
   const [saving, setSaving] = useState(false);
   const [erreur, setErreur] = useState('');
 
@@ -28,7 +29,7 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
   const fermer = (ouvert) => {
     if (saving) return;
     onOpenChange(ouvert);
-    if (!ouvert) { setForm(VIDE); setCommercialId(''); setErreur(''); }
+    if (!ouvert) { setForm(VIDE); setCommercialId(''); setPrioritaire(false); setErreur(''); }
   };
 
   const enregistrer = async () => {
@@ -38,13 +39,15 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
     try {
       const res = await base44.functions.invoke('creer_client_manuel', {
         ...form,
-        commercial_id: estCommercial ? null : (commercialId || null)
+        commercial_id: estCommercial ? null : (commercialId || null),
+        priorite_commercial: prioritaire
       });
       if (res?.data?.error) { setErreur(res.data.error); return; }
       onCreated?.(res?.data?.client);
       onOpenChange(false);
       setForm(VIDE);
       setCommercialId('');
+      setPrioritaire(false);
     } catch (e) {
       setErreur("Le client n'a pas pu être enregistré. Vérifiez les informations et réessayez.");
     } finally {
@@ -111,6 +114,19 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
               </Select>
             </div>
           )}
+
+          <div className="sm:col-span-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gd-orange/40 bg-gd-orange/5 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={prioritaire}
+                onChange={(e) => setPrioritaire(e.target.checked)}
+                className="h-4 w-4 accent-[hsl(var(--gd-orange))]"
+              />
+              <span className="text-sm font-semibold text-gd-navy-dark">Cible prioritaire</span>
+              <span className="text-xs text-muted-foreground">— remonte en tête de « Mes clients »</span>
+            </label>
+          </div>
         </div>
 
         {erreur && <p className="text-sm font-medium text-destructive">{erreur}</p>}
