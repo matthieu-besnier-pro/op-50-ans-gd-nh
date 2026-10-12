@@ -7,6 +7,18 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Tous les clients, sans troncature.
+async function listerClients(sr) {
+  const out = [];
+  for (let i = 0; i < 30; i++) {
+    const page = await sr.entities.client.list('-created_date', 1000, i * 1000);
+    if (!page || page.length === 0) break;
+    out.push(...page);
+    if (page.length < 1000) break;
+  }
+  return out;
+}
+
 // Évalue toutes les conditions pour un utilisateur et synchronise ses badges.
 async function synchroniser(sr, userId, badges, clients, p) {
   const [obtenus, tousRdvs, ventes] = await Promise.all([
@@ -107,6 +119,16 @@ async function synchroniser(sr, userId, badges, clients, p) {
     }
   }
 
+  // Attributions orphelines : le badge n'existe plus au catalogue. La boucle
+  // ci-dessus ne les voit jamais — sans ça elles resteraient comptées à vie.
+  const catalogue = new Set(badges.map((b) => b.id));
+  for (const o of obtenus) {
+    if (!catalogue.has(o.badge_id)) {
+      await sr.entities.badge_obtenu.delete(o.id).catch(() => {});
+      retires.push({ badge_id: o.badge_id, badge_nom: '(badge supprimé du catalogue)' });
+    }
+  }
+
   return { nouveaux, retires };
 }
 
@@ -121,7 +143,7 @@ export default async function (req) {
 
     const [badges, clients, params] = await Promise.all([
       sr.entities.badge.list('-created_date', 100),
-      sr.entities.client.filter({}, '-created_date', 5000),
+      listerClients(sr),
       sr.entities.parametres_operation.list('-created_date', 1)
     ]);
     const p = params[0] || {};

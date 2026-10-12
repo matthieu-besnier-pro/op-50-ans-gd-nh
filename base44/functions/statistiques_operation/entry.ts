@@ -208,6 +208,10 @@ export default async function (req) {
       }
     });
 
+    // Les attributions dont le badge a été supprimé du catalogue ne sont plus comptées.
+    const catalogueBadges = new Set(badges.map((b) => b.id));
+    const badgesObtenusValides = obtenus.filter((o) => catalogueBadges.has(o.badge_id)).length;
+
     const ventesParMachine = {};
     const ventesParTypeVente = {};
     const ventesParReprise = {};
@@ -268,7 +272,7 @@ export default async function (req) {
         par_reprise: ventesParReprise
       },
       offres: { total: offres.length, ca_realise: offres.reduce((s, o) => s + (o.ca_realise || 0), 0) },
-      badges: { total: badges.length, obtenus: obtenus.length },
+      badges: { total: badges.length, obtenus: badgesObtenusValides },
       structure: { commerciaux: structure.length }
     });
   } catch (error) {
