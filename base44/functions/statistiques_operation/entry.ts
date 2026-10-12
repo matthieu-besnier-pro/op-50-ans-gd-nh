@@ -246,9 +246,89 @@ export default async function (req) {
       }
     });
 
-    // Les attributions dont le badge a été supprimé du catalogue ne sont plus comptées.
-    const catalogueBadges = new Set(badges.map((b) => b.id));
-    const badgesObtenusValides = obtenus.filter((o) => catalogueBadges.has(o.badge_id)).length;
+    // ----- Mur des badges : on ne renvoie que les badges ENCORE mérités -----
+    // Le Grand Écran tourne en continu : il ne doit jamais afficher un badge
+    // devenu caduc (rendez-vous annulé, vente invalidée, données purgées). On
+    // revalide ici, en lecture seule, avec les données déjà chargées — donc
+    // sans requête ni droit supplémentaire, et sans rien écrire en base.
+    const catalogueBadges = new Map(badges.map((b) => [b.id, b]));
+
+    const parUtilisateur = new Map();
+    const bac = (id) => {
+      if (!parUtilisateur.has(id)) parUtilisateur.set(id, { rdvs: [], ventes: [], clients: [] });
+      return parUtilisateur.get(id);
+    };
+    allRdvs.forEach((r) => {
+      if (!r.commercial_id || r.statut === 'Annulé' || !dansOperation(r.date_heure)) return;
+      bac(r.commercial_id).rdvs.push(r);
+    });
+    allVentes.forEach((v) => {
+      if (!v.commercial_id || v.statut_validation !== 'Validé' || !dansOperation(v.date_vente)) return;
+      bac(v.commercial_id).ventes.push(v);
+    });
+    allClients.forEach((c) => {
+      (c.commerciaux_assignes || []).forEach((id) => bac(id).clients.push(c));
+    });
+
+    const merite = (badge, d) => {
+      const seuil = badge.condition_seuil || 1;
+      const realises = d.rdvs.filter((r) => r.statut === 'Réalisé');
+      switch (badge.condition_type) {
+        case 'premier_rdv': return d.rdvs.length >= 1;
+        case 'sprint_13_14': {
+          if (!sprintDebut || !sprintFin) return false;
+          return realises.filter((r) => {
+            const j = (r.date_heure || '').slice(0, 10);
+            return j >= sprintDebut && j <= sprintFin;
+          }).length >= (badge.condition_seuil || 3);
+        }
+        case 'closeur': return d.ventes.length >= 1;
+        case 'portefeuille_nettoye':
+          return d.clients.length > 0 && !d.clients.some((c) => c.statut === 'À contacter');
+        case 'chasseur_reprises':
+          return d.ventes.filter((v) => v.reprise && v.reprise !== 'Sans reprise').length >= (badge.condition_seuil || 5);
+        case 'premier_devis': return d.clients.some((c) => c.montant_devis > 0);
+        case 'serie_active': {
+          const jours = new Set();
+          d.rdvs.forEach((r) => r.date_heure && jours.add(r.date_heure.slice(0, 10)));
+          d.ventes.forEach((v) => v.date_vente && jours.add(v.date_vente));
+          d.clients.forEach((c) => dansOperation(c.date_dernier_contact) && jours.add(c.date_dernier_contact));
+          const tri = [...jours].sort();
+          let suite = tri.length > 0 ? 1 : 0, max = suite;
+          for (let i = 1; i < tri.length; i++) {
+            const diff = (new Date(tri[i]) - new Date(tri[i - 1])) / 86400000;
+            if (diff === 1) { suite += 1; max = Math.max(max, suite); } else suite = 1;
+          }
+          return max >= (badge.condition_seuil || 3);
+        }
+        case 'rdv_volume': return realises.length >= (badge.condition_seuil || 10);
+        case 'ventes_volume': return d.ventes.length >= (badge.condition_seuil || 3);
+        case 'vente_tracteur':
+          return d.ventes.filter((v) => v.type_machine === 'Tracteur').length >= (badge.condition_seuil || 3);
+        case 'polyvalent':
+          return new Set(d.ventes.map((v) => v.type_machine).filter(Boolean)).size >= (badge.condition_seuil || 3);
+        case 'rdv_jour': {
+          const parJour = {};
+          realises.forEach((r) => {
+            if (!r.date_heure) return;
+            const j = r.date_heure.slice(0, 10);
+            parJour[j] = (parJour[j] || 0) + 1;
+          });
+          return Object.values(parJour).reduce((m, n) => Math.max(m, n), 0) >= (badge.condition_seuil || 5);
+        }
+        case 'offre_magasin':
+          return d.clients.filter((c) => c.statut === 'Offre magasin à proposer').length >= seuil;
+        default: return false;
+      }
+    };
+
+    const vide = { rdvs: [], ventes: [], clients: [] };
+    const murBadges = obtenus.filter((o) => {
+      const badge = catalogueBadges.get(o.badge_id);
+      if (!badge) return false; // badge retiré du catalogue
+      return merite(badge, parUtilisateur.get(o.utilisateur_id) || vide);
+    });
+    const badgesObtenusValides = murBadges.length;
 
     const ventesParMachine = {};
     const ventesParTypeVente = {};
@@ -339,7 +419,16 @@ export default async function (req) {
         par_reprise: ventesParReprise
       },
       offres: { total: offres.length, ca_realise: offres.reduce((s, o) => s + (o.ca_realise || 0), 0) },
-      badges: { total: badges.length, obtenus: badgesObtenusValides },
+      badges: {
+        total: badges.length,
+        obtenus: badgesObtenusValides,
+        // Mur validé : le Grand Écran l'affiche tel quel, sans risque de badge caduc.
+        mur: murBadges
+          .slice()
+          .sort((a, b) => String(b.created_date || '').localeCompare(String(a.created_date || '')))
+          .slice(0, 30)
+          .map((o) => ({ id: o.id, badge_id: o.badge_id, utilisateur_id: o.utilisateur_id, created_date: o.created_date }))
+      },
       structure: { commerciaux: structure.length }
     });
   } catch (error) {

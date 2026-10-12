@@ -248,9 +248,14 @@ export default function GrandEcran() {
 
   // Seuls les badges encore au catalogue sont affichés : les attributions d'anciens
   // badges supprimés (reliquats) ne doivent plus apparaître sur le mur.
+  // Mur validé par le serveur : seuls les badges ENCORE mérités y figurent.
+  // L'écran se corrige donc tout seul si un RDV est annulé ou des données purgées,
+  // sans attendre qu'on lance un recalcul depuis l'administration.
   const badgesAffiches = useMemo(
-    () => badgeObtenus.filter((bo) => badgeMap[bo.badge_id]),
-    [badgeObtenus, badgeMap]
+    () => (exacts?.badges?.mur
+      ? exacts.badges.mur.filter((bo) => badgeMap[bo.badge_id])
+      : badgeObtenus.filter((bo) => badgeMap[bo.badge_id])),
+    [exacts, badgeObtenus, badgeMap]
   );
 
   // Phase detection
