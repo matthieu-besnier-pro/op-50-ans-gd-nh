@@ -5,19 +5,14 @@ import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
 import StatusBadge from '@/components/StatusBadge';
+import StatutInline from '@/components/StatutInline';
 import AppetenceGauge from '@/components/AppetenceGauge';
 import RdvExpress from '@/components/RdvExpress';
 import VenteDialog from '@/components/VenteDialog';
 import ScriptAppel from '@/components/ScriptAppel';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
 import { canSeePac } from '@/lib/permissions';
-import { useStatuts } from '@/lib/statuts';
 import ParcMaterielTable from '@/components/ParcMaterielTable';
 import { UsagesClient } from '@/components/MaterielPicto';
 import CoachCommercial from '@/components/CoachCommercial';
@@ -26,8 +21,6 @@ import {
   ArrowLeft, Phone, MapPin, Calendar, Wrench, ShoppingBag,
   MessageSquare, Plus, Tractor, Mail, FileText, Star
 } from 'lucide-react';
-
-const MOTIFS_REFUS = ['Pas de besoin', 'Concurrent', 'Budget', 'Autre'];
 
 export default function ClientDetail() {
   const { id } = useParams();
@@ -42,13 +35,7 @@ export default function ClientDetail() {
   const [rdvOpen, setRdvOpen] = useState(false);
   const [venteOpen, setVenteOpen] = useState(false);
   const [newComment, setNewComment] = useState('');
-  const [statutEdit, setStatutEdit] = useState('');
-  const [dateRappel, setDateRappel] = useState('');
-  const [motifRefus, setMotifRefus] = useState('');
-  const [statutError, setStatutError] = useState('');
   const [pulseRow, setPulseRow] = useState(false);
-  // Liste des statuts administrée par la Direction (Administration → Statuts).
-  const statuts = useStatuts();
 
   const loadAll = async () => {
     setLoading(true);
@@ -61,7 +48,6 @@ export default function ClientDetail() {
       }
       if (!c) { setLoading(false); return; }
       setClient(c);
-      setStatutEdit(c.statut || 'À contacter');
       // Parc lu côté serveur (même canal que le reste de la fiche) : il s'affiche toujours.
       // Chaque section est isolée : l'échec d'un appel ne vide plus les autres.
       const [mats, coms, rds, vts] = await Promise.all([
@@ -84,39 +70,6 @@ export default function ClientDetail() {
   };
 
   useEffect(() => { loadAll(); }, [id]);
-
-  const handleStatutChange = async () => {
-    setStatutError('');
-    if (statutEdit === 'À rappeler' && !dateRappel) {
-      setStatutError('La date de rappel est obligatoire pour le statut « À rappeler ».');
-      return;
-    }
-    if (statutEdit === 'Refus' && !motifRefus) {
-      setStatutError('Le motif de refus est obligatoire.');
-      return;
-    }
-    const updates = {
-      statut: statutEdit,
-      date_dernier_contact: new Date().toISOString().slice(0, 10)
-    };
-    if (statutEdit === 'Injoignable') {
-      updates.nb_tentatives_contact = (client.nb_tentatives_contact || 0) + 1;
-    }
-    if (statutEdit === 'À rappeler') updates.date_rappel = dateRappel;
-    if (statutEdit === 'Refus') updates.motif_refus = motifRefus;
-
-    await base44.entities.client.update(id, updates);
-    if (statutEdit === 'RDV Commercial obtenu' || statutEdit === 'Offre magasin à proposer') {
-      setPulseRow(true);
-      setTimeout(() => setPulseRow(false), 600);
-    }
-    // Badges : toujours pour le commercial affecté au client (la fiche fait foi)
-    const assignes = client.commerciaux_assignes || [];
-    const badgeUserId = assignes.includes(user.id) ? user.id : (assignes[0] || user.id);
-    try { await base44.functions.invoke('verifier_badges', { utilisateur_id: badgeUserId }); } catch (e) { /* ignore */ }
-    loadAll();
-    setDateRappel(''); setMotifRefus('');
-  };
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
@@ -161,7 +114,18 @@ export default function ClientDetail() {
                   <Star className="h-3 w-3" fill="currentColor" /> Cible prioritaire
                 </span>
               )}
-              <StatusBadge statut={client.statut} />
+              <StatutInline
+                client={client}
+                user={user}
+                onSaved={(maj) => {
+                  setClient((c) => ({ ...c, ...maj }));
+                  if (maj.statut === 'RDV Commercial obtenu' || maj.statut === 'Offre magasin à proposer') {
+                    setPulseRow(true);
+                    setTimeout(() => setPulseRow(false), 600);
+                  }
+                  loadAll();
+                }}
+              />
               <AppetenceGauge niveau={client.niveau_appetence} score={client.score_appetence} className="min-w-[8.5rem]" />
               {client.type_structure && <span className="text-xs font-medium text-muted-foreground">{client.type_structure}</span>}
               {client.type_client_mistra && <span className="text-xs font-medium text-muted-foreground">· {client.type_client_mistra}</span>}
@@ -207,33 +171,6 @@ export default function ClientDetail() {
             </h2>
             <p className="mb-3 text-xs text-muted-foreground">Matériel éligible à l'opération 50 ans Gonnin Duris × New Holland.</p>
             <ParcMaterielTable materiels={materiels} />
-          </div>
-
-          {/* Statut change */}
-          <div className={`rounded-xl border border-border bg-card p-5 shadow-sm ${pulseRow ? 'animate-pulse-gd' : ''}`}>
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Changer le statut</h2>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={statutEdit} onValueChange={setStatutEdit}>
-                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {statuts.map((s) => <SelectItem key={s.nom} value={s.nom}>{s.nom}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Button onClick={handleStatutChange} className="bg-gd-navy hover:bg-gd-navy-dark text-white">Mettre à jour</Button>
-            </div>
-            {statutEdit === 'À rappeler' && (
-              <div className="mt-3"><Label className="text-xs">Date de rappel (obligatoire)</Label><Input type="date" value={dateRappel} onChange={(e) => setDateRappel(e.target.value)} className="mt-1" /></div>
-            )}
-            {statutEdit === 'Refus' && (
-              <div className="mt-3">
-                <Label className="text-xs">Motif de refus (obligatoire)</Label>
-                <Select value={motifRefus} onValueChange={setMotifRefus}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Choisir…" /></SelectTrigger>
-                  <SelectContent>{MOTIFS_REFUS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            )}
-            {statutError && <p className="mt-2 text-sm text-destructive">{statutError}</p>}
           </div>
 
           {/* Commentaires */}
