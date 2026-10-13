@@ -117,6 +117,20 @@ export default function Login() {
         <GoogleIcon className="w-5 h-5 mr-2" />
         Continuer avec Google
       </Button>
+
+      {/* Première connexion : un compte invité n'a pas encore de mot de passe. */}
+      <div className="mt-6 rounded-lg border border-gd-orange/40 bg-gd-orange/5 p-3 text-center">
+        <p className="text-sm font-semibold text-gd-navy-dark">Première connexion ?</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Votre compte a été créé par la Direction, mais il n'a pas encore de mot de passe.
+        </p>
+        <Link
+          to="/forgot-password"
+          className="mt-2 inline-block text-sm font-semibold text-gd-orange underline underline-offset-2 hover:text-gd-navy"
+        >
+          Définir mon mot de passe
+        </Link>
+      </div>
     </AuthLayout>
   );
 }
