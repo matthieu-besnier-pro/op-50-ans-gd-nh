@@ -118,18 +118,21 @@ export default function Login() {
         Continuer avec Google
       </Button>
 
-      {/* Première connexion : un compte invité n'a pas encore de mot de passe. */}
-      <div className="mt-6 rounded-lg border border-gd-orange/40 bg-gd-orange/5 p-3 text-center">
-        <p className="text-sm font-semibold text-gd-navy-dark">Première connexion ?</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Votre compte a été créé par la Direction, mais il n'a pas encore de mot de passe.
+      {/* Première connexion. « Mot de passe oublié » ne marche QUE sur un compte
+          déjà actif : tant qu'on ne s'est jamais connecté, il n'envoie rien. */}
+      <div className="mt-6 rounded-lg border border-gd-orange/40 bg-gd-orange/5 p-3">
+        <p className="text-center text-sm font-semibold text-gd-navy-dark">Première connexion ?</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Le plus simple : <strong>Continuer avec Google</strong> ci-dessus, avec votre adresse
+          professionnelle. Aucun mot de passe à créer.
         </p>
-        <Link
-          to="/forgot-password"
-          className="mt-2 inline-block text-sm font-semibold text-gd-orange underline underline-offset-2 hover:text-gd-navy"
-        >
-          Définir mon mot de passe
-        </Link>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Sinon, <Link to="/register" className="font-semibold text-gd-orange underline underline-offset-2 hover:text-gd-navy">créez votre accès</Link> avec
+          cette même adresse : vous choisissez votre mot de passe et recevez un code de confirmation.
+        </p>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          « Mot de passe oublié » ne fonctionne qu'une fois votre compte déjà actif.
+        </p>
       </div>
     </AuthLayout>
   );
