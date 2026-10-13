@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Mail, Loader2, CheckCircle2, AlertTriangle, Eye } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
+import { Mail, Loader2, CheckCircle2, AlertTriangle, Eye, UserPlus } from 'lucide-react';
 
 const DOMAINE = 'gonnin-duris.fr';
 
@@ -21,6 +24,16 @@ const emailPropose = (nom) => {
     .replace(/^-+|-+$/g, '');
   return propre ? `${propre}@${DOMAINE}` : '';
 };
+
+const ROLES = [
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'agri_precision', label: 'Agriculture de précision' },
+  { value: 'responsable', label: 'Responsable commercial' },
+  { value: 'chef_atelier', label: "Chef d'atelier" },
+  { value: 'responsable_sav', label: 'Responsable SAV' },
+  { value: 'collaborateur', label: 'Collaborateur' },
+  { value: 'direction', label: 'Direction / Marketing' }
+];
 
 const ETATS = {
   invite: { libelle: 'Invité', classe: 'text-emerald-700' },
@@ -41,6 +54,10 @@ export default function AdminInvitations() {
   const [busy, setBusy] = useState(false);
   const [apercu, setApercu] = useState(null);
   const [erreur, setErreur] = useState('');
+  // Invitation unitaire : retardataire, remplaçant, profil hors structure commerciale.
+  const [solo, setSolo] = useState({ nom: '', email: '', role: 'commercial' });
+  const [soloBusy, setSoloBusy] = useState(false);
+  const [soloRes, setSoloRes] = useState(null);
 
   useEffect(() => {
     base44.entities.structure_commerciale.list('-nom_commercial', 500)
@@ -77,6 +94,32 @@ export default function AdminInvitations() {
     role: s.manager && cle(s.manager) === cle(s.nom_commercial) ? 'responsable' : 'commercial'
   })).filter((l) => l.email), [structure, emails]);
 
+  // L'adresse se déduit du nom tant qu'on ne l'a pas saisie à la main.
+  const majSoloNom = (nom) => setSolo((v) => ({
+    ...v, nom,
+    email: v.emailTouche ? v.email : emailPropose(nom)
+  }));
+
+  const inviterUn = async () => {
+    const nom = solo.nom.trim();
+    const email = solo.email.trim().toLowerCase();
+    if (!nom || !email) { setSoloRes({ etat: 'erreur', detail: 'Indiquez un nom et une adresse.' }); return; }
+    setSoloBusy(true); setSoloRes(null);
+    try {
+      const res = await base44.functions.invoke('inviter_equipe', {
+        lignes: [{ nom, email, role: solo.role }]
+      });
+      const d = res?.data ?? res;
+      if (d?.error) throw new Error(d.error);
+      setSoloRes(d.resultats?.[0] || null);
+      if (d.resultats?.[0]?.etat !== 'erreur') setSolo({ nom: '', email: '', role: solo.role });
+    } catch (e) {
+      setSoloRes({ etat: 'erreur', detail: e?.response?.data?.error || e?.message || "L'invitation a échoué." });
+    } finally {
+      setSoloBusy(false);
+    }
+  };
+
   const lancer = async (dryRun) => {
     setBusy(true); setErreur(''); if (!dryRun) setApercu(null);
     try {
@@ -102,6 +145,45 @@ export default function AdminInvitations() {
         sont rattachés automatiquement. Relancer est sans risque : les comptes déjà créés
         sont simplement mis à jour.
       </p>
+
+      {/* Invitation unitaire : le cas le plus fréquent en cours d'opération. */}
+      <div className="mb-4 rounded-lg border-2 border-gd-orange/30 bg-gd-orange/5 p-3">
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gd-navy-dark">
+          <UserPlus className="h-3.5 w-3.5 text-gd-orange" /> Inviter une seule personne
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[11rem] flex-1">
+            <Label className="text-xs">Nom</Label>
+            <Input value={solo.nom} onChange={(e) => majSoloNom(e.target.value)}
+              placeholder="Alexandre BELLIN" className="mt-1 h-9" />
+          </div>
+          <div className="min-w-[15rem] flex-1">
+            <Label className="text-xs">Adresse</Label>
+            <Input value={solo.email}
+              onChange={(e) => setSolo((v) => ({ ...v, email: e.target.value, emailTouche: true }))}
+              placeholder="prenom-nom@gonnin-duris.fr" className="mt-1 h-9" />
+          </div>
+          <div className="min-w-[12rem]">
+            <Label className="text-xs">Rôle</Label>
+            <Select value={solo.role} onValueChange={(v) => setSolo((s2) => ({ ...s2, role: v }))}>
+              <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={inviterUn} disabled={soloBusy}
+            className="h-9 bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark font-semibold">
+            {soloBusy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Envoi…</>
+                      : <><Mail className="h-4 w-4 mr-1.5" /> Inviter</>}
+          </Button>
+        </div>
+        {soloRes && (
+          <p className={`mt-2 text-xs ${ETATS[soloRes.etat]?.classe || 'text-gd-red'}`}>
+            {ETATS[soloRes.etat]?.libelle || 'Erreur'} — {soloRes.detail}
+          </p>
+        )}
+      </div>
 
       <div className="mb-4 rounded-lg border border-border bg-muted/30 p-3">
         <Label className="text-xs">Coller la liste (une ligne par personne : <code>Nom ; adresse</code>)</Label>
