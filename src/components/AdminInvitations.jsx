@@ -66,6 +66,11 @@ export default function AdminInvitations() {
         setStructure(actifs);
         const init = {};
         actifs.forEach((s) => { init[s.nom_commercial] = s.email || emailPropose(s.nom_commercial); });
+        // Responsables : déduits du champ « manager », ils n'ont pas de fiche propre.
+        actifs.forEach((s) => {
+          const m = (s.manager || '').trim();
+          if (m && !init[m]) init[m] = emailPropose(m);
+        });
         setEmails(init);
       })
       .catch(() => setErreur('Impossible de charger la structure commerciale.'));
@@ -74,7 +79,7 @@ export default function AdminInvitations() {
   // Coller « Nom ; email » (ou tabulation, ou virgule) pour remplir d'un coup.
   const appliquerColle = () => {
     const parNom = {};
-    structure.forEach((s) => { parNom[cle(s.nom_commercial)] = s.nom_commercial; });
+    personnes.forEach((p) => { parNom[cle(p.nom)] = p.nom; });
     let trouves = 0;
     const maj = { ...emails };
     colle.split('\n').forEach((ligne) => {
@@ -88,11 +93,28 @@ export default function AdminInvitations() {
     setErreur(trouves === 0 ? 'Aucun nom reconnu. Format attendu : « Nom ; adresse@… » (une par ligne).' : '');
   };
 
-  const lignes = useMemo(() => structure.map((s) => ({
-    nom: s.nom_commercial,
-    email: (emails[s.nom_commercial] || '').trim(),
-    role: s.manager && cle(s.manager) === cle(s.nom_commercial) ? 'responsable' : 'commercial'
-  })).filter((l) => l.email), [structure, emails]);
+  // Les responsables n'ont pas de ligne à eux : ils apparaissent comme « manager »
+  // de leurs vendeurs. Sans ça, ils n'étaient jamais invités.
+  const personnes = useMemo(() => {
+    const parCle = new Map();
+    structure.forEach((s) => {
+      if (s.nom_commercial) parCle.set(cle(s.nom_commercial), { nom: s.nom_commercial, role: 'commercial' });
+    });
+    structure.forEach((s) => {
+      const m = (s.manager || '').trim();
+      if (!m) return;
+      // Un responsable qui a aussi un portefeuille garde le rôle responsable.
+      parCle.set(cle(m), { nom: parCle.get(cle(m))?.nom || m, role: 'responsable' });
+    });
+    return [...parCle.values()].sort((a, b) => {
+      if (a.role !== b.role) return a.role === 'responsable' ? -1 : 1;
+      return a.nom.localeCompare(b.nom, 'fr');
+    });
+  }, [structure]);
+
+  const lignes = useMemo(() => personnes
+    .map((p) => ({ nom: p.nom, email: (emails[p.nom] || '').trim(), role: p.role }))
+    .filter((l) => l.email), [personnes, emails]);
 
   // L'adresse se déduit du nom tant qu'on ne l'a pas saisie à la main.
   const majSoloNom = (nom) => setSolo((v) => ({
@@ -196,14 +218,19 @@ export default function AdminInvitations() {
       </div>
 
       <div className="mb-4 max-h-80 overflow-y-auto rounded-lg border border-border">
-        {structure.length === 0 ? (
+        {personnes.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Chargement de la structure commerciale…</p>
-        ) : structure.map((s) => (
-          <div key={s.id} className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 last:border-0">
-            <span className="w-52 shrink-0 truncate text-sm font-semibold text-foreground">{s.nom_commercial}</span>
+        ) : personnes.map((p) => (
+          <div key={p.nom} className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 last:border-0">
+            <span className="w-52 shrink-0 truncate text-sm font-semibold text-foreground">{p.nom}</span>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+              p.role === 'responsable' ? 'bg-gd-navy text-white' : 'bg-muted text-muted-foreground'
+            }`}>
+              {p.role === 'responsable' ? 'Responsable' : 'Commercial'}
+            </span>
             <Input
-              value={emails[s.nom_commercial] || ''}
-              onChange={(e) => setEmails((m) => ({ ...m, [s.nom_commercial]: e.target.value }))}
+              value={emails[p.nom] || ''}
+              onChange={(e) => setEmails((m) => ({ ...m, [p.nom]: e.target.value }))}
               placeholder="prenom-nom@gonnin-duris.fr"
               className="h-8 max-w-xs flex-1 text-xs"
             />
