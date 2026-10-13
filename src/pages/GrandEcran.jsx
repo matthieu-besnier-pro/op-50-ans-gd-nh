@@ -62,7 +62,15 @@ function ProgressRing({ value, max, size = 220, stroke = 18, color = 'hsl(45 100
 }
 
 /* ---------- Leaderboard row ---------- */
-function LeaderRow({ rank, name, count, total, isAtelier, prevRank }) {
+// Densité du classement : tout le monde doit tenir à l'écran, même à 22.
+// On resserre progressivement plutôt que de couper la liste.
+function densiteClassement(n) {
+  if (n <= 8) return { pad: 'px-5 py-4', gap: 'gap-4', medaille: 'h-12 w-12 text-2xl', rang: 'text-lg', nom: 'text-lg', barre: 'mt-2 h-2.5', compteur: 'text-3xl', libelle: 'text-xs', espace: 'space-y-3' };
+  if (n <= 14) return { pad: 'px-4 py-2.5', gap: 'gap-3', medaille: 'h-9 w-9 text-xl', rang: 'text-base', nom: 'text-base', barre: 'mt-1.5 h-2', compteur: 'text-2xl', libelle: 'text-[10px]', espace: 'space-y-2' };
+  return { pad: 'px-3 py-1.5', gap: 'gap-2', medaille: 'h-7 w-7 text-base', rang: 'text-sm', nom: 'text-sm', barre: 'mt-1 h-1.5', compteur: 'text-xl', libelle: 'text-[9px]', espace: 'space-y-1.5' };
+}
+
+function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d }) {
   const medals = ['🥇', '🥈', '🥉'];
   const pct = total > 0 ? (count / total) * 100 : 0;
   const movedUp = prevRank !== null && prevRank > rank;
@@ -72,14 +80,14 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank }) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`relative flex items-center gap-4 rounded-2xl px-5 py-4 ${rank <= 3 ? 'bg-white/10 border border-gd-orange/30' : 'bg-white/5 border border-white/5'}`}
+      className={`relative flex items-center rounded-2xl ${d.gap} ${d.pad} ${rank <= 3 ? 'bg-white/10 border border-gd-orange/30' : 'bg-white/5 border border-white/5'}`}
     >
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center text-2xl font-extrabold text-white">
-        {rank <= 3 ? medals[rank - 1] : <span className="text-lg text-white/50">{rank}</span>}
+      <div className={`flex shrink-0 items-center justify-center font-extrabold text-white ${d.medaille}`}>
+        {rank <= 3 ? medals[rank - 1] : <span className={`${d.rang} text-white/50`}>{rank}</span>}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-white truncate">{name}</span>
+          <span className={`${d.nom} font-bold text-white truncate`}>{name}</span>
           {isAtelier && <Wrench className="h-4 w-4 text-gd-orange shrink-0" />}
           {movedUp && (
             <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center text-gd-orange">
@@ -87,7 +95,7 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank }) {
             </motion.span>
           )}
         </div>
-        <div className="mt-2 h-2.5 w-full rounded-full bg-white/10 overflow-hidden">
+        <div className={`${d.barre} w-full rounded-full bg-white/10 overflow-hidden`}>
           <motion.div
             className="h-full rounded-full bg-gradient-to-r from-gd-orange to-yellow-300"
             initial={{ width: 0 }}
@@ -97,8 +105,8 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank }) {
         </div>
       </div>
       <div className="text-right shrink-0">
-        <AnimatedCounter value={count} className="text-3xl font-extrabold text-white tabular-nums" />
-        <p className="text-xs text-white/40">RDV</p>
+        <AnimatedCounter value={count} className={`${d.compteur} font-extrabold text-white tabular-nums`} />
+        <p className={`${d.libelle} text-white/40`}>RDV</p>
       </div>
     </motion.div>
   );
@@ -491,7 +499,9 @@ export default function GrandEcran() {
                   <span className="h-2 w-2 rounded-full bg-gd-orange animate-pulse" /> Temps réel
                 </span>
               </div>
-              <div className="space-y-3 flex-1">
+              {/* Tout le classement doit être visible : la densité s'adapte au nombre,
+                  et le défilement reste en dernier recours. */}
+              <div className={`${densiteClassement((phase === 'sprint' ? leaderboard : ventesLeaderboard).length).espace} flex-1 overflow-y-auto pr-1`}>
                 <AnimatePresence>
                   {(phase === 'sprint' ? leaderboard : ventesLeaderboard).length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -500,15 +510,16 @@ export default function GrandEcran() {
                       <p className="text-sm text-white/40 mt-1">Que la meilleure équipe gagne !</p>
                     </div>
                   ) : (
-                    (phase === 'sprint' ? leaderboard : ventesLeaderboard).map((entry, i) => (
+                    (phase === 'sprint' ? leaderboard : ventesLeaderboard).map((entry, i, liste) => (
                       <LeaderRow
                         key={entry.id}
                         rank={i + 1}
                         name={entry.name}
                         count={entry.count}
-                        total={(phase === 'sprint' ? leaderboard : ventesLeaderboard)[0]?.count || 1}
+                        total={liste[0]?.count || 1}
                         isAtelier={entry.isAtelier}
                         prevRank={prevRanks[entry.id] || null}
+                        d={densiteClassement(liste.length)}
                       />
                     ))
                   )}
