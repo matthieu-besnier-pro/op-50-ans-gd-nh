@@ -167,7 +167,7 @@ export default function GrandEcran() {
         listerPartage('parametres_operation', '-created_date', 1),
         listerPartage('rdv', '-date_heure', 500),
         listerPartage('vente', '-date_vente', 500),
-        listerPartage('User', '-created_date', 50).catch(() => []),
+        listerPartage('User', '-created_date', 300).catch(() => []),
         listerPartage('badge_obtenu', '-created_date', 100),
         listerPartage('structure_commerciale', '-nom_commercial', 200),
         listerPartage('badge', '-created_date', 50).catch(() => []),
@@ -303,19 +303,31 @@ export default function GrandEcran() {
   const sprintAgriCount = exacts?.rdv?.sprint?.agri ?? sprintRdvs.filter(r => r.type === 'RDV agri. précision').length;
 
   // Leaderboard
+  // Classement : on prend les comptages du serveur, qui parcourt TOUS les
+  // rendez-vous. La liste chargée ici est plafonnée et triée par date : s'en
+  // servir faisait disparaître du classement les commerciaux dont les
+  // rendez-vous tombaient hors de la tranche chargée.
   const leaderboard = useMemo(() => {
+    const exact = exacts?.rdv?.sprint_par_commercial;
     const counts = {};
-    sprintRdvs.forEach(r => {
-      if (!r.commercial_id) return;
-      counts[r.commercial_id] = (counts[r.commercial_id] || 0) + 1;
-    });
-    const entries = Object.entries(counts).map(([id, count]) => ({
-      id, count, name: nameMap[id] || `Commercial ${id.slice(-4)}`,
-      isAtelier: sprintRdvs.some(r => r.commercial_id === id && r.type === 'RDV atelier hivernage')
-    }));
+    if (exact && Object.keys(exact).length > 0) {
+      Object.entries(exact).forEach(([id, n]) => { counts[id] = n; });
+    } else {
+      sprintRdvs.forEach(r => {
+        if (!r.commercial_id) return;
+        counts[r.commercial_id] = (counts[r.commercial_id] || 0) + 1;
+      });
+    }
+    const entries = Object.entries(counts)
+      .filter(([, count]) => count > 0)
+      .map(([id, count]) => ({
+        id, count, name: nameMap[id] || `Commercial ${id.slice(-4)}`,
+        // Indication visuelle seulement : déduite des rendez-vous chargés.
+        isAtelier: sprintRdvs.some(r => r.commercial_id === id && r.type === 'RDV atelier hivernage')
+      }));
     entries.sort((a, b) => b.count - a.count);
     return entries;
-  }, [sprintRdvs, nameMap]);
+  }, [exacts, sprintRdvs, nameMap]);
 
   // Track rank changes
   useEffect(() => {
