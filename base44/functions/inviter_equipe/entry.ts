@@ -67,36 +67,65 @@ export default async function (req) {
       try {
         let userId = existant?.id;
         if (!userId) {
-          await base44.users.inviteUser(email, 'user');
-          // L'utilisateur n'est pas disponible immédiatement après l'invitation.
-          await new Promise((r) => setTimeout(r, 600));
-          const frais = await sr.entities.User.list('-created_date', 500);
-          const cree = frais.find((u) => (u.email || '').toLowerCase() === email);
+          try {
+            await base44.users.inviteUser(email, 'user');
+          } catch (e) {
+            // « déjà invité / déjà membre » n'est pas un échec : on enchaîne sur la
+            // recherche du compte, qui existe alors forcément.
+            const msg = String(e?.message || e);
+            if (!/exist|déjà|already|duplicate/i.test(msg)) {
+              resultats.push({ nom, email, etat: 'erreur', detail: `Invitation refusée : ${msg}` });
+              continue;
+            }
+          }
+          // Le compte n'apparaît pas tout de suite : on réessaie plusieurs fois.
+          let cree = null;
+          for (let essai = 0; essai < 5 && !cree; essai++) {
+            await new Promise((r) => setTimeout(r, 400 + essai * 400));
+            const frais = await sr.entities.User.list('-created_date', 500);
+            cree = frais.find((u) => (u.email || '').toLowerCase() === email) || null;
+          }
           if (!cree) {
-            resultats.push({ nom, email, etat: 'erreur', detail: 'Compte introuvable après invitation' });
+            resultats.push({
+              nom, email, etat: 'erreur',
+              detail: "Invitation envoyée mais compte pas encore visible. Relancez dans une minute : il sera repris."
+            });
             continue;
           }
           userId = cree.id;
           parEmail[email] = cree;
         }
 
-        const maj = { app_role: role };
-        if (nom) maj.full_name = nom;
-        if (fiche?.codes_communes) maj.codes_communes = fiche.codes_communes;
-        await sr.entities.User.update(userId, maj);
+        // Le compte existe : même si le rôle ou le rattachement échoue, l'accès est
+        // créé. On le signale sans faire passer toute la ligne en erreur.
+        const soucis = [];
+        try {
+          const maj = { app_role: role };
+          if (nom) maj.full_name = nom;
+          if (fiche?.codes_communes) maj.codes_communes = fiche.codes_communes;
+          await sr.entities.User.update(userId, maj);
+        } catch (e) {
+          soucis.push(`rôle non appliqué (${e?.message || e})`);
+        }
 
         if (fiche) {
-          await sr.entities.structure_commerciale.update(fiche.id, {
-            user_id: userId,
-            email,
-            statut: 'Invité'
-          });
+          try {
+            await sr.entities.structure_commerciale.update(fiche.id, {
+              user_id: userId,
+              email,
+              statut: 'Invité'
+            });
+          } catch (e) {
+            soucis.push(`fiche non rattachée (${e?.message || e})`);
+          }
         }
 
         resultats.push({
           nom, email, role,
           etat: existant ? 'mis_a_jour' : 'invite',
-          detail: fiche ? `Rattaché à « ${fiche.nom_commercial} »` : 'Aucune fiche commerciale à rattacher'
+          detail: soucis.length
+            ? soucis.join(' · ')
+            : (fiche ? `Rattaché à « ${fiche.nom_commercial} »` : 'Aucune fiche commerciale à rattacher')
         });
       } catch (e) {
         resultats.push({ nom, email, etat: 'erreur', detail: e?.message || String(e) });
