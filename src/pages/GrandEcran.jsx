@@ -76,14 +76,17 @@ function ProgressRing({ value, max, size = 220, stroke = 18, color = 'hsl(45 100
 // lit d'un coup d'œil là où une suite de lignes se ressemble toutes.
 // Ordre d'affichage : 2e à gauche, 1er au centre sur la marche haute, 3e à droite.
 const MARCHES = [
-  { rang: 2, medaille: '🥈', hauteur: 'h-16', socle: 'from-slate-200/30 to-slate-400/5', bord: 'border-slate-200/40' },
-  { rang: 1, medaille: '🥇', hauteur: 'h-24', socle: 'from-gd-orange/45 to-yellow-300/5', bord: 'border-gd-orange/60' },
-  { rang: 3, medaille: '🥉', hauteur: 'h-11', socle: 'from-amber-600/30 to-amber-800/5', bord: 'border-amber-500/40' }
+  { rang: 2, medaille: '🥈', hauteur: 84, socle: 'from-slate-200/30 to-slate-400/5', bord: 'border-slate-200/40' },
+  { rang: 1, medaille: '🥇', hauteur: 120, socle: 'from-gd-orange/45 to-yellow-300/5', bord: 'border-gd-orange/60' },
+  { rang: 3, medaille: '🥉', hauteur: 56, socle: 'from-amber-600/30 to-amber-800/5', bord: 'border-amber-500/40' }
 ];
 
-function Podium({ entrees, unite }) {
+function Podium({ entrees, unite, compact }) {
+  const t = compact
+    ? { medaille1: 'text-3xl', medaille: 'text-2xl', nom1: 'text-base', nom: 'text-sm', chiffre1: 'text-4xl', chiffre: 'text-2xl', marche: 0.7, marge: 'mb-3' }
+    : { medaille1: 'text-4xl', medaille: 'text-3xl', nom1: 'text-lg', nom: 'text-base', chiffre1: 'text-5xl', chiffre: 'text-3xl', marche: 1, marge: 'mb-5' };
   return (
-    <div className="flex items-end justify-center gap-3 shrink-0 mb-5">
+    <div className={`flex items-end justify-center gap-3 shrink-0 ${t.marge}`}>
       {MARCHES.map((m) => {
         const e = entrees[m.rang - 1];
         // Moins de trois commerciaux classés : la marche reste vide plutôt que
@@ -98,16 +101,21 @@ function Podium({ entrees, unite }) {
             transition={{ type: 'spring', stiffness: 260, damping: 26 }}
             className="flex-1 min-w-0 flex flex-col items-center"
           >
-            <div className={m.rang === 1 ? 'text-4xl leading-none' : 'text-3xl leading-none'}>{m.medaille}</div>
-            <p className={`mt-1.5 w-full truncate text-center font-bold text-white ${m.rang === 1 ? 'text-lg' : 'text-base'}`}>
+            <div className={`leading-none ${m.rang === 1 ? t.medaille1 : t.medaille}`}>{m.medaille}</div>
+            <p className={`mt-1.5 w-full truncate text-center font-bold text-white ${m.rang === 1 ? t.nom1 : t.nom}`}>
               {e.name}
             </p>
             <div className="flex items-baseline gap-1.5">
-              <AnimatedCounter value={e.count} className={`font-extrabold tabular-nums ${m.rang === 1 ? 'text-5xl text-gd-orange' : 'text-3xl text-white'}`} />
+              <AnimatedCounter value={e.count} className={`font-extrabold tabular-nums ${m.rang === 1 ? `${t.chiffre1} text-gd-orange` : `${t.chiffre} text-white`}`} />
               <span className="text-[11px] uppercase tracking-widest text-white/40">{unite}</span>
             </div>
-            <div className={`mt-2 w-full rounded-t-2xl border border-b-0 bg-gradient-to-b ${m.socle} ${m.bord} ${m.hauteur} flex items-start justify-center pt-1.5`}>
-              <span className="text-3xl font-black text-white/25">{m.rang}</span>
+            <div
+              className={`mt-2 w-full overflow-hidden rounded-t-2xl border border-b-0 bg-gradient-to-b ${m.socle} ${m.bord} flex items-start justify-center pt-1`}
+              style={{ height: Math.round(m.hauteur * t.marche) }}
+            >
+              {/* Chiffre décoratif : la marche la plus basse est courte, il doit
+                  y tenir sans déborder. */}
+              <span className={`font-black leading-none text-white/25 ${compact ? 'text-lg' : 'text-2xl'}`}>{m.rang}</span>
             </div>
           </motion.div>
         );
@@ -118,47 +126,55 @@ function Podium({ entrees, unite }) {
 
 /* ---------- Leaderboard row ---------- */
 // Densité des places 4 et suivantes. L'argument est le nombre de LIGNES de la
-// grille, pas le nombre de commerciaux : deux colonnes en logent deux par ligne.
+// grille, pas le nombre de commerciaux : trois colonnes en logent trois.
 function densiteClassement(n) {
-  if (n <= 5) return { pad: 'px-4 py-3', gap: 'gap-3', rang: 'text-lg', nom: 'text-lg', barre: 'mt-2 h-2', compteur: 'text-3xl', libelle: 'text-xs', grille: 'gap-3' };
-  if (n <= 9) return { pad: 'px-3 py-2', gap: 'gap-2.5', rang: 'text-base', nom: 'text-base', barre: 'mt-1.5 h-1.5', compteur: 'text-2xl', libelle: 'text-[10px]', grille: 'gap-2' };
-  return { pad: 'px-2.5 py-1.5', gap: 'gap-2', rang: 'text-sm', nom: 'text-sm', barre: 'mt-1 h-1', compteur: 'text-xl', libelle: 'text-[9px]', grille: 'gap-1.5' };
+  if (n <= 4) return { pad: 'px-4 py-4', gap: 'gap-3', rang: 'text-2xl w-9', nom: 'text-2xl', compteur: 'text-4xl', icone: 'h-6 w-6', grille: 'gap-3' };
+  if (n <= 7) return { pad: 'px-4 py-3', gap: 'gap-3', rang: 'text-xl w-8', nom: 'text-xl', compteur: 'text-3xl', icone: 'h-5 w-5', grille: 'gap-3' };
+  if (n <= 10) return { pad: 'px-3 py-2', gap: 'gap-2', rang: 'text-base w-6', nom: 'text-base', compteur: 'text-2xl', icone: 'h-4 w-4', grille: 'gap-2' };
+  return { pad: 'px-2.5 py-1.5', gap: 'gap-2', rang: 'text-sm w-5', nom: 'text-sm', compteur: 'text-xl', icone: 'h-3.5 w-3.5', grille: 'gap-1.5' };
 }
 
-function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, unite }) {
-  const pct = total > 0 ? (count / total) * 100 : 0;
+// À trois colonnes, « Corentin BERNIER » ne tient pas dans la carte. Plutôt
+// que de tronquer le nom de famille — justement ce qu'on reconnaît de loin —
+// on réduit le prénom à son initiale.
+function nomAbrege(nom) {
+  const mots = String(nom || '').trim().split(/\s+/);
+  if (mots.length < 2) return nom || '';
+  return `${mots[0].charAt(0).toUpperCase()}. ${mots.slice(1).join(' ')}`;
+}
+
+function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege }) {
+  // Un minimum de remplissage : même le dernier doit avoir une carte habitée.
+  const pct = total > 0 ? Math.max((count / total) * 100, 8) : 0;
   const movedUp = prevRank !== null && prevRank > rank;
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`relative flex items-center rounded-2xl bg-white/5 border border-white/5 ${d.gap} ${d.pad}`}
+      className="relative overflow-hidden rounded-xl border border-white/5 bg-white/5"
     >
-      <div className={`${d.rang} shrink-0 font-extrabold tabular-nums text-white/40 w-6 text-center`}>{rank}</div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className={`${d.nom} font-bold text-white truncate`}>{name}</span>
-          {isAtelier && <Wrench className="h-4 w-4 text-gd-orange shrink-0" />}
-          {movedUp && (
-            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center text-gd-orange">
-              <Flame className="h-4 w-4" />
-            </motion.span>
-          )}
-        </div>
-        <div className={`${d.barre} w-full rounded-full bg-white/10 overflow-hidden`}>
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-gd-orange to-yellow-300"
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-          />
-        </div>
-      </div>
-      <div className="text-right shrink-0">
-        <AnimatedCounter value={count} className={`${d.compteur} font-extrabold text-white tabular-nums`} />
-        <p className={`${d.libelle} text-white/40`}>{unite}</p>
+      {/* La progression devient le FOND de la carte : aussi lisible de loin
+          qu'une barre, sans la hauteur qu'une barre séparée coûterait. */}
+      <motion.div
+        className="absolute inset-y-0 left-0 bg-gradient-to-r from-gd-orange/35 to-gd-orange/5"
+        initial={{ width: 0 }}
+        animate={{ width: `${pct}%` }}
+        transition={{ duration: 1, ease: 'easeOut' }}
+      />
+      <div className={`relative flex items-center ${d.gap} ${d.pad}`}>
+        <span className={`${d.rang} shrink-0 text-center font-black tabular-nums text-white/35`}>{rank}</span>
+        <span className={`${d.nom} min-w-0 flex-1 truncate font-bold text-white`}>
+          {abrege ? nomAbrege(name) : name}
+        </span>
+        {isAtelier && <Wrench className={`${d.icone} shrink-0 text-gd-orange`} />}
+        {movedUp && (
+          <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="shrink-0 text-gd-orange">
+            <Flame className={d.icone} />
+          </motion.span>
+        )}
+        <AnimatedCounter value={count} className={`${d.compteur} shrink-0 font-extrabold tabular-nums text-white`} />
       </div>
     </motion.div>
   );
@@ -606,9 +622,9 @@ export default function GrandEcran() {
                   <span className="h-2 w-2 rounded-full bg-gd-orange animate-pulse" /> Temps réel
                 </span>
               </div>
-              {/* Podium pour les trois premiers, puis les suivants sur deux
-                  colonnes : plus lisible de loin qu'une longue liste, et tout
-                  le monde tient à l'écran. */}
+              {/* Podium pour les trois premiers, puis les suivants en grille :
+                  plus lisible de loin qu'une longue liste, et tout le monde
+                  tient à l'écran sans défilement. */}
               {(() => {
                 const liste = phase === 'sprint' ? leaderboard : ventesLeaderboard;
                 const unite = phase === 'sprint' ? 'RDV' : 'ventes';
@@ -622,16 +638,20 @@ export default function GrandEcran() {
                   );
                 }
                 const reste = liste.slice(3);
-                // La densité se règle sur le nombre de lignes de la grille, pas
-                // sur le nombre de commerciaux : deux colonnes en logent deux.
-                const d = densiteClassement(Math.ceil(reste.length / 2));
+                // Trois colonnes dès qu'il y a du monde : trois fois moins de
+                // lignes qu'une liste, donc des cartes bien plus grosses et
+                // aucun défilement. En dessous de sept, deux colonnes rendent
+                // mieux que trois cartes esseulées sur la dernière ligne.
+                const colonnes = reste.length <= 6 ? 2 : 3;
+                const lignes = Math.ceil(reste.length / colonnes);
+                const d = densiteClassement(lignes);
                 return (
                   // Tant qu'il n'y a que trois commerciaux classés, le podium
                   // se cale au centre plutôt que de flotter en haut du cadre.
                   <div className={`flex flex-1 flex-col min-h-0 ${reste.length === 0 ? 'justify-center' : ''}`}>
-                    <Podium entrees={liste.slice(0, 3)} unite={unite} />
+                    <Podium entrees={liste.slice(0, 3)} unite={unite} compact={lignes > 8} />
                     {reste.length > 0 && (
-                      <div className={`grid grid-cols-2 content-start ${d.grille} flex-1 overflow-y-auto pr-1`}>
+                      <div className={`grid ${colonnes === 2 ? 'grid-cols-2' : 'grid-cols-3'} content-start ${d.grille} flex-1 overflow-y-auto pr-1`}>
                         <AnimatePresence>
                           {reste.map((entry, i) => (
                             <LeaderRow
@@ -643,7 +663,7 @@ export default function GrandEcran() {
                               isAtelier={entry.isAtelier}
                               prevRank={prevRanks[entry.id] || null}
                               d={d}
-                              unite={unite}
+                              abrege={colonnes === 3}
                             />
                           ))}
                         </AnimatePresence>
