@@ -163,9 +163,9 @@ export default function AdminInvitations() {
       </h3>
       <p className="mb-4 text-sm text-muted-foreground">
         Invite tout le monde d'un coup avec les <strong>vraies adresses professionnelles</strong>.
-        Chacun reçoit un mail et choisit son mot de passe. Le rôle et la fiche commerciale
-        sont rattachés automatiquement. Relancer est sans risque : les comptes déjà créés
-        sont simplement mis à jour.
+        Chacun reçoit un mail et choisit son mot de passe. Le rôle et le portefeuille sont
+        rattachés <strong>à sa première connexion</strong> — c'est normal que le compte
+        n'apparaisse pas avant. Relancer est sans risque.
       </p>
 
       {/* Invitation unitaire : le cas le plus fréquent en cours d'opération. */}

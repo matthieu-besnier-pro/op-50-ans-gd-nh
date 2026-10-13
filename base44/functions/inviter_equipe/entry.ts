@@ -86,9 +86,18 @@ export default async function (req) {
             cree = frais.find((u) => (u.email || '').toLowerCase() === email) || null;
           }
           if (!cree) {
+            // Comportement NORMAL de Base44 : le compte n'existe qu'à la première
+            // connexion. L'invitation est bien partie ; le rôle et le portefeuille
+            // seront rattachés automatiquement à ce moment-là (rattacher_comptes).
+            // On mémorise l'adresse sur la fiche : c'est elle qui servira de clé.
+            if (fiche) {
+              await sr.entities.structure_commerciale
+                .update(fiche.id, { email, statut: 'Invité' })
+                .catch(() => {});
+            }
             resultats.push({
-              nom, email, etat: 'erreur',
-              detail: "Invitation envoyée mais compte pas encore visible. Relancez dans une minute : il sera repris."
+              nom, email, role, etat: 'invite',
+              detail: 'Invitation envoyée — rôle et portefeuille rattachés à sa première connexion'
             });
             continue;
           }
