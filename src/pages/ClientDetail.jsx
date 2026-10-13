@@ -100,8 +100,8 @@ export default function ClientDetail() {
         <ArrowLeft className="h-4 w-4" /> Retour
       </button>
 
-      {/* Header */}
-      <div className="mb-6 rounded-xl border border-border bg-card p-5 shadow-sm">
+      {/* Header — il pulse brièvement quand un statut marquant est enregistré. */}
+      <div className={`mb-6 rounded-xl border border-border bg-card p-5 shadow-sm ${pulseRow ? 'animate-pulse-gd' : ''}`}>
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-gd-navy-dark flex items-center gap-2">
