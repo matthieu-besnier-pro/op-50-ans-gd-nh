@@ -5,10 +5,11 @@ import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { fetchOperationStats, invaliderStats } from '@/lib/operationStats';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { jouerAcclamation, debloquerSon, sonDebloque, enSourdine, basculerSourdine } from '@/lib/acclamation';
 import OpLogo from '@/components/OpLogo';
 import {
   Zap, Trophy, Wrench, Flame, Award, Clock, Target,
-  Users, Star, CalendarCheck, TrendingUp, Sparkles, X, Satellite
+  Users, Star, CalendarCheck, TrendingUp, Sparkles, X, Satellite, Volume2, VolumeX
 } from 'lucide-react';
 
 /* ---------- Célébration ---------- */
@@ -16,7 +17,17 @@ import {
 // ce qui doit être simultané, c'est le DÉPART de la salve et l'apparition du
 // rendez-vous à l'écran.
 function lancerConfettis() {
+  // Le son part sur la MÊME instruction que la première salve : c'est ce qui
+  // fait l'effet. Il est sans effet tant que personne n'a activé le son.
+  jouerAcclamation();
   confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 }, colors: ['#FFC107', '#00356B', '#ffffff', '#FFD54F'] });
+  // Cotillons : de grandes pastilles lâchées du haut, qui tombent lentement en
+  // dérivant pendant que les salves vives éclatent en dessous.
+  setTimeout(() => confetti({
+    particleCount: 60, spread: 120, startVelocity: 25, gravity: 0.5,
+    scalar: 1.5, ticks: 320, drift: 0.4, origin: { y: 0 },
+    colors: ['#FFC107', '#00356B', '#ffffff', '#FFD54F']
+  }), 120);
   setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: ['#FFC107', '#ffffff'] }), 200);
   setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: ['#FFC107', '#ffffff'] }), 400);
 }
@@ -225,6 +236,10 @@ export default function GrandEcran() {
   // donc qu'une fois toutes les 20 s ; entre deux, la liste des rendez-vous
   // suffit à tenir le feed juste.
   const derniersComptages = useRef(0);
+  // Le navigateur garde le son bloqué tant que personne n'a cliqué sur la page :
+  // l'écran est projeté sans qu'on y touche, il faut donc un bouton explicite.
+  const [sonPret, setSonPret] = useState(false);
+  const [muet, setMuet] = useState(false);
 
   // Demo mode: ?demo=sprint | ?demo=ventes
   const demoMode = useMemo(() => {
@@ -341,6 +356,18 @@ export default function GrandEcran() {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, [demoMode]);
+
+  useEffect(() => {
+    setSonPret(sonDebloque());
+    setMuet(enSourdine());
+  }, []);
+
+  const activerSon = async () => {
+    const ok = await debloquerSon();
+    setSonPret(ok);
+    // Confirmation à l'oreille : on sait tout de suite que la salle entendra.
+    if (ok) jouerAcclamation();
+  };
 
   // Clear recent event after 5s
   useEffect(() => {
@@ -528,6 +555,24 @@ export default function GrandEcran() {
               {now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
+          {!sonPret ? (
+            <button
+              onClick={activerSon}
+              title="Le son reste bloqué par le navigateur tant que personne n'a cliqué sur la page"
+              className="flex items-center gap-1.5 rounded-full border border-gd-orange/50 bg-gd-orange/20 px-3 py-2 text-xs font-bold uppercase tracking-wider text-gd-orange hover:bg-gd-orange/30 transition-colors"
+            >
+              <Volume2 className="h-4 w-4" /> Activer le son
+            </button>
+          ) : (
+            <button
+              onClick={() => setMuet(basculerSourdine())}
+              title={muet ? 'Remettre le son' : 'Couper le son'}
+              className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              {muet ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-gd-orange" />}
+              {muet ? 'Son coupé' : 'Son'}
+            </button>
+          )}
           <Link
             to="/tableau-de-bord"
             title="Quitter le Grand Écran"
