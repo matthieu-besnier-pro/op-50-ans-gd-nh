@@ -66,14 +66,26 @@ function messageBienvenue(nom, email, role) {
 
 // Envoi tolérant : si l'intégration n'est pas disponible, l'invitation reste
 // valable, on le signale simplement dans le compte rendu.
-async function envoyerBienvenue(base44, nom, email, role) {
+async function envoyerBienvenue(base44, sr, nom, email, role) {
   const { sujet, corps } = messageBienvenue(nom, email, role);
+  const charge = { to: email, subject: sujet, body: corps };
+  // L'envoi d'email n'est autorisé qu'en service-role : un appel depuis le client
+  // de l'utilisateur est refusé par la plateforme (restriction de routage).
+  // On appelle la méthode sur son objet, sans l'extraire : elle perdrait son contexte.
+  let dernier = 'intégration SendEmail indisponible';
   try {
-    await base44.integrations.Core.SendEmail({ to: email, subject: sujet, body: corps });
+    await sr.integrations.Core.SendEmail(charge);
     return { ok: true };
   } catch (e) {
-    return { ok: false, detail: e?.message || String(e) };
+    dernier = e?.message || String(e);
   }
+  try {
+    await base44.integrations.Core.SendEmail(charge);
+    return { ok: true };
+  } catch (e) {
+    dernier = e?.message || String(e);
+  }
+  return { ok: false, detail: dernier };
 }
 
 export default async function (req) {
@@ -157,12 +169,12 @@ export default async function (req) {
                 .update(fiche.id, { email, statut: 'Invité' })
                 .catch(() => {});
             }
-            const envoi = await envoyerBienvenue(base44, nom, email, role);
+            const envoi = await envoyerBienvenue(base44, sr, nom, email, role);
             resultats.push({
               nom, email, role, etat: envoi.ok ? 'invite' : 'erreur',
               detail: envoi.ok
                 ? 'Mode d\'emploi envoyé — rôle et portefeuille rattachés à sa première connexion'
-                : `Mail non envoyé : ${envoi.detail}`
+                : `Mail non envoyé (${envoi.detail}) — cochez « Ajouter l'invitation de la plateforme » pour qu'elle reçoive au moins le message d'origine.`
             });
             continue;
           }
