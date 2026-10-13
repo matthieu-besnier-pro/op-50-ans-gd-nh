@@ -5,9 +5,10 @@ import { invalider } from '@/lib/donneesPartagees';
 import confetti from 'canvas-confetti';
 import { Search, Tractor, Wrench, Sprout, ChevronLeft, Check, Loader2, CalendarDays, PartyPopper } from 'lucide-react';
 
-// Créneaux de départ 08:00 → 18:00, par pas de 30 min.
+// Créneaux de départ 07:00 → 23:00, par pas de 30 min : les visites du soir
+// sont courantes, on ne bride pas les horaires.
 const SLOTS = [];
-for (let h = 8; h <= 18; h++) { SLOTS.push(`${String(h).padStart(2, '0')}:00`); if (h < 18) SLOTS.push(`${String(h).padStart(2, '0')}:30`); }
+for (let h = 7; h <= 23; h++) { SLOTS.push(`${String(h).padStart(2, '0')}:00`); if (h < 23) SLOTS.push(`${String(h).padStart(2, '0')}:30`); }
 
 // Durées proposées. Un rendez-vous occupe tous les créneaux qu'il couvre.
 const DUREES = [
@@ -15,7 +16,7 @@ const DUREES = [
   { minutes: 120, label: '2 h' },
   { minutes: 180, label: '3 h' }
 ];
-const FIN_JOURNEE = 19 * 60; // 19:00 : un RDV ne peut pas déborder au-delà
+const FIN_JOURNEE = 24 * 60; // minuit : seule limite, un RDV ne déborde pas sur le lendemain
 
 const enMinutes = (hhmm) => {
   const [h, m] = String(hhmm).split(':').map(Number);
@@ -252,13 +253,13 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  <div className="grid max-h-64 grid-cols-4 gap-2 overflow-y-auto pr-1 sm:grid-cols-6 lg:grid-cols-8">
                     {SLOTS.map((s) => {
                       const taken = indisponible(s);
                       const sel = slot === s;
                       return (
                         <button key={s} disabled={taken} onClick={() => setSlot(s)}
-                          title={taken ? 'Créneau déjà pris ou trop court pour cette durée' : `${s} → ${enHeure(enMinutes(s) + duree)}`}
+                          title={taken ? 'Créneau déjà pris, ou la durée déborderait sur le lendemain' : `${s} → ${enHeure(enMinutes(s) + duree)}`}
                           className={`rounded-lg py-2 text-sm font-semibold transition-all ${
                             taken ? 'bg-muted text-muted-foreground/40 line-through cursor-not-allowed'
                             : sel ? 'bg-gd-orange text-gd-navy-dark ring-2 ring-gd-orange'
