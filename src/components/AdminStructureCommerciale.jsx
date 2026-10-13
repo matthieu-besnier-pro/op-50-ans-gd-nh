@@ -6,6 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, Users, Building2, Search, UserCog, Loader2, CheckCircle2 } from 'lucide-react';
 
+// Même règle de rapprochement que le serveur : accents retirés, ordre
+// prénom/nom indifférent. « Philippe DELASALLE » = « philippe-delasalle ».
+const cleNom = (v) => String(v || '')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  .split(' ').filter(Boolean).sort().join(' ');
+
 export default function AdminStructureCommerciale() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,12 +27,17 @@ export default function AdminStructureCommerciale() {
   const [renommage, setRenommage] = useState({ ancien: '', nouveau: '', busy: false, message: '' });
   // Binôme : deux commerciaux sur un même secteur.
   const [binome, setBinome] = useState({ nom: '', secteur: '', busy: false, message: '' });
+  const [comptes, setComptes] = useState([]);
 
   useEffect(() => {
     (async () => {
       try {
         const data = await base44.entities.structure_commerciale.list('-nom_commercial', 100);
         setRecords(data);
+        // Comptes existants : sert à repérer les responsables dont l'orthographe
+        // ne correspond à aucun compte — le rattachement échouerait en silence.
+        const res = await base44.functions.invoke('lister_utilisateurs', {}).catch(() => null);
+        setComptes(res?.data?.users || []);
       } catch (e) {
         console.error(e);
       } finally {
@@ -38,6 +50,18 @@ export default function AdminStructureCommerciale() {
     () => [...new Set(records.map((r) => (r.manager || '').trim()).filter(Boolean))].sort(),
     [records]
   );
+
+  // Clés des comptes : nom complet et identifiant de l'adresse (avant le @).
+  const clesComptes = useMemo(() => {
+    const set = new Set();
+    comptes.forEach((u) => {
+      if (u.full_name) set.add(cleNom(u.full_name));
+      if (u.email) set.add(cleNom(String(u.email).split('@')[0].replace(/[._-]+/g, ' ')));
+    });
+    return set;
+  }, [comptes]);
+
+  const sansCompte = (nom) => clesComptes.size > 0 && !clesComptes.has(cleNom(nom));
 
   const basculer = (id) => setSelection((prev) => {
     const copie = new Set(prev);
@@ -256,6 +280,7 @@ export default function AdminStructureCommerciale() {
                 {managersExistants.map((m) => (
                   <option key={m} value={m}>
                     {m} ({records.filter((r) => (r.manager || '').trim() === m).length})
+                    {sansCompte(m) ? ' — aucun compte ne correspond' : ''}
                   </option>
                 ))}
               </select>
@@ -278,6 +303,14 @@ export default function AdminStructureCommerciale() {
               {renommage.busy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> …</> : 'Corriger partout'}
             </Button>
           </div>
+          {managersExistants.some(sansCompte) && (
+            <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">
+              <strong>À corriger :</strong>{' '}
+              {managersExistants.filter(sansCompte).join(', ')} — aucun compte ne porte cette
+              orthographe. Tant qu'elle diffère, le responsable ne récupère ni son équipe,
+              ni ses clients.
+            </p>
+          )}
           {renommage.message && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700">
               <CheckCircle2 className="h-3.5 w-3.5" /> {renommage.message}
