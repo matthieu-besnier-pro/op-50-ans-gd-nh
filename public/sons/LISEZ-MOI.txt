@@ -1,0 +1,23 @@
+Son d'acclamation du Grand Écran
+================================
+
+Déposez ici un fichier nommé exactement :
+
+    acclamation.mp3
+
+Il sera joué à chaque nouveau rendez-vous, en même temps que les
+confettis, à la place du son synthétisé.
+
+Conseils :
+  - 2 à 4 secondes suffisent : au-delà, le son déborde sur le RDV suivant.
+  - Un format .mp3 classique convient (44,1 kHz, stéréo).
+  - Vérifiez que vous avez le droit d'utiliser l'enregistrement.
+    Les banques comme Pixabay proposent des sons libres d'usage
+    commercial ; téléchargez le FICHIER depuis leur site, l'adresse de
+    la page web ne peut pas être lue par le navigateur.
+
+Aucune modification de code n'est nécessaire : le fichier est détecté
+au clic sur « Activer le son ».
+
+Pour utiliser un lien web direct plutôt qu'un fichier, renseignez
+URL_SON en haut de src/lib/acclamation.js.

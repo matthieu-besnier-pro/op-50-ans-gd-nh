@@ -1,13 +1,22 @@
 /**
- * Acclamation du Grand Écran : applaudissements et sifflets de supporters.
+ * Acclamation du Grand Écran : applaudissements à chaque rendez-vous.
  *
- * Le son est FABRIQUÉ à la volée par l'API Web Audio. Rien n'est téléchargé :
- * pas de fichier à héberger, pas de licence à vérifier, et la salle reste
- * sonorisée même si le réseau fait des siennes en plein événement.
+ * Trois sources, par ordre de préférence :
+ *   1. URL_SON ci-dessous, si renseignée — un lien DIRECT vers un fichier
+ *      audio (.mp3, .ogg, .wav) ; l'adresse d'une page web ne convient pas ;
+ *   2. le fichier `public/sons/acclamation.mp3`, s'il a été déposé ;
+ *   3. à défaut, une synthèse par l'API Web Audio, qui ne demande aucun réseau.
  *
- * Si un vrai enregistrement est déposé dans `public/sons/acclamation.mp3`, il
- * prend le dessus et la synthèse n'est plus que le filet de sécurité.
+ * Pour un événement en salle, le fichier déposé reste le choix le plus sûr :
+ * il ne dépend ni du réseau, ni de la disponibilité d'un hébergeur tiers.
+ *
+ * La lecture passe par un élément <audio> plutôt que par decodeAudioData : un
+ * fichier distant serait sinon refusé faute d'en-têtes CORS.
  */
+
+// Lien direct vers un fichier audio. Laisser vide pour utiliser le fichier
+// déposé dans public/sons/, ou la synthèse.
+const URL_SON = '';
 
 const CLE_SOURDINE = 'cockpit.grandecran.sourdine';
 // Deux rendez-vous coup sur coup ne doivent pas se superposer en vacarme.
@@ -15,8 +24,8 @@ const ECART_MINIMAL = 1200;
 
 let ctx = null;
 let applaudissements = null; // AudioBuffer synthétisé, construit une seule fois
-let enregistrement = null;   // AudioBuffer du fichier, s'il existe
-let fichierTente = false;
+let lecteur = null;          // HTMLAudioElement : fichier déposé ou URL
+let lecteurPret = false;
 let dernierJoue = 0;
 
 /* ---------- Préférence de l'utilisateur ---------- */
@@ -54,7 +63,20 @@ function contexte() {
 }
 
 export function sonDebloque() {
-  return !!ctx && ctx.state === 'running';
+  return lecteurPret || (!!ctx && ctx.state === 'running');
+}
+
+/** Ce qui sera réellement joué — utile pour le dire à l'écran. */
+export function sourceSon() {
+  if (lecteurPret) return URL_SON ? 'lien' : 'fichier';
+  return ctx && ctx.state === 'running' ? 'synthese' : 'aucune';
+}
+
+function adresseFichier() {
+  if (URL_SON) return URL_SON;
+  // L'application peut être servie sous un sous-chemin : on part de sa base.
+  const base = (import.meta.env && import.meta.env.BASE_URL) || '/';
+  return `${base}sons/acclamation.mp3`;
 }
 
 /**
@@ -62,31 +84,42 @@ export function sonDebloque() {
  * À appeler depuis un vrai geste de l'utilisateur, une fois par projection.
  */
 export async function debloquerSon() {
+  // Le fichier d'abord : un vrai enregistrement sonnera toujours mieux.
+  await preparerLecteur();
+
   const c = contexte();
-  if (!c) return false;
-  try {
-    await c.resume();
-  } catch {
-    /* ignore : l'état est vérifié juste après */
+  if (c) {
+    try {
+      await c.resume();
+    } catch {
+      /* ignore : l'état est vérifié juste après */
+    }
+    // Le tampon se fabrique ici, pas à la première salve : sa construction
+    // prend quelques dizaines de millisecondes, de quoi décaler les confettis
+    // du son qu'on vient justement de synchroniser. Inutile si un fichier joue.
+    if (!lecteurPret && !applaudissements && c.state === 'running') {
+      applaudissements = construireApplaudissements(c);
+    }
   }
-  chargerEnregistrement();
-  // Le tampon se fabrique ici, pas à la première salve : sa construction prend
-  // quelques dizaines de millisecondes, de quoi décaler les confettis du son
-  // qu'on vient justement de synchroniser.
-  if (!applaudissements) applaudissements = construireApplaudissements(c);
-  return c.state === 'running';
+  return sonDebloque();
 }
 
-function chargerEnregistrement() {
-  if (fichierTente) return;
-  fichierTente = true;
-  const c = contexte();
-  if (!c) return;
-  fetch('/sons/acclamation.mp3')
-    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('absent'))))
-    .then((octets) => c.decodeAudioData(octets))
-    .then((buf) => { enregistrement = buf; })
-    .catch(() => { enregistrement = null; });
+async function preparerLecteur() {
+  if (lecteur) return;
+  try {
+    lecteur = new Audio(adresseFichier());
+    lecteur.preload = 'auto';
+    lecteur.volume = 0.9;
+    // Déblocage : on lance puis on arrête aussitôt, pendant le geste de
+    // l'utilisateur. Fichier absent ou lecture refusée → play() échoue, et la
+    // synthèse prend le relais.
+    await lecteur.play();
+    lecteur.pause();
+    lecteur.currentTime = 0;
+    lecteurPret = true;
+  } catch {
+    lecteurPret = false;
+  }
 }
 
 /* ---------- Synthèse ---------- */
@@ -174,25 +207,31 @@ function sifflet(c, sortie, depart, duree, deHz, versHz) {
 
 export function jouerAcclamation() {
   if (enSourdine()) return false;
-  const c = contexte();
-  if (!c || c.state !== 'running') return false;
 
   const maintenant = Date.now();
   if (maintenant - dernierJoue < ECART_MINIMAL) return false;
+
+  if (lecteurPret && lecteur) {
+    dernierJoue = maintenant;
+    try {
+      lecteur.currentTime = 0;
+      const lecture = lecteur.play();
+      // Un refus de lecture ne doit pas interrompre la salve visuelle.
+      if (lecture && lecture.catch) lecture.catch(() => {});
+      return true;
+    } catch {
+      /* on retombe sur la synthèse */
+    }
+  }
+
+  const c = contexte();
+  if (!c || c.state !== 'running') return false;
   dernierJoue = maintenant;
 
   const t = c.currentTime;
   const maitre = c.createGain();
   maitre.gain.value = 0.75;
   maitre.connect(c.destination);
-
-  if (enregistrement) {
-    const source = c.createBufferSource();
-    source.buffer = enregistrement;
-    source.connect(maitre);
-    source.start(t);
-    return true;
-  }
 
   if (!applaudissements) applaudissements = construireApplaudissements(c);
   const source = c.createBufferSource();

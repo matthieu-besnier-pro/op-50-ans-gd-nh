@@ -5,7 +5,7 @@ import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { fetchOperationStats, invaliderStats } from '@/lib/operationStats';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { jouerAcclamation, debloquerSon, sonDebloque, enSourdine, basculerSourdine } from '@/lib/acclamation';
+import { jouerAcclamation, debloquerSon, sonDebloque, sourceSon, enSourdine, basculerSourdine } from '@/lib/acclamation';
 import OpLogo from '@/components/OpLogo';
 import {
   Zap, Trophy, Wrench, Flame, Award, Clock, Target,
@@ -240,6 +240,9 @@ export default function GrandEcran() {
   // l'écran est projeté sans qu'on y touche, il faut donc un bouton explicite.
   const [sonPret, setSonPret] = useState(false);
   const [muet, setMuet] = useState(false);
+  // D'où sort le son, pour pouvoir le dire au lieu de laisser deviner.
+  const [sourceAudio, setSourceAudio] = useState('aucune');
+  const [echecSon, setEchecSon] = useState(false);
 
   // Demo mode: ?demo=sprint | ?demo=ventes
   const demoMode = useMemo(() => {
@@ -365,6 +368,8 @@ export default function GrandEcran() {
   const activerSon = async () => {
     const ok = await debloquerSon();
     setSonPret(ok);
+    setEchecSon(!ok);
+    setSourceAudio(sourceSon());
     // Confirmation à l'oreille : on sait tout de suite que la salle entendra.
     if (ok) jouerAcclamation();
   };
@@ -558,15 +563,24 @@ export default function GrandEcran() {
           {!sonPret ? (
             <button
               onClick={activerSon}
-              title="Le son reste bloqué par le navigateur tant que personne n'a cliqué sur la page"
-              className="flex items-center gap-1.5 rounded-full border border-gd-orange/50 bg-gd-orange/20 px-3 py-2 text-xs font-bold uppercase tracking-wider text-gd-orange hover:bg-gd-orange/30 transition-colors"
+              title={echecSon
+                ? "Aucune source audio n'a pu démarrer — réessayez, ou vérifiez le volume du poste"
+                : "Le son reste bloqué par le navigateur tant que personne n'a cliqué sur la page"}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${
+                echecSon
+                  ? 'border-gd-red/50 bg-gd-red/20 text-red-200 hover:bg-gd-red/30'
+                  : 'border-gd-orange/50 bg-gd-orange/20 text-gd-orange hover:bg-gd-orange/30'
+              }`}
             >
-              <Volume2 className="h-4 w-4" /> Activer le son
+              {echecSon ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              {echecSon ? 'Son indisponible — réessayer' : 'Activer le son'}
             </button>
           ) : (
             <button
               onClick={() => setMuet(basculerSourdine())}
-              title={muet ? 'Remettre le son' : 'Couper le son'}
+              title={`${muet ? 'Remettre le son' : 'Couper le son'} — source : ${
+                { lien: 'lien web', fichier: 'fichier déposé', synthese: 'synthèse' }[sourceAudio] || 'inconnue'
+              }`}
               className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-colors"
             >
               {muet ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-gd-orange" />}
