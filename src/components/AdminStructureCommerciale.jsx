@@ -15,6 +15,9 @@ export default function AdminStructureCommerciale() {
   const [manager, setManager] = useState('');
   const [selection, setSelection] = useState(() => new Set());
   const [affectation, setAffectation] = useState({ busy: false, message: '' });
+  // Renommage d'un responsable : une faute d'orthographe casse le rattachement
+  // automatique (« Remi » ≠ « Rémy »), il faut corriger partout d'un coup.
+  const [renommage, setRenommage] = useState({ ancien: '', nouveau: '', busy: false, message: '' });
 
   useEffect(() => {
     (async () => {
@@ -54,6 +57,25 @@ export default function AdminStructureCommerciale() {
       setSelection(new Set());
     } catch (e) {
       setAffectation({ busy: false, message: e?.message || "L'affectation a échoué." });
+    }
+  };
+
+  const renommerResponsable = async () => {
+    const ancien = renommage.ancien;
+    const nouveau = renommage.nouveau.trim();
+    if (!ancien || !nouveau) return;
+    const concernes = records.filter((r) => (r.manager || '').trim() === ancien);
+    if (!window.confirm(`Renommer « ${ancien} » en « ${nouveau} » sur ${concernes.length} commercial(aux) ?`)) return;
+    setRenommage((v) => ({ ...v, busy: true, message: '' }));
+    try {
+      for (const r of concernes) {
+        await base44.entities.structure_commerciale.update(r.id, { manager: nouveau });
+      }
+      const ids = new Set(concernes.map((r) => r.id));
+      setRecords((prev) => prev.map((r) => (ids.has(r.id) ? { ...r, manager: nouveau } : r)));
+      setRenommage({ ancien: '', nouveau: '', busy: false, message: `${concernes.length} fiche(s) mise(s) à jour.` });
+    } catch (e) {
+      setRenommage((v) => ({ ...v, busy: false, message: e?.message || 'Le renommage a échoué.' }));
     }
   };
 
@@ -186,6 +208,59 @@ export default function AdminStructureCommerciale() {
           </p>
         )}
       </div>
+
+      {/* Corriger l'orthographe d'un responsable partout à la fois */}
+      {managersExistants.length > 0 && (
+        <div className="mb-4 rounded-xl border border-border bg-card p-4">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gd-navy-dark">
+            <UserCog className="h-3.5 w-3.5 text-gd-orange" /> Corriger le nom d'un responsable
+          </p>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Le rattachement automatique se fait sur le nom : une faute d'orthographe
+            (« Remi » au lieu de « Rémy ») empêche le responsable de récupérer son équipe.
+            Corrigez-le ici, sur toutes ses fiches d'un coup.
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="min-w-[14rem] flex-1">
+              <label className="text-xs text-muted-foreground">Nom actuel</label>
+              <select
+                value={renommage.ancien}
+                onChange={(e) => setRenommage((v) => ({ ...v, ancien: e.target.value, nouveau: v.nouveau || e.target.value }))}
+                className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+              >
+                <option value="">Choisir…</option>
+                {managersExistants.map((m) => (
+                  <option key={m} value={m}>
+                    {m} ({records.filter((r) => (r.manager || '').trim() === m).length})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-[14rem] flex-1">
+              <label className="text-xs text-muted-foreground">Orthographe correcte</label>
+              <Input
+                value={renommage.nouveau}
+                onChange={(e) => setRenommage((v) => ({ ...v, nouveau: e.target.value }))}
+                placeholder="Rémy DUVOUX"
+                className="mt-1 h-9"
+              />
+            </div>
+            <Button
+              onClick={renommerResponsable}
+              disabled={renommage.busy || !renommage.ancien || !renommage.nouveau.trim()}
+              variant="outline"
+              className="h-9 border-gd-navy text-gd-navy hover:bg-gd-navy/10"
+            >
+              {renommage.busy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> …</> : 'Corriger partout'}
+            </Button>
+          </div>
+          {renommage.message && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700">
+              <CheckCircle2 className="h-3.5 w-3.5" /> {renommage.message}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Liste */}
       <div className="space-y-2">
