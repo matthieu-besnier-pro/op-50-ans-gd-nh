@@ -18,21 +18,18 @@ export default function ClientRdvsEntete({ rdvs = [] }) {
 
   const now = new Date();
   const tries = [...rdvs].sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
-  // Un rendez-vous annulé reste visible dans l'historique de la fiche (traçabilité),
-  // mais il n'occupe plus de créneau : il ne compte ni comme « à venir », ni comme
-  // prochain rendez-vous, et il est rejeté en fin de liste.
+  // Un rendez-vous annulé disparaît de la fiche : il n'est ni affiché, ni compté.
   const estActif = (r) => r.statut !== 'Annulé';
   const aVenir = tries.filter((r) => estActif(r) && new Date(r.date_heure) >= now);
   const passes = tries.filter((r) => estActif(r) && new Date(r.date_heure) < now).reverse();
-  const annules = tries.filter((r) => !estActif(r)).reverse();
-  const liste = [...aVenir, ...passes, ...annules];
+  const liste = [...aVenir, ...passes];
   const prochainId = aVenir[0]?.id;
 
   return (
     <div className="mt-4 border-t border-border pt-4">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          <Calendar className="h-4 w-4 text-gd-orange" /> Rendez-vous ({aVenir.length + passes.length})
+          <Calendar className="h-4 w-4 text-gd-orange" /> Rendez-vous ({liste.length})
         </p>
         {aVenir.length > 0 && (
           <span className="rounded-full bg-gd-navy px-2 py-0.5 text-[11px] font-bold text-white">
