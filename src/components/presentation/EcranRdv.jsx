@@ -13,9 +13,10 @@ export default function EcranRdv() {
           <p className="text-[13px] font-bold text-gd-navy-dark">Nouveau rendez-vous</p>
           <p className="text-[10px] text-slate-400">GAEC DU BOCAGE · Vire (14)</p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           <span className="rounded-md bg-gd-navy px-2.5 py-1 text-[10px] font-semibold text-white">RDV Matériel</span>
           <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-medium text-slate-500">RDV Atelier</span>
+          <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-medium text-emerald-700">RDV Agri. précision</span>
         </div>
       </div>
 

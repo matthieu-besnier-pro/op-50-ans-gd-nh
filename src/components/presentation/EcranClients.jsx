@@ -6,7 +6,7 @@ const CLIENTS = [
   { nom: 'EARL DU MOULIN', ville: 'Caen (14)', parc: '🚜 3 · 🚛 1', statut: 'À contacter', cible: true },
   { nom: 'SCEA LES PEUPLIERS', ville: 'Bayeux (14)', parc: '🚜 2', statut: 'À rappeler' },
   { nom: 'GAEC DU BOCAGE', ville: 'Vire (14)', parc: '🚜 5 · ⭕ 1', statut: 'RDV Commercial obtenu' },
-  { nom: 'CUMA VAL DE SAIRE', ville: 'Saint-Lô (50)', parc: '🚜 4', statut: 'À contacter' }
+  { nom: 'CUMA VAL DE SAIRE', ville: 'Saint-Lô (50)', parc: '🚜 4', statut: 'À contacter', agri: 'Trimble' }
 ];
 
 const STATUT_STYLE = {
@@ -23,6 +23,13 @@ export default function EcranClients() {
       <div className="mb-2 flex items-end justify-between">
         <p className="text-[13px] font-bold text-gd-navy-dark">Mes clients</p>
         <p className="text-[11px] font-semibold text-gd-orange">4 clients · 1 cible prioritaire</p>
+      </div>
+
+      {/* Les filtres tels qu'ils existent dans l'outil */}
+      <div className="mb-2 flex flex-wrap gap-1.5">
+        <span className="rounded-md bg-gd-orange px-2 py-1 text-[10px] font-bold text-gd-navy-dark">★ Mes cibles</span>
+        <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-500">Parc cible</span>
+        <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">🛰️ Agri. précision</span>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -42,6 +49,11 @@ export default function EcranClients() {
               {c.cible && <Star className="h-3 w-3 shrink-0 text-gd-orange" fill="currentColor" />}
               <span className="truncate">{c.nom}</span>
               <span className="shrink-0 text-[10px] font-normal text-slate-400">· {c.ville}</span>
+              {c.agri && (
+                <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 text-[9px] font-semibold text-emerald-700">
+                  🛰️ {c.agri}
+                </span>
+              )}
             </span>
             <span className="text-[11px] text-slate-500">{c.parc}</span>
             <span className={`justify-self-start rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUT_STYLE[c.statut]}`}>
@@ -55,7 +67,7 @@ export default function EcranClients() {
       </div>
 
       <p className="mt-2 text-[10px] text-slate-400">
-        Les vôtres seront déjà chargés, vos cibles étoilées en tête de liste.
+        Les vôtres seront déjà chargés, vos cibles étoilées en tête. Un filtre isole l'agriculture de précision.
       </p>
     </CadreEcran>
   );

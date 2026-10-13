@@ -18,13 +18,14 @@ export const GESTES = [
     points: [
       'Votre ciblage est repris tel quel, décision par décision',
       'Le filtre « Mes cibles » n\'affiche que les vôtres',
-      'Le parc du client se lit d\'un coup d\'œil'
+      'Le parc du client se lit d\'un coup d\'œil',
+      'Un filtre dédié pour l\'agriculture de précision : tracteurs 2014-2020, CX 5/6, clients Trimble'
     ],
     ecran: '/portefeuille',
     animateur: {
       dire: "Votre liste, c'est la vôtre. Les clients que vous avez surlignés dans votre fichier sont là, en haut, avec une étoile.",
       montrer: "Ouvrez « Mes clients » et cliquez sur « Mes cibles prioritaires ».",
-      reflexe: "Commencez par les cibles : la matinée est cadrée avant même d'appeler."
+      reflexe: "Commencez par les cibles. Pour l'agri. précision, filtrez par origine : l'accroche n'est pas la même selon qu'on vient du parc tracteurs, des CX ou de Trimble."
     }
   },
   {
@@ -54,15 +55,16 @@ export const GESTES = [
     titre: 'Un rendez-vous en trois clics',
     accroche: 'Le client, le type, le créneau. C\'est posé, et c\'est dans votre calendrier.',
     points: [
-      'RDV Matériel ou RDV Atelier, comme dans la réalité',
+      'Trois types : Matériel, Atelier, Agriculture de précision',
       'Une grille de créneaux, pas un formulaire',
-      'Il apparaît aussitôt dans votre calendrier'
+      'Il apparaît aussitôt dans votre calendrier',
+      'Chaque type est suivi séparément : on sait ce que pèse chaque métier'
     ],
     ecran: '/calendrier',
     animateur: {
       dire: "Un rendez-vous, c'est trois clics : le client, le type, le créneau.",
       montrer: "Lancez « Ajout RDV » depuis la liste et allez jusqu'au créneau, puis basculez sur le calendrier.",
-      reflexe: "Insistez sur RDV Matériel / RDV Atelier : ce ne sont pas les mêmes métiers."
+      reflexe: "Insistez sur les trois types — Matériel, Atelier, Agri. précision : ce ne sont pas les mêmes métiers, et ils sont comptés séparément."
     }
   },
   {
