@@ -66,9 +66,13 @@ Exemple de message : « T5.100 EC n°97507 avec chargeur Q4L n°98145 Reprise Va
 Messages à analyser :
 """${rawText.slice(0, 12000)}"""`;
 
+      // L'intégration est bloquée depuis le runtime applicatif : la plateforme
+      // exige le service role. On l'appelle en méthode (sr.integrations.Core.X)
+      // et non via une variable extraite, sinon l'intégration perd son « this ».
+      // Appel LLM via le canal service : les intégrations Core ne s'exécutent pas
+      // depuis le runtime applicatif, il n'y a donc pas de repli côté client.
       let llm;
       try {
-        // Appel LLM via le canal service (les intégrations Core ne s'exécutent pas côté application).
         llm = await sr.integrations.Core.InvokeLLM({ prompt, response_json_schema: schema });
       } catch (e) {
         return Response.json({ error: `Analyse IA indisponible : ${e?.message || e}` }, { status: 500 });
