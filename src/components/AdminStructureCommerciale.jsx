@@ -18,6 +18,8 @@ export default function AdminStructureCommerciale() {
   // Renommage d'un responsable : une faute d'orthographe casse le rattachement
   // automatique (« Remi » ≠ « Rémy »), il faut corriger partout d'un coup.
   const [renommage, setRenommage] = useState({ ancien: '', nouveau: '', busy: false, message: '' });
+  // Binôme : deux commerciaux sur un même secteur.
+  const [binome, setBinome] = useState({ nom: '', secteur: '', busy: false, message: '' });
 
   useEffect(() => {
     (async () => {
@@ -76,6 +78,28 @@ export default function AdminStructureCommerciale() {
       setRenommage({ ancien: '', nouveau: '', busy: false, message: `${concernes.length} fiche(s) mise(s) à jour.` });
     } catch (e) {
       setRenommage((v) => ({ ...v, busy: false, message: e?.message || 'Le renommage a échoué.' }));
+    }
+  };
+
+  const ajouterBinome = async (apercu) => {
+    const nom = binome.nom.trim();
+    const secteur = binome.secteur;
+    if (!nom || !secteur) return;
+    setBinome((v) => ({ ...v, busy: true, message: '' }));
+    try {
+      const res = await base44.functions.invoke('ajouter_binome', { nom, secteur, dry_run: apercu });
+      const d = res?.data ?? res;
+      if (d?.error) throw new Error(d.error);
+      const msg = apercu
+        ? `${d.clients_du_secteur} client(s) sur ce secteur · compte ${d.compte_trouve ? 'trouvé' : 'pas encore créé'}${d.deja_affectes ? ` · ${d.deja_affectes} déjà rattaché(s)` : ''}`
+        : `Fiche ${d.fiche} · ${d.clients_ajoutes} client(s) rattaché(s) sur ${d.clients_du_secteur}.${d.note ? ' ' + d.note : ''}`;
+      setBinome((v) => ({ ...v, busy: false, message: msg }));
+      if (!apercu) {
+        const data = await base44.entities.structure_commerciale.list('-nom_commercial', 100);
+        setRecords(data);
+      }
+    } catch (e) {
+      setBinome((v) => ({ ...v, busy: false, message: e?.message || "L'opération a échoué." }));
     }
   };
 
@@ -261,6 +285,55 @@ export default function AdminStructureCommerciale() {
           )}
         </div>
       )}
+
+      {/* Binôme : deux commerciaux se partagent un secteur */}
+      <div className="mb-4 rounded-xl border border-border bg-card p-4">
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gd-navy-dark">
+          <Users className="h-3.5 w-3.5 text-gd-orange" /> Ajouter un binôme sur un secteur
+        </p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Pour un commercial qui travaille le même secteur qu'un autre. Sa fiche est créée
+          au besoin, et il est ajouté aux clients du secteur — le titulaire reste en place,
+          le portefeuille est simplement partagé.
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[13rem] flex-1">
+            <label className="text-xs text-muted-foreground">Commercial à ajouter</label>
+            <Input
+              value={binome.nom}
+              onChange={(e) => setBinome((v) => ({ ...v, nom: e.target.value }))}
+              placeholder="Clément BERTHELOT"
+              className="mt-1 h-9"
+            />
+          </div>
+          <div className="min-w-[13rem] flex-1">
+            <label className="text-xs text-muted-foreground">Secteur existant</label>
+            <select
+              value={binome.secteur}
+              onChange={(e) => setBinome((v) => ({ ...v, secteur: e.target.value }))}
+              className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+            >
+              <option value="">Choisir…</option>
+              {records.map((r) => (
+                <option key={r.id} value={r.nom_commercial}>{r.nom_commercial}</option>
+              ))}
+            </select>
+          </div>
+          <Button onClick={() => ajouterBinome(true)} disabled={binome.busy || !binome.nom.trim() || !binome.secteur}
+            variant="outline" className="h-9">
+            Aperçu
+          </Button>
+          <Button onClick={() => ajouterBinome(false)} disabled={binome.busy || !binome.nom.trim() || !binome.secteur}
+            className="h-9 bg-gd-navy hover:bg-gd-navy-dark text-white">
+            {binome.busy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> …</> : 'Ajouter au secteur'}
+          </Button>
+        </div>
+        {binome.message && (
+          <p className="mt-2 flex items-start gap-1.5 text-xs text-gd-navy-dark">
+            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" /> {binome.message}
+          </p>
+        )}
+      </div>
 
       {/* Liste */}
       <div className="space-y-2">
