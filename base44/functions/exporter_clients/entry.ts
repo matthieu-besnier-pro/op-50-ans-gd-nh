@@ -1,10 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { perimetreResponsable, perimetreCommercial, estDansPerimetre } from '../../shared/perimetre.ts';
 
 // Export des clients TRAVAILLÉS : ceux qui ont quitté le statut « À contacter ».
 // C'est la trace de l'activité de l'opération — complément de l'export des RDV.
 //
 // Portée : Direction/admin = tout · Responsable = son équipe · sinon = les siens.
-// body.tous = true → exporte aussi les clients encore « À contacter ».
+// body.tous = true     → exporte aussi les clients encore « À contacter ».
+// body.statuts = [...]  → exporte exactement ces statuts, et eux seuls.
 
 const CHUNK = 5000;
 
@@ -53,12 +55,28 @@ export default async function (req) {
 
     let liste = clients;
     if (!estDirection) {
-      liste = estResponsable
-        ? clients.filter((c) => c.base_responsable_id === user.id)
+      // base_responsable_id n'a jamais été renseigné à l'import : un responsable
+      // exportait un fichier vide. On reprend le périmètre qui sert déjà à la
+      // liste des clients — équipe via le manager des fiches, sinon assignation
+      // ou secteur.
+      const perimetre = estResponsable
+        ? await perimetreResponsable(sr, user)
+        : await perimetreCommercial(sr, user);
+      liste = perimetre
+        ? clients.filter(estDansPerimetre(perimetre))
         : clients.filter((c) => (c.commerciaux_assignes || []).includes(user.id));
     }
-    // Clients travaillés : tout sauf ceux encore au statut de départ.
-    if (!body.tous) liste = liste.filter((c) => (c.statut || 'À contacter') !== 'À contacter');
+
+    // Choix des statuts. Par défaut : tout SAUF « À contacter », c'est-à-dire
+    // les clients travaillés. Une sélection explicite prime ; body.tous n'exclut
+    // rien du tout.
+    const voulus = Array.isArray(body.statuts) ? body.statuts.filter(Boolean) : [];
+    if (voulus.length > 0) {
+      const retenus = new Set(voulus);
+      liste = liste.filter((c) => retenus.has(c.statut || 'À contacter'));
+    } else if (!body.tous) {
+      liste = liste.filter((c) => (c.statut || 'À contacter') !== 'À contacter');
+    }
 
     liste.sort((a, b) => String(b.date_dernier_contact || '').localeCompare(String(a.date_dernier_contact || '')));
 
