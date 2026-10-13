@@ -51,7 +51,10 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
       setCommercialId('');
       setPrioritaire(false);
     } catch (e) {
-      setErreur("Le client n'a pas pu être enregistré. Vérifiez les informations et réessayez.");
+      // Une erreur renvoyée par la fonction (SIREN déjà pris, code postal…) arrive
+      // sous forme d'exception : sans la remonter, l'utilisateur ne sait pas quoi corriger.
+      const detail = e?.response?.data?.error || e?.data?.error || e?.message;
+      setErreur(detail || "Le client n'a pas pu être enregistré. Vérifiez les informations et réessayez.");
     } finally {
       setSaving(false);
     }
