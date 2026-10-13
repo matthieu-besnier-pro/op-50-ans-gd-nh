@@ -26,6 +26,7 @@ import AdminImportSecteurs from '@/components/AdminImportSecteurs';
 import AdminViderClients from '@/components/AdminViderClients';
 import AdminCiblesPrioritaires from '@/components/AdminCiblesPrioritaires';
 import ExportRdv from '@/components/ExportRdv';
+import AdminInvitations from '@/components/AdminInvitations';
 import AdminComptesDemo from '@/components/AdminComptesDemo';
 import AdminDonneesDemo from '@/components/AdminDonneesDemo';
 import AdminDiagnostic from '@/components/AdminDiagnostic';
@@ -389,6 +390,7 @@ export default function Administration() {
 
         {/* Structure commerciale */}
         <TabsContent value="structure">
+          <AdminInvitations />
           <AdminDonneesDemo onReload={load} />
           <AdminComptesDemo onReload={load} />
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
