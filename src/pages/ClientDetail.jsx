@@ -17,9 +17,10 @@ import ParcMaterielTable from '@/components/ParcMaterielTable';
 import { UsagesClient } from '@/components/MaterielPicto';
 import CoachCommercial from '@/components/CoachCommercial';
 import ClientRdvsEntete from '@/components/ClientRdvsEntete';
+import ModifierClientDialog from '@/components/ModifierClientDialog';
 import {
   ArrowLeft, Phone, MapPin, Calendar, Wrench, ShoppingBag,
-  MessageSquare, Plus, Tractor, Mail, FileText, Star
+  MessageSquare, Plus, Tractor, Mail, FileText, Star, Pencil
 } from 'lucide-react';
 
 export default function ClientDetail() {
@@ -36,6 +37,7 @@ export default function ClientDetail() {
   const [venteOpen, setVenteOpen] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [pulseRow, setPulseRow] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const loadAll = async () => {
     setLoading(true);
@@ -130,6 +132,9 @@ export default function ClientDetail() {
               <Button onClick={() => setVenteOpen(true)} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white">
                 <ShoppingBag className="h-4 w-4 mr-1.5" /> Déclarer une vente
               </Button>
+              <Button onClick={() => setEditOpen(true)} variant="outline" className="border-border">
+                <Pencil className="h-4 w-4 mr-1.5" /> Modifier
+              </Button>
             </div>
 
             {/* Le statut, au même rang que les deux autres actions de la fiche. */}
@@ -170,6 +175,7 @@ export default function ClientDetail() {
               <InfoLine icon={Phone} label="Tél. fixe" value={client.tel_fixe} />
               <InfoLine icon={MapPin} label="Adresse" value={client.adresse_complete} />
               <InfoLine icon={MapPin} label="Code commune" value={client.code_commune} />
+              <InfoLine icon={Mail} label="Email" value={client.email} />
               <InfoLine icon={Mail} label="Activité" value={client.activite_naf} />
               <InfoLine icon={Mail} label="SIREN" value={client.siren} />
             </div>
@@ -249,6 +255,7 @@ export default function ClientDetail() {
 
       <RdvExpress open={rdvOpen} onOpenChange={setRdvOpen} client={client} commercialId={user.id} onSaved={loadAll} />
       <VenteDialog open={venteOpen} onOpenChange={setVenteOpen} client={client} commercialId={user.id} onSaved={loadAll} />
+      <ModifierClientDialog open={editOpen} onOpenChange={setEditOpen} client={client} onSaved={loadAll} />
     </Layout>
   );
 }
