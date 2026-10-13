@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { perimetreAtelier, filtreClientsPerimetre } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, filtreClientsPerimetre } from '../../shared/perimetre.ts';
 
 // Renvoie les clients selon le rôle, en asServiceRole (contourne le RLS navigateur).
 // Optimisé perf : UN seul appel filtré + projection légère (champs de la liste seulement).
 //   Direction / admin → clients (jusqu'à `limit`, triés par dernier contact)
-//   Responsable       → clients de son équipe (base_responsable_id)
+//   Responsable       → clients de son équipe (vendeurs dont il est le manager)
 //   Commercial        → ses clients (commerciaux_assignes)
 // body.client_id → renvoie UN client complet (repli fiche client).
 
@@ -74,7 +74,13 @@ export default async function(req) {
     if (estDirection) {
       raw = await lireTout((skip) => sr.entities.client.list('id', CHUNK, skip), limit);
     } else if (user.app_role === 'responsable') {
-      raw = await lireTout((skip) => sr.entities.client.filter({ base_responsable_id: user.id }, 'id', CHUNK, skip), limit);
+      // Son équipe, déduite de la structure. base_responsable_id reste accepté
+      // pour les clients éventuellement rattachés à l'ancienne manière.
+      const equipe = await perimetreResponsable(sr, user);
+      const filtre = (equipe && (equipe.ids.length > 0 || equipe.secteurs.length > 0))
+        ? { $or: [...filtreClientsPerimetre(equipe).$or, { base_responsable_id: user.id }] }
+        : { base_responsable_id: user.id };
+      raw = await lireTout((skip) => sr.entities.client.filter(filtre, 'id', CHUNK, skip), limit);
     } else if (perimetre) {
       const filtre = filtreClientsPerimetre(perimetre);
       raw = await lireTout((skip) => sr.entities.client.filter(filtre, 'id', CHUNK, skip), limit);

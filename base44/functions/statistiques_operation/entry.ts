@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { perimetreAtelier, estDansPerimetre } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, estDansPerimetre } from '../../shared/perimetre.ts';
 
 // Comptages EXACTS de l'opération, calculés côté serveur en parcourant l'intégralité
 // des données : les pages n'affichent plus de totaux issus de listes tronquées
@@ -46,8 +46,18 @@ export default async function (req) {
 
     if (!estDirection && role === 'responsable') {
       portee = 'equipe';
-      gardeClients = (c) => c.base_responsable_id === user.id;
-      gardeActivite = (r) => r.base_responsable_id === user.id;
+      // Même règle que la liste : son équipe vient de la structure commerciale,
+      // pas d'un champ porté par le client.
+      const equipe = await perimetreResponsable(sr, user);
+      if (equipe && (equipe.ids.length > 0 || equipe.secteurs.length > 0)) {
+        const dansEquipe = estDansPerimetre(equipe);
+        const idsEquipe = new Set(equipe.ids);
+        gardeClients = (c) => dansEquipe(c) || c.base_responsable_id === user.id;
+        gardeActivite = (r) => idsEquipe.has(r.commercial_id) || r.base_responsable_id === user.id;
+      } else {
+        gardeClients = (c) => c.base_responsable_id === user.id;
+        gardeActivite = (r) => r.base_responsable_id === user.id;
+      }
     } else if (!estDirection && (role === 'commercial' || role === 'agri_precision')) {
       portee = 'portefeuille';
       gardeClients = (c) => (c.commerciaux_assignes || []).includes(user.id);

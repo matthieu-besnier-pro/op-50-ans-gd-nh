@@ -49,6 +49,30 @@ export async function perimetreAtelier(sr, user) {
   };
 }
 
+// Périmètre d'un RESPONSABLE COMMERCIAL : les clients de son équipe.
+// Le lien ne passe pas par le client (base_responsable_id n'est pas renseigné
+// à l'import) mais par la structure : ses vendeurs sont ceux dont il est le
+// manager. Rapprochement sur le nom OU sur l'identifiant de son adresse,
+// insensible à l'ordre prénom/nom.
+export async function perimetreResponsable(sr, user) {
+  if (user?.app_role !== 'responsable') return null;
+
+  const fiches = await sr.entities.structure_commerciale.list('-nom_commercial', LOT).catch(() => []);
+  const parNom = cleNom(user.full_name || '');
+  const parEmail = cleNom(String(user.email || '').split('@')[0].replace(/[._-]+/g, ' '));
+  const estMoi = (nom) => {
+    const k = cleNom(nom);
+    return !!k && (k === parNom || (!!parEmail && k === parEmail));
+  };
+
+  const mesFiches = fiches.filter((f) => estMoi(f.manager));
+  return {
+    noms: mesFiches.map((f) => f.nom_commercial).filter(Boolean),
+    ids: [...new Set(mesFiches.flatMap((f) => [f.id, f.user_id]).filter(Boolean))],
+    secteurs: [...new Set(mesFiches.flatMap((f) => variantes(f.nom_commercial || '')))]
+  };
+}
+
 export function filtreClientsPerimetre({ ids, secteurs }) {
   return { $or: [{ commerciaux_assignes: { $in: ids } }, { secteur: { $in: secteurs } }] };
 }
