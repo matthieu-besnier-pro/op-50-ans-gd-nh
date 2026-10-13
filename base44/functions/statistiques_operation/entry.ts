@@ -246,7 +246,10 @@ export default async function (req) {
       }
 
       const jour = (r.date_heure || '').slice(0, 10);
-      if (sprintDebut && sprintFin && jour >= sprintDebut && jour <= sprintFin) {
+      // Sprint = rendez-vous PRIS pendant la fenêtre, quelle que soit la date à
+      // laquelle ils auront lieu (un RDV posé le 13 pour le 25 compte).
+      const jourPrise = (r.created_date || r.date_heure || '').slice(0, 10);
+      if (sprintDebut && sprintFin && jourPrise >= sprintDebut && jourPrise <= sprintFin) {
         sprintTotal += 1;
         if (atelier) sprintAtelier += 1; else if (agriPrecision) sprintAgri += 1; else sprintCommercial += 1;
         if (realise) sprintRealises += 1;
@@ -258,7 +261,8 @@ export default async function (req) {
         e.total += 1;
         if (duMois) e.du_mois += 1;
         if (duMois && pris) e.pris_mois += 1;
-        if (pris && jour === jourAujourdhui) e.pris_jour += 1;
+        // « Pris aujourd'hui » = posé aujourd'hui, pas qui a lieu aujourd'hui.
+        if (pris && jourPrise === jourAujourdhui) e.pris_jour += 1;
         if (dansOperation(r.date_heure)) e.pris_operation += 1;
         if (duMois && realise) e.realises_mois += 1;
       }

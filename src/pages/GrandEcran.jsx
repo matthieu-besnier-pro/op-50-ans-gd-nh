@@ -275,7 +275,10 @@ export default function GrandEcran() {
     return rdvs.filter(r => {
       // Un rendez-vous annulé est soustrait : ni du compteur, ni du classement.
       if (r.statut === 'Annulé') return false;
-      const d = (r.date_heure || '').slice(0, 10);
+      // Le sprint récompense la PRISE de rendez-vous : on retient la date à
+      // laquelle il a été posé, pas celle à laquelle il aura lieu. Un RDV pris
+      // le 13 pour le 25 compte bien pour le sprint.
+      const d = (r.created_date || r.date_heure || '').slice(0, 10);
       return d >= params.date_debut_prise_rdv && d <= params.date_fin_prise_rdv;
     });
   }, [rdvs, params]);
