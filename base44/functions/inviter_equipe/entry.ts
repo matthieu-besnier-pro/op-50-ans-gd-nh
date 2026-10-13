@@ -4,9 +4,16 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 // Chaque personne reçoit l'invitation Base44 et choisit son mot de passe.
 // Au passage : rôle appliqué, fiche commerciale rattachée, secteur conservé.
 //
+// UN SEUL mail part, et il est en français : celui que nous rédigeons.
+// L'invitation Base44 (en anglais, non pilotable) n'est pas envoyée par défaut —
+// elle n'est de toute façon pas nécessaire : le compte se crée à la première
+// connexion (Google ou « Créer mon accès ») et rattacher_comptes applique alors
+// le rôle et le portefeuille.
+//
 // body = {
 //   lignes: [{ nom, email, role }],   // role : commercial | responsable | ...
-//   dry_run: true                     // aperçu sans rien créer
+//   avec_invitation: false,           // true = envoyer aussi l'invitation Base44
+//   dry_run: true                     // aperçu sans rien envoyer
 // }
 
 const norm = (s) => String(s || '')
@@ -51,8 +58,6 @@ function messageBienvenue(nom, email, role) {
       `• Le plus simple : cliquez sur « Continuer avec Google » et utilisez votre adresse professionnelle. Rien d'autre à faire.`,
       `• Sinon : cliquez sur « Créer mon accès », saisissez l'adresse ci-dessus et choisissez votre mot de passe. Un code de confirmation vous sera envoyé.`,
       '',
-      `Vous recevrez peut-être aussi un message d'invitation en anglais de la part de la plateforme : vous pouvez l'ignorer, les deux chemins ci-dessus suffisent.`,
-      '',
       `Bonne opération,`,
       `L'équipe CockpitOP`
     ].join('\n')
@@ -65,9 +70,9 @@ async function envoyerBienvenue(base44, nom, email, role) {
   const { sujet, corps } = messageBienvenue(nom, email, role);
   try {
     await base44.integrations.Core.SendEmail({ to: email, subject: sujet, body: corps });
-    return ' · mode d\'emploi en français envoyé';
+    return { ok: true };
   } catch (e) {
-    return ' · mode d\'emploi non envoyé (' + (e?.message || e) + ')';
+    return { ok: false, detail: e?.message || String(e) };
   }
 }
 
@@ -120,23 +125,27 @@ export default async function (req) {
       try {
         let userId = existant?.id;
         if (!userId) {
-          try {
-            await base44.users.inviteUser(email, 'user');
-          } catch (e) {
-            // « déjà invité / déjà membre » n'est pas un échec : on enchaîne sur la
-            // recherche du compte, qui existe alors forcément.
-            const msg = String(e?.message || e);
-            if (!/exist|déjà|already|duplicate/i.test(msg)) {
-              resultats.push({ nom, email, etat: 'erreur', detail: `Invitation refusée : ${msg}` });
-              continue;
+          // Invitation plateforme : seulement si on la demande explicitement
+          // (elle déclenche un second mail, en anglais).
+          if (body.avec_invitation) {
+            try {
+              await base44.users.inviteUser(email, 'user');
+            } catch (e) {
+              const msg = String(e?.message || e);
+              if (!/exist|déjà|already|duplicate/i.test(msg)) {
+                resultats.push({ nom, email, etat: 'erreur', detail: `Invitation refusée : ${msg}` });
+                continue;
+              }
             }
           }
-          // Le compte n'apparaît pas tout de suite : on réessaie plusieurs fois.
+          // Le compte n'existe qu'à la première connexion : inutile d'attendre.
           let cree = null;
-          for (let essai = 0; essai < 5 && !cree; essai++) {
-            await new Promise((r) => setTimeout(r, 400 + essai * 400));
-            const frais = await sr.entities.User.list('-created_date', 500);
-            cree = frais.find((u) => (u.email || '').toLowerCase() === email) || null;
+          if (body.avec_invitation) {
+            for (let essai = 0; essai < 3 && !cree; essai++) {
+              await new Promise((r) => setTimeout(r, 400 + essai * 400));
+              const frais = await sr.entities.User.list('-created_date', 500);
+              cree = frais.find((u) => (u.email || '').toLowerCase() === email) || null;
+            }
           }
           if (!cree) {
             // Comportement NORMAL de Base44 : le compte n'existe qu'à la première
@@ -150,8 +159,10 @@ export default async function (req) {
             }
             const envoi = await envoyerBienvenue(base44, nom, email, role);
             resultats.push({
-              nom, email, role, etat: 'invite',
-              detail: `Invitation envoyée — rôle et portefeuille rattachés à sa première connexion${envoi}`
+              nom, email, role, etat: envoi.ok ? 'invite' : 'erreur',
+              detail: envoi.ok
+                ? 'Mode d\'emploi envoyé — rôle et portefeuille rattachés à sa première connexion'
+                : `Mail non envoyé : ${envoi.detail}`
             });
             continue;
           }

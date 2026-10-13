@@ -58,6 +58,9 @@ export default function AdminInvitations() {
   const [solo, setSolo] = useState({ nom: '', email: '', role: 'commercial' });
   const [soloBusy, setSoloBusy] = useState(false);
   const [soloRes, setSoloRes] = useState(null);
+  // Repli : si l'inscription libre était fermée, on ajoute l'invitation
+  // plateforme — au prix d'un second mail, en anglais.
+  const [avecInvitation, setAvecInvitation] = useState(false);
 
   useEffect(() => {
     base44.entities.structure_commerciale.list('-nom_commercial', 500)
@@ -129,7 +132,8 @@ export default function AdminInvitations() {
     setSoloBusy(true); setSoloRes(null);
     try {
       const res = await base44.functions.invoke('inviter_equipe', {
-        lignes: [{ nom, email, role: solo.role }]
+        lignes: [{ nom, email, role: solo.role }],
+        avec_invitation: avecInvitation
       });
       const d = res?.data ?? res;
       if (d?.error) throw new Error(d.error);
@@ -145,7 +149,7 @@ export default function AdminInvitations() {
   const lancer = async (dryRun) => {
     setBusy(true); setErreur(''); if (!dryRun) setApercu(null);
     try {
-      const res = await base44.functions.invoke('inviter_equipe', { lignes, dry_run: dryRun });
+      const res = await base44.functions.invoke('inviter_equipe', { lignes, dry_run: dryRun, avec_invitation: avecInvitation });
       const d = res?.data ?? res;
       if (d?.error) throw new Error(d.error);
       setApercu(d);
@@ -162,10 +166,10 @@ export default function AdminInvitations() {
         <Mail className="h-4 w-4 text-gd-orange" /> Inviter l'équipe
       </h3>
       <p className="mb-4 text-sm text-muted-foreground">
-        Invite tout le monde d'un coup avec les <strong>vraies adresses professionnelles</strong>.
-        Chacun reçoit un mail et choisit son mot de passe. Le rôle et le portefeuille sont
-        rattachés <strong>à sa première connexion</strong> — c'est normal que le compte
-        n'apparaisse pas avant. Relancer est sans risque.
+        Chacun reçoit <strong>un seul mail, en français</strong> : son profil, son adresse de
+        connexion et la marche à suivre. Le rôle et le portefeuille sont rattachés
+        <strong>à sa première connexion</strong> — c'est normal que le compte n'apparaisse
+        pas avant. Relancer est sans risque.
       </p>
 
       {/* Invitation unitaire : le cas le plus fréquent en cours d'opération. */}
@@ -237,6 +241,19 @@ export default function AdminInvitations() {
           </div>
         ))}
       </div>
+
+      <label className="mb-3 flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={avecInvitation}
+          onChange={(e) => setAvecInvitation(e.target.checked)}
+          className="mt-0.5 h-3.5 w-3.5"
+        />
+        <span>
+          Ajouter l'invitation de la plateforme — <strong>envoie un second mail, en anglais</strong>.
+          Utile seulement si la création d'accès libre est refusée.
+        </span>
+      </label>
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => lancer(true)} disabled={busy || lignes.length === 0} variant="outline"
