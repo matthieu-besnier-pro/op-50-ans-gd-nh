@@ -61,17 +61,61 @@ function ProgressRing({ value, max, size = 220, stroke = 18, color = 'hsl(45 100
   );
 }
 
-/* ---------- Leaderboard row ---------- */
-// Densité du classement : tout le monde doit tenir à l'écran, même à 22.
-// On resserre progressivement plutôt que de couper la liste.
-function densiteClassement(n) {
-  if (n <= 8) return { pad: 'px-5 py-4', gap: 'gap-4', medaille: 'h-12 w-12 text-2xl', rang: 'text-lg', nom: 'text-lg', barre: 'mt-2 h-2.5', compteur: 'text-3xl', libelle: 'text-xs', espace: 'space-y-3' };
-  if (n <= 14) return { pad: 'px-4 py-2.5', gap: 'gap-3', medaille: 'h-9 w-9 text-xl', rang: 'text-base', nom: 'text-base', barre: 'mt-1.5 h-2', compteur: 'text-2xl', libelle: 'text-[10px]', espace: 'space-y-2' };
-  return { pad: 'px-3 py-1.5', gap: 'gap-2', medaille: 'h-7 w-7 text-base', rang: 'text-sm', nom: 'text-sm', barre: 'mt-1 h-1.5', compteur: 'text-xl', libelle: 'text-[9px]', espace: 'space-y-1.5' };
+/* ---------- Podium ---------- */
+// Les trois premiers sortent de la liste : sur un écran projeté, un podium se
+// lit d'un coup d'œil là où une suite de lignes se ressemble toutes.
+// Ordre d'affichage : 2e à gauche, 1er au centre sur la marche haute, 3e à droite.
+const MARCHES = [
+  { rang: 2, medaille: '🥈', hauteur: 'h-16', socle: 'from-slate-200/30 to-slate-400/5', bord: 'border-slate-200/40' },
+  { rang: 1, medaille: '🥇', hauteur: 'h-24', socle: 'from-gd-orange/45 to-yellow-300/5', bord: 'border-gd-orange/60' },
+  { rang: 3, medaille: '🥉', hauteur: 'h-11', socle: 'from-amber-600/30 to-amber-800/5', bord: 'border-amber-500/40' }
+];
+
+function Podium({ entrees, unite }) {
+  return (
+    <div className="flex items-end justify-center gap-3 shrink-0 mb-5">
+      {MARCHES.map((m) => {
+        const e = entrees[m.rang - 1];
+        // Moins de trois commerciaux classés : la marche reste vide plutôt que
+        // de décaler le podium.
+        if (!e) return <div key={m.rang} className="flex-1" />;
+        return (
+          <motion.div
+            key={e.id}
+            layout
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+            className="flex-1 min-w-0 flex flex-col items-center"
+          >
+            <div className={m.rang === 1 ? 'text-4xl leading-none' : 'text-3xl leading-none'}>{m.medaille}</div>
+            <p className={`mt-1.5 w-full truncate text-center font-bold text-white ${m.rang === 1 ? 'text-lg' : 'text-base'}`}>
+              {e.name}
+            </p>
+            <div className="flex items-baseline gap-1.5">
+              <AnimatedCounter value={e.count} className={`font-extrabold tabular-nums ${m.rang === 1 ? 'text-5xl text-gd-orange' : 'text-3xl text-white'}`} />
+              <span className="text-[11px] uppercase tracking-widest text-white/40">{unite}</span>
+            </div>
+            <div className={`mt-2 w-full rounded-t-2xl border border-b-0 bg-gradient-to-b ${m.socle} ${m.bord} ${m.hauteur} flex items-start justify-center pt-1.5`}>
+              <span className="text-3xl font-black text-white/25">{m.rang}</span>
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
 }
 
-function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d }) {
-  const medals = ['🥇', '🥈', '🥉'];
+/* ---------- Leaderboard row ---------- */
+// Densité des places 4 et suivantes. L'argument est le nombre de LIGNES de la
+// grille, pas le nombre de commerciaux : deux colonnes en logent deux par ligne.
+function densiteClassement(n) {
+  if (n <= 5) return { pad: 'px-4 py-3', gap: 'gap-3', rang: 'text-lg', nom: 'text-lg', barre: 'mt-2 h-2', compteur: 'text-3xl', libelle: 'text-xs', grille: 'gap-3' };
+  if (n <= 9) return { pad: 'px-3 py-2', gap: 'gap-2.5', rang: 'text-base', nom: 'text-base', barre: 'mt-1.5 h-1.5', compteur: 'text-2xl', libelle: 'text-[10px]', grille: 'gap-2' };
+  return { pad: 'px-2.5 py-1.5', gap: 'gap-2', rang: 'text-sm', nom: 'text-sm', barre: 'mt-1 h-1', compteur: 'text-xl', libelle: 'text-[9px]', grille: 'gap-1.5' };
+}
+
+function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, unite }) {
   const pct = total > 0 ? (count / total) * 100 : 0;
   const movedUp = prevRank !== null && prevRank > rank;
   return (
@@ -80,11 +124,9 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d }) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className={`relative flex items-center rounded-2xl ${d.gap} ${d.pad} ${rank <= 3 ? 'bg-white/10 border border-gd-orange/30' : 'bg-white/5 border border-white/5'}`}
+      className={`relative flex items-center rounded-2xl bg-white/5 border border-white/5 ${d.gap} ${d.pad}`}
     >
-      <div className={`flex shrink-0 items-center justify-center font-extrabold text-white ${d.medaille}`}>
-        {rank <= 3 ? medals[rank - 1] : <span className={`${d.rang} text-white/50`}>{rank}</span>}
-      </div>
+      <div className={`${d.rang} shrink-0 font-extrabold tabular-nums text-white/40 w-6 text-center`}>{rank}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className={`${d.nom} font-bold text-white truncate`}>{name}</span>
@@ -106,7 +148,7 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d }) {
       </div>
       <div className="text-right shrink-0">
         <AnimatedCounter value={count} className={`${d.compteur} font-extrabold text-white tabular-nums`} />
-        <p className={`${d.libelle} text-white/40`}>RDV</p>
+        <p className={`${d.libelle} text-white/40`}>{unite}</p>
       </div>
     </motion.div>
   );
@@ -511,32 +553,52 @@ export default function GrandEcran() {
                   <span className="h-2 w-2 rounded-full bg-gd-orange animate-pulse" /> Temps réel
                 </span>
               </div>
-              {/* Tout le classement doit être visible : la densité s'adapte au nombre,
-                  et le défilement reste en dernier recours. */}
-              <div className={`${densiteClassement((phase === 'sprint' ? leaderboard : ventesLeaderboard).length).espace} flex-1 overflow-y-auto pr-1`}>
-                <AnimatePresence>
-                  {(phase === 'sprint' ? leaderboard : ventesLeaderboard).length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
+              {/* Podium pour les trois premiers, puis les suivants sur deux
+                  colonnes : plus lisible de loin qu'une longue liste, et tout
+                  le monde tient à l'écran. */}
+              {(() => {
+                const liste = phase === 'sprint' ? leaderboard : ventesLeaderboard;
+                const unite = phase === 'sprint' ? 'RDV' : 'ventes';
+                if (liste.length === 0) {
+                  return (
+                    <div className="flex flex-1 flex-col items-center justify-center text-center">
                       <Flame className="h-12 w-12 text-gd-orange/50 mb-3" />
                       <p className="text-lg font-semibold text-white/60">En attente du premier RDV…</p>
                       <p className="text-sm text-white/40 mt-1">Que la meilleure équipe gagne !</p>
                     </div>
-                  ) : (
-                    (phase === 'sprint' ? leaderboard : ventesLeaderboard).map((entry, i, liste) => (
-                      <LeaderRow
-                        key={entry.id}
-                        rank={i + 1}
-                        name={entry.name}
-                        count={entry.count}
-                        total={liste[0]?.count || 1}
-                        isAtelier={entry.isAtelier}
-                        prevRank={prevRanks[entry.id] || null}
-                        d={densiteClassement(liste.length)}
-                      />
-                    ))
-                  )}
-                </AnimatePresence>
-              </div>
+                  );
+                }
+                const reste = liste.slice(3);
+                // La densité se règle sur le nombre de lignes de la grille, pas
+                // sur le nombre de commerciaux : deux colonnes en logent deux.
+                const d = densiteClassement(Math.ceil(reste.length / 2));
+                return (
+                  // Tant qu'il n'y a que trois commerciaux classés, le podium
+                  // se cale au centre plutôt que de flotter en haut du cadre.
+                  <div className={`flex flex-1 flex-col min-h-0 ${reste.length === 0 ? 'justify-center' : ''}`}>
+                    <Podium entrees={liste.slice(0, 3)} unite={unite} />
+                    {reste.length > 0 && (
+                      <div className={`grid grid-cols-2 content-start ${d.grille} flex-1 overflow-y-auto pr-1`}>
+                        <AnimatePresence>
+                          {reste.map((entry, i) => (
+                            <LeaderRow
+                              key={entry.id}
+                              rank={i + 4}
+                              name={entry.name}
+                              count={entry.count}
+                              total={liste[0]?.count || 1}
+                              isAtelier={entry.isAtelier}
+                              prevRank={prevRanks[entry.id] || null}
+                              d={d}
+                              unite={unite}
+                            />
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
