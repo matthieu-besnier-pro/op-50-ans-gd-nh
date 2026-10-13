@@ -4,7 +4,8 @@ import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
-  Store, Settings, LogOut, Menu, X, Eye, Monitor, Bot, UserCircle, Rocket, Megaphone, Presentation
+  Store, Settings, LogOut, Menu, X, Eye, Monitor, Bot, UserCircle, Rocket, Megaphone, Presentation,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { getAppRole, isDirection, accueilRole } from '@/lib/permissions';
 import OpLogo from '@/components/OpLogo';
@@ -47,6 +48,17 @@ export default function Layout({ children }) {
   const { user, logout, viewAsRole, setViewAsRole, viewAsCommercial, setViewAsCommercial, viewAsManager, setViewAsManager, viewAsReferent, setViewAsReferent } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Panneau replié : mémorisé sur le poste, pour retrouver sa mise en page.
+  const [replie, setReplie] = useState(() => {
+    try { return window.localStorage.getItem('cockpitop_menu_replie') === '1'; } catch (e) { return false; }
+  });
+  const basculerReplie = () => {
+    setReplie((v) => {
+      const suivant = !v;
+      try { window.localStorage.setItem('cockpitop_menu_replie', suivant ? '1' : '0'); } catch (e) { /* ignore */ }
+      return suivant;
+    });
+  };
   const [structure, setStructure] = useState([]);
   const [bases, setBases] = useState([]);
   const role = getAppRole(user, viewAsRole);
@@ -81,26 +93,32 @@ export default function Layout({ children }) {
     navigate('/login');
   };
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ replie = false }) => (
     <>
-      <div className="px-6 py-6 border-b border-sidebar-border">
-        <div className="flex flex-col">
-          <OpLogo className="mb-3 h-16 w-16 rounded-full object-contain" fallback={null} />
-          <span className="text-xl font-extrabold tracking-tight text-white leading-none">
-            CockpitOP
-          </span>
-          <div className="mt-1.5 h-1.5 w-20 rounded-full bg-gd-orange/90" style={{ transform: 'skewX(-12deg)' }} />
-          <span className="mt-2 text-[11px] font-medium uppercase tracking-widest text-gd-orange">
-            50 ans Gonnin Duris × New Holland
-          </span>
+      <div className={`border-b border-sidebar-border ${replie ? 'px-3 py-4' : 'px-6 py-6'}`}>
+        <div className={`flex flex-col ${replie ? 'items-center' : ''}`}>
+          <OpLogo className={`rounded-full object-contain ${replie ? 'h-10 w-10' : 'mb-3 h-16 w-16'}`} fallback={null} />
+          {!replie && (
+            <>
+              <span className="text-xl font-extrabold tracking-tight text-white leading-none">
+                CockpitOP
+              </span>
+              <div className="mt-1.5 h-1.5 w-20 rounded-full bg-gd-orange/90" style={{ transform: 'skewX(-12deg)' }} />
+              <span className="mt-2 text-[11px] font-medium uppercase tracking-widest text-gd-orange">
+                50 ans Gonnin Duris × New Holland
+              </span>
+            </>
+          )}
         </div>
       </div>
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         {sections.map((section) => (
           <div key={section} className="mb-4">
-            <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">
-              {SECTION_LABELS[section]}
-            </p>
+            {!replie && (
+              <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">
+                {SECTION_LABELS[section]}
+              </p>
+            )}
             <div className="space-y-0.5">
               {visibleItems.filter((i) => i.section === section).map((item) => {
                 const Icon = item.icon;
@@ -109,8 +127,11 @@ export default function Layout({ children }) {
                     key={item.to}
                     to={item.to}
                     onClick={() => setMobileOpen(false)}
+                    title={replie ? item.label : undefined}
                     className={({ isActive }) =>
-                      `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                      `group flex items-center rounded-lg py-2.5 text-sm font-medium transition-all ${
+                        replie ? 'justify-center px-2' : 'gap-3 px-3'
+                      } ${
                         isActive
                           ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
                           : 'text-sidebar-foreground/80 hover:bg-white/5 hover:text-white'
@@ -118,7 +139,7 @@ export default function Layout({ children }) {
                     }
                   >
                     <Icon className="h-[18px] w-[18px] shrink-0" />
-                    <span>{item.label}</span>
+                    {!replie && <span>{item.label}</span>}
                   </NavLink>
                 );
               })}
@@ -126,7 +147,7 @@ export default function Layout({ children }) {
           </div>
         ))}
       </nav>
-      {canViewAs && (
+      {canViewAs && !replie && (
         <div className="px-3 pb-2 space-y-2">
           <div>
             <label className="px-1 mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
@@ -211,7 +232,7 @@ export default function Layout({ children }) {
         </div>
       )}
       <div className="px-3 py-4 border-t border-sidebar-border">
-        {role === 'direction' && (
+        {role === 'direction' && !replie && (
           <div className="mb-2 flex items-center gap-2 px-3">
             <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/40">Animation</span>
             <NavLink to="/briefing" title="Briefing animateur" className={({ isActive }) => `flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${isActive ? 'bg-gd-orange text-gd-navy-dark' : 'text-sidebar-foreground/60 hover:bg-white/5 hover:text-white'}`}>
@@ -222,21 +243,27 @@ export default function Layout({ children }) {
             </NavLink>
           </div>
         )}
-        <div className="flex items-center gap-3 px-3 py-2">
+        <div
+          className={`flex items-center py-2 ${replie ? 'justify-center px-0' : 'gap-3 px-3'}`}
+          title={replie ? `${user?.full_name || user?.email} — ${ROLE_LABELS[role]}` : undefined}
+        >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gd-orange text-gd-navy-dark font-bold text-sm">
             {(user?.full_name || user?.email || '?').charAt(0).toUpperCase()}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">{user?.full_name || user?.email}</p>
-            <p className="truncate text-[11px] text-sidebar-foreground/60">{ROLE_LABELS[role]}</p>
-          </div>
+          {!replie && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{user?.full_name || user?.email}</p>
+              <p className="truncate text-[11px] text-sidebar-foreground/60">{ROLE_LABELS[role]}</p>
+            </div>
+          )}
         </div>
         <button
           onClick={handleLogout}
-          className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-white/5 hover:text-white transition-colors"
+          title={replie ? 'Déconnexion' : undefined}
+          className={`mt-2 flex w-full items-center rounded-lg py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-white/5 hover:text-white transition-colors ${replie ? 'justify-center px-0' : 'gap-3 px-3'}`}
         >
           <LogOut className="h-[18px] w-[18px]" />
-          <span>Déconnexion</span>
+          {!replie && <span>Déconnexion</span>}
         </button>
       </div>
     </>
@@ -269,12 +296,21 @@ export default function Layout({ children }) {
       )}
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 shrink-0 gd-gradient text-sidebar-foreground flex-col fixed inset-y-0 left-0 z-30">
-        <SidebarContent />
+      <aside className={`hidden lg:flex ${replie ? 'w-20' : 'w-64'} shrink-0 gd-gradient text-sidebar-foreground flex-col fixed inset-y-0 left-0 z-30 transition-[width] duration-200`}>
+        <SidebarContent replie={replie} />
+        {/* Poignée de repli : donne de la place à la liste des clients */}
+        <button
+          onClick={basculerReplie}
+          title={replie ? 'Déplier le menu' : 'Replier le menu'}
+          aria-label={replie ? 'Déplier le menu' : 'Replier le menu'}
+          className="absolute -right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-gd-navy shadow-md transition hover:bg-gd-orange hover:text-gd-navy-dark"
+        >
+          {replie ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
       </aside>
 
       {/* Main */}
-      <div className="lg:ml-64 flex flex-col min-w-0">
+      <div className={`${replie ? 'lg:ml-20' : 'lg:ml-64'} flex flex-col min-w-0 transition-[margin] duration-200`}>
         {viewAsRole && (
           <div className="flex items-center justify-between border-b border-gd-orange/30 bg-gd-orange/10 px-4 py-2">
             <p className="flex items-center text-sm text-gd-navy">

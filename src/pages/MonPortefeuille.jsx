@@ -29,7 +29,8 @@ const FILTRES_INIT = {
   appetence: 'all',
   commercial: 'all',
   suivi: 'all',
-  parc: 'all'
+  parc: 'all',
+  agri: 'all'
 };
 
 // Catégories de machines présentes dans le parc d'un client (« TRACTEURS:3 »).
@@ -257,6 +258,9 @@ export default function MonPortefeuille() {
 
       // Parc cible : ne garder que les clients possédant ce type de machine.
       if (filters.parc !== 'all' && !categoriesDuParc(c).includes(filters.parc)) return false;
+
+      // Agriculture de précision : d'où vient le ciblage (CX, tracteurs AGP, Trimble).
+      if (filters.agri !== 'all' && !(c.sources_agri_precision || []).includes(filters.agri)) return false;
       if (filters.statut !== 'all' && c.statut !== filters.statut) return false;
 
       if (filters.appetence !== 'all' && niveauAppetence(c) !== filters.appetence) return false;
@@ -321,6 +325,18 @@ export default function MonPortefeuille() {
   const [affichesMax, setAffichesMax] = useState(200);
   useEffect(() => { setAffichesMax(200); }, [filters, sortByPriority, prioriteOnly]);
   const nbPriorites = useMemo(() => clients.filter((c) => c.priorite_commercial).length, [clients]);
+
+  // Sources du ciblage agri. précision présentes dans le portefeuille.
+  // Le filtre n'apparaît donc que pour les personnes concernées.
+  const agriOptions = useMemo(() => {
+    const compte = {};
+    clients.forEach((c) => {
+      new Set(c.sources_agri_precision || []).forEach((src) => { compte[src] = (compte[src] || 0) + 1; });
+    });
+    return Object.entries(compte)
+      .map(([value, nb]) => ({ value, nb }))
+      .sort((a, b) => b.nb - a.nb);
+  }, [clients]);
 
   // Catégories proposées au filtre « Parc cible » : seulement celles réellement
   // présentes, avec le nombre de clients qui en possèdent.
@@ -438,6 +454,7 @@ export default function MonPortefeuille() {
         statutCounts={statutCounts}
         commercials={commercialOptions}
         parcOptions={parcOptions}
+        agriOptions={agriOptions}
         showCommercial={showCommercial}
         sortByAppetence={sortByPriority}
         onToggleSort={() => setSortByPriority((v) => !v)}

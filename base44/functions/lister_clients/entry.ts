@@ -15,7 +15,7 @@ const LIGHT = [
   'commerciaux_assignes', 'base_responsable_id', 'base_id',
   'tel_mobile', 'adresse_complete', 'type_client_mistra',
   'usages', 'secteur', 'departement', 'parc_total', 'parc_pictos',
-  'priorite_commercial'
+  'priorite_commercial', 'sources_agri_precision'
 ];
 const pick = (c) => { const o = {}; for (const k of LIGHT) o[k] = c[k]; return o; };
 

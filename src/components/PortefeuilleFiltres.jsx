@@ -7,10 +7,17 @@ import {
 import { cn } from '@/lib/utils';
 import {
   Search, RotateCcw, SlidersHorizontal, Gauge, Flag, User,
-  CalendarClock, ArrowDownWideNarrow, Tractor
+  CalendarClock, ArrowDownWideNarrow, Tractor, Satellite
 } from 'lucide-react';
 
 const APPETENCES = ['Fort', 'Moyen', 'Faible'];
+
+// Origine du ciblage « agriculture de précision » (l'appel ne se prépare pas pareil).
+const AGRI_LABELS = {
+  'Tracteurs': '🚜 Tracteurs 2014-2020',
+  'CX 5/6': '🌾 Moissonneuses CX 5/6',
+  'Trimble': '🛰️ Clients Trimble'
+};
 const APPETENCE_LABELS = {
   Fort: 'Fort (à saisir)',
   Moyen: 'Moyen (à cultiver)',
@@ -47,6 +54,7 @@ export default function PortefeuilleFiltres({
   statutCounts = {},
   commercials = [],
   parcOptions = [],
+  agriOptions = [],
   showCommercial = false,
   sortByAppetence,
   onToggleSort,
@@ -137,6 +145,23 @@ export default function PortefeuilleFiltres({
                 {parcOptions.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
                     {o.emoji} {o.label} ({o.nb})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Champ>
+        )}
+
+        {/* Agri. précision : d'où vient le ciblage. Masqué si aucun client concerné. */}
+        {agriOptions.length > 0 && (
+          <Champ label="Agri. précision" icone={Satellite} actif={actif('agri')}>
+            <Select value={filters.agri || 'all'} onValueChange={(v) => onChange('agri', v)}>
+              <SelectTrigger className={triggerClass(actif('agri'))}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes origines</SelectItem>
+                {agriOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {AGRI_LABELS[o.value] || o.value} ({o.nb})
                   </SelectItem>
                 ))}
               </SelectContent>
