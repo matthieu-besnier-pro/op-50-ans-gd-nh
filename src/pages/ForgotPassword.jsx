@@ -32,14 +32,32 @@ export default function ForgotPassword() {
       subtitle="Nous vous envoyons un lien par email"
       footer={
         <Link to="/login" className="text-primary font-medium hover:underline">
-          <ArrowLeft className="w-3 h-3 inline mr-1" />Back to log in
+          <ArrowLeft className="w-3 h-3 inline mr-1" />Retour à la connexion
         </Link>
       }
     >
       {sent ? (
-        <p className="text-sm text-foreground text-center">
-          Si un compte existe avec cette adresse, vous allez recevoir un lien pour définir votre mot de passe. Pensez à vérifier vos indésirables.
-        </p>
+        <div className="space-y-4 text-center">
+          <p className="text-sm text-foreground">
+            Un lien vient d'être envoyé à <strong className="break-all">{email}</strong>.
+            Pensez à vérifier vos indésirables.
+          </p>
+          {/* Un compte jamais utilisé n'existe pas encore : aucun lien ne peut
+              partir. On propose alors de créer l'accès directement. */}
+          <div className="rounded-lg border border-gd-orange/40 bg-gd-orange/5 p-3">
+            <p className="text-sm font-semibold text-gd-navy-dark">Vous ne recevez rien ?</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              C'est que votre accès n'est pas encore actif. Créez-le avec cette même adresse,
+              vous choisirez votre mot de passe.
+            </p>
+            <Link
+              to={`/register?email=${encodeURIComponent(email)}`}
+              className="mt-2 inline-block text-sm font-semibold text-gd-orange underline underline-offset-2 hover:text-gd-navy"
+            >
+              Créer mon accès
+            </Link>
+          </div>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
