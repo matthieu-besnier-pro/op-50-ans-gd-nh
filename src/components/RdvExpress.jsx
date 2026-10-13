@@ -22,6 +22,13 @@ const enMinutes = (hhmm) => {
   const [h, m] = String(hhmm).split(':').map(Number);
   return h * 60 + m;
 };
+// Les rendez-vous sont stockés en UTC : on repasse en heure locale, sinon un
+// RDV de 10:00 griserait le créneau de 08:00.
+const heureLocale = (iso) => {
+  const d = new Date(iso);
+  if (isNaN(d)) return null;
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
 const enHeure = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 // Tous les créneaux de 30 min couverts par un rendez-vous.
 const creneauxCouverts = (debut, duree) => {
@@ -70,7 +77,12 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
     let active = true;
     base44.entities.rdv.filter({
       commercial_id: effectiveCommercialId,
-      date_heure: { $gte: day + 'T00:00:00', $lte: day + 'T23:59:59' },
+      // Bornes du jour exprimées en UTC, sinon les RDV de début/fin de journée
+      // tombent hors de la fenêtre interrogée.
+      date_heure: {
+        $gte: new Date(`${day}T00:00:00`).toISOString(),
+        $lte: new Date(`${day}T23:59:59`).toISOString()
+      },
       statut: { $ne: 'Annulé' }
     }, '-date_heure', 100).then((r) => { if (active) setDayRdvs(r); }).catch(() => {});
     return () => { active = false; };
@@ -81,7 +93,9 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
     const set = new Set();
     dayRdvs.forEach((r) => {
       if (!r.date_heure) return;
-      creneauxCouverts(r.date_heure.slice(11, 16), r.duree_minutes || 30).forEach((c) => set.add(c));
+      const debut = heureLocale(r.date_heure);
+      if (!debut) return;
+      creneauxCouverts(debut, r.duree_minutes || 30).forEach((c) => set.add(c));
     });
     return set;
   }, [dayRdvs]);
