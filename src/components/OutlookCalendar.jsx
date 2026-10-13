@@ -38,7 +38,10 @@ function rdvOnDate(rdv, date) {
   return rdv.date_heure && sameDay(new Date(rdv.date_heure), date);
 }
 
-export default function OutlookCalendar({ rdvs, clients, commercialNames = {} }) {
+export default function OutlookCalendar({ rdvs: rdvsBruts, clients, commercialNames = {} }) {
+  // Filet de sécurité : quoi qu'on lui passe, le calendrier n'affiche jamais un
+  // rendez-vous annulé (ni dans la grille, ni dans l'export .ics).
+  const rdvs = useMemo(() => (rdvsBruts || []).filter((r) => r.statut !== 'Annulé'), [rdvsBruts]);
   const navigate = useNavigate();
   const [view, setView] = useState('week'); // 'day' | 'week' | 'month'
   const [current, setCurrent] = useState(new Date());
@@ -82,14 +85,14 @@ export default function OutlookCalendar({ rdvs, clients, commercialNames = {} })
 
   // RDV pris = RDV du périmètre hors RDV annulés
   const handleExportPris = () => {
-    const pris = rdvs.filter((r) => r.statut !== 'Annulé');
+    const pris = rdvs;
     downloadICS(generateICSAll(pris, clients), `rdv-pris-${new Date().toISOString().slice(0, 10)}.ics`);
   };
 
   // Un fichier .ics par commercial : calendriers individuels prêts à importer dans Outlook
   const handleExportParCommercial = () => {
     const groupes = {};
-    rdvs.filter((r) => r.statut !== 'Annulé').forEach((r) => {
+    rdvs.forEach((r) => {
       const cle = r.commercial_id || 'sans-commercial';
       (groupes[cle] = groupes[cle] || []).push(r);
     });

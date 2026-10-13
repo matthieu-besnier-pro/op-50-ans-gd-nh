@@ -75,13 +75,16 @@ export default function Calendrier() {
   const peutFiltrer = persona.mode === 'manager' || (!persona.mode && (isDirection(user) || isResponsable(user)));
   const showFilter = peutFiltrer && commerciauxDispo.length > 1;
 
-  const rdvsFiltres = useMemo(() => (
-    commFilter === 'all' ? rdvs : rdvs.filter((r) => r.commercial_id === commFilter)
-  ), [rdvs, commFilter]);
+  // Un rendez-vous annulé disparaît du calendrier : il ne doit plus occuper de
+  // créneau, ni être compté, ni partir dans l'export Outlook.
+  const rdvsFiltres = useMemo(() => {
+    const actifs = rdvs.filter((r) => r.statut !== 'Annulé');
+    return commFilter === 'all' ? actifs : actifs.filter((r) => r.commercial_id === commFilter);
+  }, [rdvs, commFilter]);
 
   const upcomingCount = useMemo(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
-    return rdvsFiltres.filter((r) => r.date_heure?.slice(0, 10) >= todayStr && r.statut !== 'Annulé').length;
+    return rdvsFiltres.filter((r) => r.date_heure?.slice(0, 10) >= todayStr).length;
   }, [rdvsFiltres]);
 
   return (
