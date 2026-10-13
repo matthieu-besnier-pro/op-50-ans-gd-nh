@@ -53,9 +53,15 @@ export default function MonEquipe() {
         listerPartage('structure_commerciale', '-nom_commercial', 200)
       ]);
       const equipeMembers = res.data?.members || [];
+      // Un responsable ne voit que ses vendeurs : le serveur renvoie leurs noms.
+      // Pour la Direction, « fiches » vaut null et toute la structure est conservée.
+      const noms = res.data?.fiches;
+      const mesFiches = Array.isArray(noms)
+        ? structRows.filter((s) => noms.includes(s.nom_commercial))
+        : structRows;
       const userById = {};
       equipeMembers.forEach((m) => { userById[m.id] = m; });
-      const members = structRows.map((s) => ({
+      const members = mesFiches.map((s) => ({
         id: s.user_id || s.id,
         user_id: s.user_id || null,
         nom: s.nom_commercial,
