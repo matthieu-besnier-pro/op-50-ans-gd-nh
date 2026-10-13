@@ -114,9 +114,33 @@ export default function ClientDetail() {
                   <Star className="h-3 w-3" fill="currentColor" /> Cible prioritaire
                 </span>
               )}
+              <AppetenceGauge niveau={client.niveau_appetence} score={client.score_appetence} className="min-w-[8.5rem]" />
+              {client.type_structure && <span className="text-xs font-medium text-muted-foreground">{client.type_structure}</span>}
+              {client.type_client_mistra && <span className="text-xs font-medium text-muted-foreground">· {client.type_client_mistra}</span>}
+            </div>
+            {Array.isArray(client.usages) && client.usages.length > 0 && (
+              <UsagesClient usages={client.usages} className="mt-2" />
+            )}
+          </div>
+          <div className="flex shrink-0 flex-col gap-2 lg:items-end">
+            <div className="flex gap-2">
+              <Button onClick={() => setRdvOpen(true)} className="bg-gd-navy hover:bg-gd-navy-dark text-white">
+                <Calendar className="h-4 w-4 mr-1.5" /> Ajouter un RDV
+              </Button>
+              <Button onClick={() => setVenteOpen(true)} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white">
+                <ShoppingBag className="h-4 w-4 mr-1.5" /> Déclarer une vente
+              </Button>
+            </div>
+
+            {/* Le statut, au même rang que les deux autres actions de la fiche. */}
+            <div className="w-full rounded-lg border-2 border-gd-orange/40 bg-gd-orange/5 px-3 py-2 lg:w-auto">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Statut du client
+              </p>
               <StatutInline
                 client={client}
                 user={user}
+                align="end"
                 onSaved={(maj) => {
                   setClient((c) => ({ ...c, ...maj }));
                   if (maj.statut === 'RDV Commercial obtenu' || maj.statut === 'Offre magasin à proposer') {
@@ -126,21 +150,8 @@ export default function ClientDetail() {
                   loadAll();
                 }}
               />
-              <AppetenceGauge niveau={client.niveau_appetence} score={client.score_appetence} className="min-w-[8.5rem]" />
-              {client.type_structure && <span className="text-xs font-medium text-muted-foreground">{client.type_structure}</span>}
-              {client.type_client_mistra && <span className="text-xs font-medium text-muted-foreground">· {client.type_client_mistra}</span>}
+              <p className="mt-1 text-[10px] text-muted-foreground">Cliquez pour le changer</p>
             </div>
-            {Array.isArray(client.usages) && client.usages.length > 0 && (
-              <UsagesClient usages={client.usages} className="mt-2" />
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setRdvOpen(true)} className="bg-gd-navy hover:bg-gd-navy-dark text-white">
-              <Calendar className="h-4 w-4 mr-1.5" /> Ajouter un RDV
-            </Button>
-            <Button onClick={() => setVenteOpen(true)} variant="outline" className="border-gd-navy text-gd-navy hover:bg-gd-navy hover:text-white">
-              <ShoppingBag className="h-4 w-4 mr-1.5" /> Déclarer une vente
-            </Button>
           </div>
         </div>
 
