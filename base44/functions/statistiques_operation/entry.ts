@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { perimetreAtelier, perimetreResponsable, estDansPerimetre } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre } from '../../shared/perimetre.ts';
 
 // Comptages EXACTS de l'opération, calculés côté serveur en parcourant l'intégralité
 // des données : les pages n'affichent plus de totaux issus de listes tronquées
@@ -60,7 +60,15 @@ export default async function (req) {
       }
     } else if (!estDirection && (role === 'commercial' || role === 'agri_precision')) {
       portee = 'portefeuille';
-      gardeClients = (c) => (c.commerciaux_assignes || []).includes(user.id);
+      // Comme pour la liste : assignation OU secteur, sinon ses chiffres restent
+      // à zéro tant que le rattachement automatique n'a pas tourné.
+      const sien = await perimetreCommercial(sr, user);
+      if (sien && sien.secteurs.length > 0) {
+        const aMoi = estDansPerimetre(sien);
+        gardeClients = (c) => aMoi(c);
+      } else {
+        gardeClients = (c) => (c.commerciaux_assignes || []).includes(user.id);
+      }
       gardeActivite = (r) => r.commercial_id === user.id;
     } else if (!estDirection && (role === 'chef_atelier' || role === 'responsable_sav')) {
       // Périmètre « atelier » : les clients des commerciaux des sites du référent.

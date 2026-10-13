@@ -73,6 +73,28 @@ export async function perimetreResponsable(sr, user) {
   };
 }
 
+// Périmètre d'un COMMERCIAL : ses clients, par assignation ou par secteur.
+// Le second critère est le filet : à l'import, les comptes n'existaient pas
+// encore et l'assignation n'a pu se faire qu'après la première connexion.
+export async function perimetreCommercial(sr, user) {
+  const role = user?.app_role;
+  if (role !== 'commercial' && role !== 'agri_precision') return null;
+
+  const fiches = await sr.entities.structure_commerciale.list('-nom_commercial', LOT).catch(() => []);
+  const parNom = cleNom(user.full_name || '');
+  const parEmail = cleNom(String(user.email || '').split('@')[0].replace(/[._-]+/g, ' '));
+  const miennes = fiches.filter((f) =>
+    f.user_id === user.id ||
+    cleNom(f.nom_commercial) === parNom ||
+    (!!parEmail && cleNom(f.nom_commercial) === parEmail)
+  );
+
+  return {
+    ids: [user.id, ...miennes.map((f) => f.id)],
+    secteurs: [...new Set(miennes.flatMap((f) => variantes(f.nom_commercial || '')))]
+  };
+}
+
 export function filtreClientsPerimetre({ ids, secteurs }) {
   return { $or: [{ commerciaux_assignes: { $in: ids } }, { secteur: { $in: secteurs } }] };
 }

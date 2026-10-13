@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { perimetreAtelier, perimetreResponsable, filtreClientsPerimetre } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre } from '../../shared/perimetre.ts';
 
 // Renvoie les clients selon le rôle, en asServiceRole (contourne le RLS navigateur).
 // Optimisé perf : UN seul appel filtré + projection légère (champs de la liste seulement).
@@ -85,7 +85,13 @@ export default async function(req) {
       const filtre = filtreClientsPerimetre(perimetre);
       raw = await lireTout((skip) => sr.entities.client.filter(filtre, 'id', CHUNK, skip), limit);
     } else {
-      raw = await lireTout((skip) => sr.entities.client.filter({ commerciaux_assignes: user.id }, 'id', CHUNK, skip), limit);
+      // Ses clients : ceux qui lui sont assignés, et ceux de son secteur — au cas
+      // où le rattachement automatique n'aurait pas encore eu lieu.
+      const sien = await perimetreCommercial(sr, user);
+      const filtre = (sien && sien.secteurs.length > 0)
+        ? filtreClientsPerimetre(sien)
+        : { commerciaux_assignes: user.id };
+      raw = await lireTout((skip) => sr.entities.client.filter(filtre, 'id', CHUNK, skip), limit);
     }
     raw = raw || [];
 

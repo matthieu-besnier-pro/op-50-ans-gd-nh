@@ -171,8 +171,17 @@ export default async function(req) {
       bilan.commentaires = await remplacerAssignations(sr.entities.commentaire, fiche.id, compte.id);
     }
 
-    // Parc matériel du commercial (rattaché par son nom dans le champ « secteur »).
+    // Clients et parc du commercial, rattachés par son nom dans le champ « secteur ».
+    // Indispensable : à l'import, les comptes n'existaient pas encore, donc
+    // commerciaux_assignes était vide — il n'y avait rien à « remplacer ».
     if (fiche) {
+      const resteClients = await sr.entities.client
+        .count({ secteur: fiche.nom_commercial, commerciaux_assignes: { $ne: compte.id } })
+        .catch(() => 1);
+      if (resteClients > 0) {
+        bilan.clients_secteur = await poserCommercial(sr.entities.client, fiche.nom_commercial, compte.id);
+      }
+
       const resteParc = await sr.entities.materiel
         .count({ secteur: fiche.nom_commercial, commerciaux_assignes: { $ne: compte.id } })
         .catch(() => 1);
