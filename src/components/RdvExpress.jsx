@@ -68,8 +68,13 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
     }
   }, [open, clientProp, defaultType]);
 
+  // Le rendez-vous appartient à CELUI QUI LE POSE : c'est son agenda qu'on
+  // consulte pour les disponibilités, et c'est lui qui s'y rendra. Deux
+  // commerciaux peuvent donc réserver le même créneau, chacun de son côté.
+  // On ne retombe sur le commercial de la fiche que si l'appelant n'est pas
+  // identifié (cas d'un écran qui ne transmet pas l'utilisateur).
   const assigned = client?.commerciaux_assignes || [];
-  const effectiveCommercialId = assigned.includes(commercialId) ? commercialId : (assigned[0] || commercialId);
+  const effectiveCommercialId = commercialId || assigned[0] || null;
 
   // Occupation des créneaux : RDV existants du commercial sur le jour choisi
   useEffect(() => {
@@ -119,7 +124,8 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
   }, [clients, query]);
 
   const confirmer = async () => {
-    if (!client || !slot) return;
+    // Un rendez-vous sans commercial ne serait rattaché à personne.
+    if (!client || !slot || !effectiveCommercialId) return;
     setSaving(true);
     try {
       const dateHeure = new Date(`${day}T${slot}:00`).toISOString();

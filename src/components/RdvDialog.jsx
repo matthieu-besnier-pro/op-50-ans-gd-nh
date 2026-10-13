@@ -20,10 +20,13 @@ const STATUT_PAR_TYPE = {
 };
 
 export default function RdvDialog({ open, onOpenChange, client, commercialId, onSaved }) {
-  // Attribution : toujours au commercial affecté au client (la fiche client fait foi).
-  // Si l'utilisateur connecté est lui-même affecté au client, on lui attribue ; sinon au 1er commercial du client.
+  // Le rendez-vous appartient à CELUI QUI LE POSE : c'est son agenda qu'on
+  // consulte pour les disponibilités, et c'est lui qui s'y rendra. Deux
+  // commerciaux peuvent donc réserver le même créneau, chacun de son côté.
+  // On ne retombe sur le commercial de la fiche que si l'appelant n'est pas
+  // identifié (cas d'un écran qui ne transmet pas l'utilisateur).
   const assigned = client?.commerciaux_assignes || [];
-  const effectiveCommercialId = assigned.includes(commercialId) ? commercialId : (assigned[0] || commercialId);
+  const effectiveCommercialId = commercialId || assigned[0] || null;
 
   const [form, setForm] = useState({
     date_heure: '',
@@ -67,7 +70,7 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
   };
 
   const handleSubmit = async () => {
-    if (!form.date_heure) return;
+    if (!form.date_heure || !effectiveCommercialId) return;
     setSaving(true);
     try {
       const payload = {
