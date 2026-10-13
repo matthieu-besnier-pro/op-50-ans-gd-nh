@@ -173,14 +173,18 @@ export default function GrandEcran() {
       setStructure(st);
       setBadgeObtenus(bo);
       setBadges(bdg);
-      // Clients du feed : deux requêtes groupées au lieu de cent requêtes unitaires.
-      const clientIds = [...new Set(r.map(rd => rd.client_id))].slice(0, 100);
-      const map = {};
-      for (let i = 0; i < clientIds.length; i += 50) {
-        const morceau = await base44.entities.client.filter({ id: { $in: clientIds.slice(i, i + 50) } }, '-created_date', 50).catch(() => []);
-        (morceau || []).forEach(c => { map[c.id] = c; });
+      // Noms des clients du feed, lus côté serveur : les droits du navigateur
+      // varient selon le compte qui projette, et l'écran doit toujours afficher
+      // « RDV chez X ». Charge minimale : identifiant et raison sociale.
+      const clientIds = [...new Set(r.map(rd => rd.client_id).filter(Boolean))].slice(0, 100);
+      if (clientIds.length > 0) {
+        const res = await base44.functions
+          .invoke('lister_clients', { noms_client_ids: clientIds })
+          .catch(() => null);
+        const map = {};
+        (res?.data?.noms || []).forEach((c) => { map[c.id] = c; });
+        setClients(map);
       }
-      setClients(map);
     } catch (e) { console.error(e); }
   }, []);
 

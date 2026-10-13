@@ -50,6 +50,23 @@ export default async function(req) {
       return Response.json({ clients: c ? [c] : [] });
     }
 
+    // Noms des clients d'une liste d'identifiants — pour le Grand Écran, qui doit
+    // afficher « RDV chez X » quel que soit le compte qui projette. Lecture en
+    // service role (les droits du navigateur varient selon le profil), et charge
+    // minimale : on ne renvoie que l'identifiant et la raison sociale.
+    if (Array.isArray(body.noms_client_ids)) {
+      const ids = body.noms_client_ids.filter(Boolean).slice(0, 300);
+      if (ids.length === 0) return Response.json({ noms: [] });
+      const noms = [];
+      for (let i = 0; i < ids.length; i += 50) {
+        const lot = await sr.entities.client
+          .filter({ id: { $in: ids.slice(i, i + 50) } }, '-created_date', 50)
+          .catch(() => []);
+        (lot || []).forEach((c) => noms.push({ id: c.id, raison_sociale: c.raison_sociale || '' }));
+      }
+      return Response.json({ noms });
+    }
+
     // Parc matériel d'un client (fiche client) : lecture asServiceRole — le parc de la
     // fiche doit toujours s'afficher, quelles que soient les règles d'accès du navigateur.
     if (body.materiel_client_id) {
