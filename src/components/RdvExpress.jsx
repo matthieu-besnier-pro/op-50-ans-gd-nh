@@ -5,9 +5,30 @@ import { invalider } from '@/lib/donneesPartagees';
 import confetti from 'canvas-confetti';
 import { Search, Tractor, Wrench, Sprout, ChevronLeft, Check, Loader2, CalendarDays, PartyPopper } from 'lucide-react';
 
-// Créneaux 08:00 → 18:00 par 30 min
+// Créneaux de départ 08:00 → 18:00, par pas de 30 min.
 const SLOTS = [];
 for (let h = 8; h <= 18; h++) { SLOTS.push(`${String(h).padStart(2, '0')}:00`); if (h < 18) SLOTS.push(`${String(h).padStart(2, '0')}:30`); }
+
+// Durées proposées. Un rendez-vous occupe tous les créneaux qu'il couvre.
+const DUREES = [
+  { minutes: 60, label: '1 h' },
+  { minutes: 120, label: '2 h' },
+  { minutes: 180, label: '3 h' }
+];
+const FIN_JOURNEE = 19 * 60; // 19:00 : un RDV ne peut pas déborder au-delà
+
+const enMinutes = (hhmm) => {
+  const [h, m] = String(hhmm).split(':').map(Number);
+  return h * 60 + m;
+};
+const enHeure = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+// Tous les créneaux de 30 min couverts par un rendez-vous.
+const creneauxCouverts = (debut, duree) => {
+  const d = enMinutes(debut);
+  const out = [];
+  for (let t = d; t < d + (duree || 30); t += 30) out.push(enHeure(t));
+  return out;
+};
 
 // Le statut client se coche tout seul : prendre le rendez-vous, c'est l'avoir obtenu.
 const STATUT_PAR_TYPE = {
@@ -25,6 +46,7 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
   const [type, setType] = useState(defaultType);
   const [day, setDay] = useState(dayISO(0));
   const [slot, setSlot] = useState(null);
+  const [duree, setDuree] = useState(60);
   const [dayRdvs, setDayRdvs] = useState([]);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -34,7 +56,7 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
       setClient(clientProp || null);
       setStep(clientProp ? 'type' : 'client');
       setType(defaultType);
-      setQuery(''); setDay(dayISO(0)); setSlot(null); setDayRdvs([]); setSaving(false); setDone(false);
+      setQuery(''); setDay(dayISO(0)); setSlot(null); setDuree(60); setDayRdvs([]); setSaving(false); setDone(false);
     }
   }, [open, clientProp, defaultType]);
 
@@ -53,11 +75,27 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
     return () => { active = false; };
   }, [step, effectiveCommercialId, day]);
 
+  // Créneaux déjà pris par CE commercial (un RDV de 2 h en bloque quatre).
   const occupied = useMemo(() => {
     const set = new Set();
-    dayRdvs.forEach((r) => { if (r.date_heure) set.add(r.date_heure.slice(11, 16)); });
+    dayRdvs.forEach((r) => {
+      if (!r.date_heure) return;
+      creneauxCouverts(r.date_heure.slice(11, 16), r.duree_minutes || 30).forEach((c) => set.add(c));
+    });
     return set;
   }, [dayRdvs]);
+
+  // Un créneau est indisponible s'il chevauche un rendez-vous existant
+  // ou si la durée choisie déborde la fin de journée.
+  const indisponible = (debut) => {
+    if (enMinutes(debut) + duree > FIN_JOURNEE) return true;
+    return creneauxCouverts(debut, duree).some((c) => occupied.has(c));
+  };
+
+  // Changer la durée peut rendre le créneau choisi impossible : on le libère.
+  useEffect(() => {
+    if (slot && indisponible(slot)) setSlot(null);
+  }, [duree]);
 
   const filteredClients = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -75,7 +113,7 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
         commercial_id: effectiveCommercialId,
         base_responsable_id: client.base_responsable_id || null,
         date_heure: dateHeure,
-        duree_minutes: 30,
+        duree_minutes: duree,
         type,
         statut: 'Planifié'
       });
@@ -197,12 +235,30 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
                     </label>
                   </div>
 
+                  {/* Durée : elle détermine les créneaux réellement disponibles */}
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Durée</span>
+                    {DUREES.map((d) => (
+                      <button
+                        key={d.minutes}
+                        onClick={() => setDuree(d.minutes)}
+                        className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-all ${
+                          duree === d.minutes
+                            ? 'bg-gd-navy text-white'
+                            : 'bg-muted/50 text-foreground hover:bg-muted'}`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                     {SLOTS.map((s) => {
-                      const taken = occupied.has(s);
+                      const taken = indisponible(s);
                       const sel = slot === s;
                       return (
                         <button key={s} disabled={taken} onClick={() => setSlot(s)}
+                          title={taken ? 'Créneau déjà pris ou trop court pour cette durée' : `${s} → ${enHeure(enMinutes(s) + duree)}`}
                           className={`rounded-lg py-2 text-sm font-semibold transition-all ${
                             taken ? 'bg-muted text-muted-foreground/40 line-through cursor-not-allowed'
                             : sel ? 'bg-gd-orange text-gd-navy-dark ring-2 ring-gd-orange'
@@ -212,10 +268,13 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
                       );
                     })}
                   </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Les créneaux barrés sont ceux de <strong>vos</strong> rendez-vous — ceux de vos collègues restent libres.
+                  </p>
 
                   <button onClick={confirmer} disabled={!slot || saving}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-gd-orange py-3 text-sm font-bold text-gd-navy-dark disabled:opacity-40 hover:brightness-110 transition-all">
-                    {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-5 w-5" /> Confirmer le RDV{slot ? ` · ${frDay(day)} ${slot}` : ''}</>}
+                    {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-5 w-5" /> Confirmer le RDV{slot ? ` · ${frDay(day)} ${slot}–${enHeure(enMinutes(slot) + duree)}` : ''}</>}
                   </button>
                 </div>
               )}
