@@ -41,4 +41,15 @@ export function fetchOperationStats(scope) {
   return promesse;
 }
 
+/**
+ * Oublie le cache : le prochain appel relit le serveur.
+ *
+ * À utiliser après une écriture qui doit se voir tout de suite — typiquement la
+ * prise d'un rendez-vous projetée sur le Grand Écran, où une minute de cache
+ * ferait tomber les confettis sur un compteur resté figé.
+ */
+export function invaliderStats() {
+  cache.clear();
+}
+
 export default fetchOperationStats;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { listerPartage, invalider } from '@/lib/donneesPartagees';
-import { fetchOperationStats } from '@/lib/operationStats';
+import { fetchOperationStats, invaliderStats } from '@/lib/operationStats';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import OpLogo from '@/components/OpLogo';
@@ -10,6 +10,16 @@ import {
   Zap, Trophy, Wrench, Flame, Award, Clock, Target,
   Users, Star, CalendarCheck, TrendingUp, Sparkles, X, Satellite
 } from 'lucide-react';
+
+/* ---------- Célébration ---------- */
+// Trois salves : le centre, puis les deux côtés. L'échelonnement est voulu ;
+// ce qui doit être simultané, c'est le DÉPART de la salve et l'apparition du
+// rendez-vous à l'écran.
+function lancerConfettis() {
+  confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 }, colors: ['#FFC107', '#00356B', '#ffffff', '#FFD54F'] });
+  setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: ['#FFC107', '#ffffff'] }), 200);
+  setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: ['#FFC107', '#ffffff'] }), 400);
+}
 
 /* ---------- Animated counter ---------- */
 function AnimatedCounter({ value, duration = 1000, className = '' }) {
@@ -203,7 +213,15 @@ export default function GrandEcran() {
 
   const [exacts, setExacts] = useState(null);
 
-  const load = useCallback(async () => {
+  // Tout est préparé AVANT le moindre setState : sur un écran projeté, la
+  // célébration doit tomber d'un seul bloc. Auparavant les confettis partaient
+  // dès l'événement temps réel, la ligne du feed arrivait une seconde plus tard,
+  // et les compteurs — mis en cache une minute — ne bougeaient pas du tout.
+  const load = useCallback(async (celebration) => {
+    const feter = (data) => {
+      setRecentEvent({ data, time: Date.now() });
+      lancerConfettis();
+    };
     try {
       const [p, r, v, u, bo, st, bdg, statsRes] = await Promise.all([
         listerPartage('parametres_operation', '-created_date', 1),
@@ -215,45 +233,70 @@ export default function GrandEcran() {
         listerPartage('badge', '-created_date', 50).catch(() => []),
         fetchOperationStats()
       ]);
+
+      // Le rendez-vous vient d'être créé : s'il n'est pas encore remonté dans la
+      // liste relue, on l'ajoute, pour que le feed et la salve restent d'accord.
+      let liste = r;
+      if (celebration?.data?.id && !r.some((x) => x.id === celebration.data.id)) {
+        // Le feed se trie sur created_date : sans date, la ligne injectée
+        // tomberait en fin de liste et n'apparaîtrait pas avec la salve.
+        const nouveau = { ...celebration.data };
+        if (!nouveau.created_date) nouveau.created_date = new Date().toISOString();
+        liste = [nouveau, ...r];
+      }
+
+      // Noms des clients du feed, lus côté serveur : les droits du navigateur
+      // varient selon le compte qui projette, et l'écran doit toujours afficher
+      // « RDV chez X ». Charge minimale : identifiant et raison sociale.
+      const clientIds = [...new Set(liste.map(rd => rd.client_id).filter(Boolean))].slice(0, 100);
+      let noms = null;
+      if (clientIds.length > 0) {
+        const res = await base44.functions
+          .invoke('lister_clients', { noms_client_ids: clientIds })
+          .catch(() => null);
+        if (res?.data?.noms) {
+          noms = {};
+          res.data.noms.forEach((c) => { noms[c.id] = c; });
+        }
+      }
+
       setExacts(statsRes || null);
       setParams(p[0] || null);
-      setRdvs(r);
+      setRdvs(liste);
       setVentes(v);
       setUsers(u);
       setStructure(st);
       setBadgeObtenus(bo);
       setBadges(bdg);
-      // Noms des clients du feed, lus côté serveur : les droits du navigateur
-      // varient selon le compte qui projette, et l'écran doit toujours afficher
-      // « RDV chez X ». Charge minimale : identifiant et raison sociale.
-      const clientIds = [...new Set(r.map(rd => rd.client_id).filter(Boolean))].slice(0, 100);
-      if (clientIds.length > 0) {
-        const res = await base44.functions
-          .invoke('lister_clients', { noms_client_ids: clientIds })
-          .catch(() => null);
-        const map = {};
-        (res?.data?.noms || []).forEach((c) => { map[c.id] = c; });
-        setClients(map);
-      }
-    } catch (e) { console.error(e); }
+      // Une lecture de noms ratée laisse les précédents en place plutôt que de
+      // vider les raisons sociales du feed.
+      if (noms) setClients(noms);
+      if (celebration) feter(celebration.data);
+    } catch (e) {
+      console.error(e);
+      // L'écran ne doit jamais rater une célébration à cause d'une lecture ratée.
+      if (celebration) feter(celebration.data);
+    }
   }, []);
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 15000);
+    const interval = setInterval(() => load(), 15000);
     return () => clearInterval(interval);
   }, [load]);
 
   // Realtime subscription
   useEffect(() => {
     const unsubscribe = base44.entities.rdv.subscribe((event) => {
-      if (event.type === 'create') {
-        setRecentEvent({ data: event.data, time: Date.now() });
-        confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 }, colors: ['#FFC107', '#00356B', '#ffffff', '#FFD54F'] });
-        setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: ['#FFC107', '#ffffff'] }), 200);
-        setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: ['#FFC107', '#ffffff'] }), 400);
-      }
-      load();
+      // Les caches sont vidés AVANT la relecture : sans cela le compteur et le
+      // classement, mis en cache une minute, restaient figés pendant que les
+      // confettis tombaient déjà. Vaut aussi pour une annulation, qui doit se
+      // soustraire immédiatement.
+      invalider('rdv');
+      invaliderStats();
+      // Confettis, bandeau, ligne du feed, compteurs et podium partent ensemble,
+      // une fois les données arrivées : c'est load() qui déclenche la salve.
+      load(event.type === 'create' ? { data: event.data } : undefined);
     });
     return unsubscribe;
   }, [load]);
