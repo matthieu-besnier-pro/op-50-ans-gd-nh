@@ -18,6 +18,59 @@ const cle = (s) => norm(s).split(' ').filter(Boolean).sort().join(' ');
 
 const emailValide = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e || '').trim());
 
+const LIEN_APP = 'https://op-50-ans-gd-nh.base44.app';
+
+const ROLE_LISIBLE = {
+  commercial: 'Commercial',
+  agri_precision: 'Agriculture de précision',
+  responsable: 'Responsable commercial',
+  chef_atelier: "Chef d'atelier",
+  responsable_sav: 'Responsable SAV',
+  collaborateur: 'Collaborateur',
+  direction: 'Direction / Marketing'
+};
+
+// Base44 envoie ses mails d'authentification en anglais, et nous ne les
+// pilotons pas. On double donc l'invitation d'un message en français qui
+// explique la marche à suivre.
+function messageBienvenue(nom, email, role) {
+  const prenom = String(nom || '').trim().split(' ')[0] || 'Bonjour';
+  return {
+    sujet: 'CockpitOP — votre accès à l\'opération 50 ans',
+    corps: [
+      `Bonjour ${prenom},`,
+      '',
+      `Votre accès à CockpitOP est ouvert pour l'opération des 50 ans Gonnin Duris × New Holland (13 au 30 octobre).`,
+      `Vous y retrouverez vos clients, vos rendez-vous et vos cibles prioritaires.`,
+      '',
+      `Profil : ${ROLE_LISIBLE[role] || role}`,
+      `Adresse de connexion : ${email}`,
+      '',
+      `POUR VOUS CONNECTER — ${LIEN_APP}`,
+      '',
+      `• Le plus simple : cliquez sur « Continuer avec Google » et utilisez votre adresse professionnelle. Rien d'autre à faire.`,
+      `• Sinon : cliquez sur « Créer mon accès », saisissez l'adresse ci-dessus et choisissez votre mot de passe. Un code de confirmation vous sera envoyé.`,
+      '',
+      `Vous recevrez peut-être aussi un message d'invitation en anglais de la part de la plateforme : vous pouvez l'ignorer, les deux chemins ci-dessus suffisent.`,
+      '',
+      `Bonne opération,`,
+      `L'équipe CockpitOP`
+    ].join('\n')
+  };
+}
+
+// Envoi tolérant : si l'intégration n'est pas disponible, l'invitation reste
+// valable, on le signale simplement dans le compte rendu.
+async function envoyerBienvenue(base44, nom, email, role) {
+  const { sujet, corps } = messageBienvenue(nom, email, role);
+  try {
+    await base44.integrations.Core.SendEmail({ to: email, subject: sujet, body: corps });
+    return ' · mode d\'emploi en français envoyé';
+  } catch (e) {
+    return ' · mode d\'emploi non envoyé (' + (e?.message || e) + ')';
+  }
+}
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -95,9 +148,10 @@ export default async function (req) {
                 .update(fiche.id, { email, statut: 'Invité' })
                 .catch(() => {});
             }
+            const envoi = await envoyerBienvenue(base44, nom, email, role);
             resultats.push({
               nom, email, role, etat: 'invite',
-              detail: 'Invitation envoyée — rôle et portefeuille rattachés à sa première connexion'
+              detail: `Invitation envoyée — rôle et portefeuille rattachés à sa première connexion${envoi}`
             });
             continue;
           }
