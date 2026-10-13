@@ -202,6 +202,13 @@ export default function GrandEcran() {
   const [now, setNow] = useState(new Date());
   const [prevRanks, setPrevRanks] = useState({});
   const [recentEvent, setRecentEvent] = useState(null);
+  // Garde-fou de débit : relire les comptages serveur parcourt TOUTE la base
+  // (une douzaine de lectures en rafale). Forcer cette relecture à chaque
+  // rendez-vous, sur chaque écran ouvert, sature la limite de la plateforme et
+  // fait échouer les autres appels — les exports, notamment. On ne la force
+  // donc qu'une fois toutes les 20 s ; entre deux, la liste des rendez-vous
+  // suffit à tenir le feed juste.
+  const derniersComptages = useRef(0);
 
   // Demo mode: ?demo=sprint | ?demo=ventes
   const demoMode = useMemo(() => {
@@ -293,7 +300,10 @@ export default function GrandEcran() {
       // confettis tombaient déjà. Vaut aussi pour une annulation, qui doit se
       // soustraire immédiatement.
       invalider('rdv');
-      invaliderStats();
+      if (Date.now() - derniersComptages.current > 20000) {
+        derniersComptages.current = Date.now();
+        invaliderStats();
+      }
       // Confettis, bandeau, ligne du feed, compteurs et podium partent ensemble,
       // une fois les données arrivées : c'est load() qui déclenche la salve.
       load(event.type === 'create' ? { data: event.data } : undefined);

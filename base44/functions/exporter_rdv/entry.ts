@@ -9,11 +9,31 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 const CHUNK = 5000;
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// La plateforme limite le débit des lectures. Un export lancé pendant que les
+// écrans de l'opération interrogent l'API échouait entièrement sur un
+// « Rate limit exceeded ». On patiente et on réessaie : une sauvegarde doit
+// aboutir, quitte à prendre quelques secondes de plus.
+async function avecReprise(fn, essais = 5) {
+  let attente = 600;
+  for (let i = 0; ; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const limite = /rate limit|too many requests|429/i.test(String(e?.message || e));
+      if (!limite || i >= essais) throw e;
+      await sleep(attente);
+      attente = Math.min(attente * 2, 8000);
+    }
+  }
+}
+
 async function lireTout(fetchPage) {
   const out = [];
   const vus = new Set();
   for (let i = 0; i < 20; i++) {
-    const page = await fetchPage(i * CHUNK);
+    const page = await avecReprise(() => fetchPage(i * CHUNK));
     if (!Array.isArray(page) || page.length === 0) break;
     let nouveaux = 0;
     page.forEach((r) => { if (!vus.has(r.id)) { vus.add(r.id); out.push(r); nouveaux += 1; } });
@@ -34,11 +54,13 @@ export default async function (req) {
     const estDirection = user.role === 'admin' || user.app_role === 'direction';
     const estResponsable = user.app_role === 'responsable';
 
-    const [rdvs, clients, users, structure] = await Promise.all([
-      lireTout((skip) => sr.entities.rdv.list('id', CHUNK, skip)),
-      lireTout((skip) => sr.entities.client.list('id', CHUNK, skip)),
-      sr.entities.User.list('-created_date', 500).catch(() => []),
-      sr.entities.structure_commerciale.list('-nom_commercial', 500).catch(() => [])
+    // Lectures échelonnées : les deux gros parcours l'un après l'autre plutôt
+    // qu'en rafale, pour rester sous la limite de débit de la plateforme.
+    const rdvs = await lireTout((skip) => sr.entities.rdv.list('id', CHUNK, skip));
+    const clients = await lireTout((skip) => sr.entities.client.list('id', CHUNK, skip));
+    const [users, structure] = await Promise.all([
+      avecReprise(() => sr.entities.User.list('-created_date', 500)).catch(() => []),
+      avecReprise(() => sr.entities.structure_commerciale.list('-nom_commercial', 500)).catch(() => [])
     ]);
 
     // Nom affichable d'un commercial : compte utilisateur, sinon fiche structure.
