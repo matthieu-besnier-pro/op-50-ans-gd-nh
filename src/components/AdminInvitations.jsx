@@ -12,10 +12,13 @@ const sansAccent = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '
 const cle = (s) => sansAccent(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
   .split(' ').filter(Boolean).sort().join(' ');
 
-// Proposition d'adresse : prenom.nom@domaine — à corriger si la convention diffère.
+// Convention maison : prenom-nom@gonnin-duris.fr (tirets, sans accent).
+// Les prénoms composés suivent la même règle : jean-francois-dragon@…
 const emailPropose = (nom) => {
   const propre = sansAccent(nom).toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '.');
+    .replace(/[^a-z0-9\s-]/g, '').trim()
+    .replace(/[\s-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
   return propre ? `${propre}@${DOMAINE}` : '';
 };
 
@@ -103,7 +106,7 @@ export default function AdminInvitations() {
       <div className="mb-4 rounded-lg border border-border bg-muted/30 p-3">
         <Label className="text-xs">Coller la liste (une ligne par personne : <code>Nom ; adresse</code>)</Label>
         <Textarea rows={4} value={colle} onChange={(e) => setColle(e.target.value)}
-          placeholder={'Alexandre BELLIN ; a.bellin@gonnin-duris.fr\nGaylord FOURNIER ; g.fournier@gonnin-duris.fr'}
+          placeholder={'Alexandre BELLIN ; alexandre-bellin@gonnin-duris.fr\nGaylord FOURNIER ; gaylord-fournier@gonnin-duris.fr'}
           className="mt-1 font-mono text-xs" />
         <Button onClick={appliquerColle} size="sm" variant="outline" className="mt-2">
           Appliquer à la liste
@@ -119,7 +122,7 @@ export default function AdminInvitations() {
             <Input
               value={emails[s.nom_commercial] || ''}
               onChange={(e) => setEmails((m) => ({ ...m, [s.nom_commercial]: e.target.value }))}
-              placeholder="adresse@gonnin-duris.fr"
+              placeholder="prenom-nom@gonnin-duris.fr"
               className="h-8 max-w-xs flex-1 text-xs"
             />
           </div>
