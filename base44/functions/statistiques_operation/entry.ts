@@ -245,7 +245,6 @@ export default async function (req) {
         if (realise) rdvRealisesMois += 1;
       }
 
-      const jour = (r.date_heure || '').slice(0, 10);
       // Sprint = rendez-vous PRIS pendant la fenêtre, quelle que soit la date à
       // laquelle ils auront lieu (un RDV posé le 13 pour le 25 compte).
       const jourPrise = (r.created_date || r.date_heure || '').slice(0, 10);
