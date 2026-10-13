@@ -24,11 +24,21 @@ export default async function (req) {
 
     const sr = base44.asServiceRole;
 
+    // SIREN déjà connu : on ne bloque pas le commercial. On lui renvoie la fiche
+    // existante pour qu'il choisisse — se l'attribuer (il récupère le parc et
+    // l'historique) ou créer quand même une seconde fiche.
+    let dejaLa = null;
     if (siren) {
       const existant = await sr.entities.client.filter({ siren }, 'raison_sociale', 1);
-      if (existant.length > 0) {
-        return Response.json({ error: `Ce SIREN est déjà rattaché à « ${existant[0].raison_sociale} ».` }, { status: 409 });
-      }
+      dejaLa = existant[0] || null;
+    }
+
+    if (dejaLa && !body.forcer && !body.rattacher_existant) {
+      return Response.json({
+        conflit: 'siren',
+        client_existant: { id: dejaLa.id, raison_sociale: dejaLa.raison_sociale || '', siren },
+        error: `Ce SIREN est déjà rattaché à « ${dejaLa.raison_sociale} ».`
+      }, { status: 200 });
     }
 
     const ville = texte(body.ville).toUpperCase();
@@ -50,6 +60,18 @@ export default async function (req) {
         if (fiche.length > 0) { commerciaux = [cible]; secteur = fiche[0].nom_commercial || null; }
       }
       if (user.app_role === 'responsable') responsableId = user.id;
+    }
+
+    // Se l'attribuer : on ajoute le demandeur au client existant, sans rien dupliquer.
+    if (dejaLa && body.rattacher_existant) {
+      const actuels = dejaLa.commerciaux_assignes || [];
+      const aAjouter = commerciaux.length > 0 ? commerciaux[0] : user.id;
+      const maj = {};
+      if (!actuels.includes(aAjouter)) maj.commerciaux_assignes = [...actuels, aAjouter];
+      if (body.priorite_commercial) maj.priorite_commercial = true;
+      if (Object.keys(maj).length > 0) await sr.entities.client.update(dejaLa.id, maj);
+      const frais = await sr.entities.client.get(dejaLa.id).catch(() => dejaLa);
+      return Response.json({ client: frais, rattache: true });
     }
 
     const data = { raison_sociale: raison, statut: 'À contacter' };

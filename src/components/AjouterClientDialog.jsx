@@ -24,16 +24,18 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
   const [prioritaire, setPrioritaire] = useState(false);
   const [saving, setSaving] = useState(false);
   const [erreur, setErreur] = useState('');
+  // SIREN déjà en base : on propose de se l'attribuer ou de créer quand même.
+  const [conflit, setConflit] = useState(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const fermer = (ouvert) => {
     if (saving) return;
     onOpenChange(ouvert);
-    if (!ouvert) { setForm(VIDE); setCommercialId(''); setPrioritaire(false); setErreur(''); }
+    if (!ouvert) { setForm(VIDE); setCommercialId(''); setPrioritaire(false); setErreur(''); setConflit(null); }
   };
 
-  const enregistrer = async () => {
+  const enregistrer = async (options = {}) => {
     if (form.raison_sociale.trim().length < 2) { setErreur('Indiquez la raison sociale du client.'); return; }
     setSaving(true);
     setErreur('');
@@ -41,8 +43,15 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
       const res = await base44.functions.invoke('creer_client_manuel', {
         ...form,
         commercial_id: estCommercial ? null : (commercialId || null),
-        priorite_commercial: prioritaire
+        priorite_commercial: prioritaire,
+        ...options
       });
+      // SIREN déjà connu : on laisse le commercial trancher plutôt que de le bloquer.
+      if (res?.data?.conflit === 'siren') {
+        setConflit(res.data.client_existant);
+        setErreur('');
+        return;
+      }
       if (res?.data?.error) { setErreur(res.data.error); return; }
       invalider('client'); // le nouveau client doit apparaître dans les listes
       onCreated?.(res?.data?.client);
@@ -50,6 +59,7 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
       setForm(VIDE);
       setCommercialId('');
       setPrioritaire(false);
+      setConflit(null);
     } catch (e) {
       // Une erreur renvoyée par la fonction (SIREN déjà pris, code postal…) arrive
       // sous forme d'exception : sans la remonter, l'utilisateur ne sait pas quoi corriger.
@@ -136,9 +146,38 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
 
         {erreur && <p className="text-sm font-medium text-destructive">{erreur}</p>}
 
+        {conflit && (
+          <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
+            <p className="text-sm font-semibold text-amber-900">
+              Ce SIREN existe déjà : « {conflit.raison_sociale} »
+            </p>
+            <p className="mt-1 text-xs text-amber-800">
+              En vous l'attribuant, vous récupérez sa fiche complète — parc matériel,
+              historique et rendez-vous. Créer une seconde fiche repart de zéro.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                onClick={() => enregistrer({ rattacher_existant: true })}
+                disabled={saving}
+                className="bg-gd-navy text-white hover:bg-gd-navy-dark"
+              >
+                Me l'attribuer
+              </Button>
+              <Button
+                onClick={() => enregistrer({ forcer: true })}
+                disabled={saving}
+                variant="outline"
+                className="border-amber-400 text-amber-900 hover:bg-amber-100"
+              >
+                Créer quand même
+              </Button>
+            </div>
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => fermer(false)} disabled={saving}>Annuler</Button>
-          <Button onClick={enregistrer} disabled={saving} className="bg-gd-orange text-gd-navy-dark hover:bg-gd-orange/90 font-semibold">
+          <Button onClick={() => enregistrer()} disabled={saving} className="bg-gd-orange text-gd-navy-dark hover:bg-gd-orange/90 font-semibold">
             {saving ? 'Enregistrement…' : 'Ajouter le client'}
           </Button>
         </DialogFooter>
