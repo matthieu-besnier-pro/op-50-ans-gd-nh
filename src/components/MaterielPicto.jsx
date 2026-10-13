@@ -8,7 +8,7 @@ export const CATEGORIES = {
   'BB-RB': { emoji: '🟡', label: 'Presses (BB / RB)' },
   TELESCOPIQUES: { emoji: '🏗️', label: 'Télescopiques' },
   ENSILEUSES: { emoji: '🌽', label: 'Ensileuses' },
-  MAV: { emoji: '🔧', label: 'Matériel avant / MAV' },
+  MAV: { emoji: '🍇', label: 'Machines à vendanger' },
   'AGRI PRECISION': { emoji: '🛰️', label: 'Agriculture de précision' },
   AUTRES: { emoji: '⚙️', label: 'Autres matériels' },
 };
@@ -38,6 +38,8 @@ export function categorieMeta(categorie_op) {
   if (n.includes('PRECISION')) return CATEGORIES['AGRI PRECISION'];
   if (n.includes('TRACT')) return CATEGORIES.TRACTEURS;
   if (n.includes('TELESC')) return CATEGORIES.TELESCOPIQUES;
+  // Machines à vendanger : onglet « MAV », « Vendange » ou marque Braud selon les fichiers.
+  if (n.includes('VENDANG') || n.includes('BRAUD')) return CATEGORIES.MAV;
   if (n.includes('ENSIL')) return CATEGORIES.ENSILEUSES;
   if (n.startsWith('MB') || n.includes('BATTEUSE') || n.includes('MOISSON')) return CATEGORIES.MB;
   if (n.includes('RB') || n.includes('BB') || n.includes('PRESSE')) return CATEGORIES['BB-RB'];

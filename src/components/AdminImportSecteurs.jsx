@@ -27,16 +27,35 @@ const parseDate = (v) => {
 };
 const parseON = (v) => { const s = norm(v); if (s.includes('neuf')) return 'Neuf'; if (s.includes('occ')) return 'Occasion'; return 'Inconnu'; };
 // Catégories canoniques utilisées par les pictogrammes : les noms d'onglets Excel sont alignés dessus.
+// « MAV » = machines à vendanger : l'onglet peut aussi s'appeler « Vendange » ou porter la
+// marque (Braud), on le reconnaît dans tous les cas.
 const canonCategorie = (nom) => {
   const n = norm(nom);
   if (n.includes('precision')) return 'AGRI PRECISION';
   if (n.startsWith('tract')) return 'TRACTEURS';
   if (n.startsWith('telesc')) return 'TELESCOPIQUES';
   if (n.startsWith('ensil')) return 'ENSILEUSES';
-  if (n.startsWith('mav')) return 'MAV';
+  if (n.startsWith('mav') || n.includes('vendang') || n.includes('braud')) return 'MAV';
   if (n.startsWith('mb')) return 'MB';
   if (n.includes('bb') || n.includes('rb') || n.includes('presse')) return 'BB-RB';
   return 'AUTRES';
+};
+
+// Colonne d'identification d'une ligne : SIREN ou SIRET, quels que soient les mots ajoutés
+// autour par le fichier (« N° SIREN client », « Siret »…).
+const cleIdent = (v) => {
+  const k = norm(v);
+  return k.includes('siren') ? 'siren' : (k.includes('siret') ? 'siret' : null);
+};
+
+// Clé saisie à la main sur une ligne ajoutée au fichier (prospect créé par le commercial,
+// souvent préfixé « AJ ») : on la conserve telle quelle au lieu d'écarter la ligne.
+const cleManuelle = (v) => {
+  const s = str(v);
+  if (!s) return null;
+  const k = norm(s);
+  if (!k || k.startsWith('total') || k.startsWith('recap')) return null;
+  return s.toUpperCase().slice(0, 40);
 };
 
 // Tous les clients présents dans les fichiers sont importés, tous départements confondus.
@@ -51,6 +70,11 @@ const deptOf = (codeInsee, fallback) => {
 function headerIndex(headerRow) {
   const m = {};
   headerRow.forEach((h, i) => { const k = norm(h); if (k && !(k in m)) m[k] = i; });
+  // Colonne d'identification nommée autrement : elle est lue comme SIREN / SIRET.
+  headerRow.forEach((h, i) => {
+    const c = cleIdent(h);
+    if (c && m[c] == null) m[c] = i;
+  });
   return (row, ...keys) => {
     for (const k of keys) { const i = m[norm(k)]; if (i != null) return row[i]; }
     return undefined;
@@ -75,7 +99,9 @@ export default function AdminImportSecteurs({ onReload }) {
 
   const parseFile = async (file, usageSel) => {
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-    let nbCli = 0, nbMat = 0, exclus = 0;
+    let nbCli = 0, nbMat = 0;
+    const feuillesIgnorees = []; // feuilles dont l'entête (colonne SIREN / SIRET) n'a pas été trouvée
+    let lignesIgnorees = 0;      // lignes de machines sans client identifiable
 
     const upsert = (siren, base, u) => {
       if (!siren) return null;
@@ -96,7 +122,7 @@ export default function AdminImportSecteurs({ onReload }) {
     if (usageSel === 'agri_precision') {
       const ws = wb.Sheets['Feuil1'] || wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-      if (rows.length < 2) return { nbCli, nbMat, exclus };
+      if (rows.length < 2) return { nbCli, nbMat, feuillesIgnorees, lignesIgnorees };
       const get = headerIndex(rows[0]);
       for (let r = 1; r < rows.length; r++) {
         const row = rows[r];
@@ -115,47 +141,61 @@ export default function AdminImportSecteurs({ onReload }) {
       for (const sheetName of wb.SheetNames) {
         if (norm(sheetName) === 'recap') continue;
         const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
-        // trouver la ligne d'entête (contient SIREN)
+        // Ligne d'entête : celle qui porte la colonne d'identification (SIREN ou SIRET),
+        // même nommée autrement (« N° SIREN client »…). Si aucune n'est trouvée, la
+        // feuille est signalée au lieu d'être écartée en silence.
         let h = -1;
-        for (let i = 0; i < Math.min(rows.length, 5); i++) { if (rows[i].some((x) => norm(x) === 'siren')) { h = i; break; } }
-        if (h < 0) continue;
+        for (let i = 0; i < Math.min(rows.length, 10); i++) { if (rows[i].some((x) => cleIdent(x))) { h = i; break; } }
+        if (h < 0) { feuillesIgnorees.push(sheetName); continue; }
         const get = headerIndex(rows[h]);
         const cat = sheetName;
+        // Beaucoup de fichiers n'écrivent la clé client que sur la 1re ligne du bloc :
+        // les lignes suivantes (machines supplémentaires, ajouts à la main) reprennent
+        // la clé précédente — sans ça, leurs machines disparaissaient de l'import.
+        let cleCourante = null;
+        let prioCourante = false;
         for (let r = h + 1; r < rows.length; r++) {
           const row = rows[r];
-          // Les prospects ajoutés à la main (hors SIV) peuvent avoir une clé « AJ… » : on la conserve telle quelle.
-          const sirenRaw = str(get(row, 'SIREN'));
-          const siren = sirenRaw && /^AJ/i.test(sirenRaw) ? sirenRaw.toUpperCase() : sirenClean(sirenRaw);
-          if (!siren) continue;
-          const secteur = str(get(row, 'Secteur vendeur'));
-          const insee = str(get(row, 'Code commune'));
-          const dept = deptOf(insee, str(get(row, 'Adresse')));
-          const prio = norm(get(row, 'Priorité', 'Priorite')) === 'oui';
-          upsert(siren, { raison_sociale: str(get(row, 'Client')) || 'Client', adresse_complete: str(get(row, 'Adresse')), code_commune: insee, departement: dept, tel_mobile: str(get(row, 'Mobile')), tel_fixe: str(get(row, 'Fixe')), secteur, priorite: prio }, usageSel);
           const marque = str(get(row, 'Marque')); const modele = str(get(row, 'Modèle'));
           const plaque = str(get(row, 'Plaque')); const vin = str(get(row, 'VIN'));
           const immat = parseDate(get(row, '1re immat.'));
           const typeMachine = str(get(row, 'Type'));
+          const aMachine = !!(marque || modele || plaque || vin || immat || typeMachine);
+          const sirenRaw = str(get(row, 'SIREN', 'SIRET'));
+          // SIREN/SIRET (9 chiffres, ou les 9 premiers d'un SIRET) ; sinon la clé saisie à la main.
+          const sirenBrut = sirenRaw ? sirenClean(sirenRaw) : null;
+          const cle = (sirenBrut && sirenBrut.length >= 8) ? sirenBrut : cleManuelle(sirenRaw);
+          const siren = cle || (aMachine ? cleCourante : null);
+          if (!siren) { if (aMachine) lignesIgnorees += 1; continue; }
+          if (cle) {
+            cleCourante = cle;
+            prioCourante = norm(get(row, 'Priorité', 'Priorite')) === 'oui';
+          }
+          const secteur = str(get(row, 'Secteur vendeur'));
+          const insee = str(get(row, 'Code commune'));
+          const dept = deptOf(insee, str(get(row, 'Adresse')));
+          const prio = prioCourante;
+          upsert(siren, { raison_sociale: str(get(row, 'Client')) || 'Client', adresse_complete: str(get(row, 'Adresse')), code_commune: insee, departement: dept, tel_mobile: str(get(row, 'Mobile')), tel_fixe: str(get(row, 'Fixe')), secteur, priorite: prio }, usageSel);
           // On ne crée pas de matériel « vide » (prospect ajouté sans aucune machine).
           // En revanche, une ligne ajoutée à la main qui ne précise que le type
           // (« Tracteur agricole », ou parfois la marque saisie dans cette colonne)
           // désigne bien une machine : l'onglet donne la catégorie, ça suffit.
-          if (marque || modele || plaque || vin || immat || typeMachine) {
+          if (aMachine) {
             materiels.push({ _siren: siren, usage: usageSel, categorie_op: canonCategorie(cat), secteur, priorite: prio, marque, modele, categorie_1: typeMachine, num_plaque: plaque, vin, premiere_immat: immat, annee_immat: parseInt(get(row, 'Année immat.')) || null, occasion_neuf: parseON(get(row, 'Neuf/Occ.')) });
             nbMat++;
           }
         }
       }
     }
-    return { nbCli, nbMat, exclus };
+    return { nbCli, nbMat, feuillesIgnorees, lignesIgnorees };
   };
 
   const handleFile = async (file) => {
     if (!file) return;
     setBusy(true); setError(null); setResult(null); setStatus('Lecture du fichier…');
     try {
-      const { nbMat, exclus } = await parseFile(file, usage);
-      setFiles((prev) => [...prev, { name: file.name, usage, materiels: nbMat, exclus }]);
+      const { nbMat, feuillesIgnorees: ign, lignesIgnorees: li } = await parseFile(file, usage);
+      setFiles((prev) => [...prev, { name: file.name, usage, materiels: nbMat, feuillesIgnorees: ign, lignesIgnorees: li }]);
       force((x) => x + 1);
       setStatus('');
     } catch (e) {
@@ -167,6 +207,8 @@ export default function AdminImportSecteurs({ onReload }) {
   };
 
   const totalClients = clientMap.size;
+  const feuillesIgnoreesTotal = files.flatMap((f) => f.feuillesIgnorees || []);
+  const lignesIgnoreesTotal = files.reduce((n, f) => n + (f.lignesIgnorees || 0), 0);
   const parUsage = { commerce: 0, atelier: 0, agri_precision: 0 };
   clientMap.forEach((c) => c.usages.forEach((u) => { parUsage[u] = (parUsage[u] || 0) + 1; }));
 
@@ -188,37 +230,23 @@ export default function AdminImportSecteurs({ onReload }) {
       });
       const matchUser = (secteur) => secteur ? (secteurToUser[norm(secteur)] || secteurToUser[sortTokens(secteur)] || null) : null;
 
-      // Agrégat du parc par client : total + répartition par catégorie (pour le
-      // bandeau pictogrammes et les stats). Clés = categorie_op déjà canonisée.
-      const parcBySiren = {};
-      materiels.forEach((m) => {
-        if (!m._siren) return;
-        const p = parcBySiren[m._siren] || (parcBySiren[m._siren] = { total: 0, cats: {} });
-        p.total += 1;
-        const cat = m.categorie_op || 'AUTRES';
-        p.cats[cat] = (p.cats[cat] || 0) + 1;
-      });
-
       const clients = [...clientMap.values()].map((c) => {
         const uid = matchUser(c.secteur);
-        const parc = parcBySiren[c.siren];
-        return {
-          ...c,
-          commerciaux_assignes: uid ? [uid] : [],
-          parc_total: parc ? parc.total : 0,
-          parc_pictos: parc
-            ? Object.entries(parc.cats).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}:${n}`)
-            : []
-        };
+        // Le parc (total + répartition par catégorie) est calculé côté serveur depuis la
+        // base, après le rattachement des machines : il reste juste même si l'import est
+        // relancé, et il tient compte des machines déjà présentes pour ce client.
+        return { ...c, commerciaux_assignes: uid ? [uid] : [] };
       });
 
       // 2) Création des clients par lots → mapping siren -> id
       const sirenToId = {};
+      let cliReutilises = 0;
       for (let i = 0; i < clients.length; i += 400) {
         const batch = clients.slice(i, i + 400);
         setStatus(`Création des clients… ${i}/${clients.length}`);
         const res = await base44.functions.invoke('creer_clients_lot', { entity: 'client', records: batch });
         Object.assign(sirenToId, (res?.data?.map) || {});
+        cliReutilises += (res?.data?.reutilises || 0);
         await new Promise((r) => setTimeout(r, 150));
       }
 
@@ -232,16 +260,17 @@ export default function AdminImportSecteurs({ onReload }) {
         priorite: m.priorite || false
       })).filter((m) => m.client_id);
 
-      let matCrees = 0;
+      let matCrees = 0, matDejaPresents = 0;
       for (let i = 0; i < mats.length; i += 400) {
         const batch = mats.slice(i, i + 400);
-        setStatus(`Création du matériel… ${i}/${mats.length}`);
+        setStatus(`Rattachement du matériel… ${i}/${mats.length}`);
         const res = await base44.functions.invoke('creer_clients_lot', { entity: 'materiel', records: batch });
         matCrees += (res?.data?.crees || batch.length);
+        matDejaPresents += (res?.data?.ignores || 0);
         await new Promise((r) => setTimeout(r, 150));
       }
 
-      setResult({ clients: clients.length, materiels: matCrees });
+      setResult({ clients: clients.length, reutilises: cliReutilises, materiels: matCrees, dejaPresents: matDejaPresents });
       setStatus('');
       clientMap.clear(); materiels.length = 0; setFiles([]);
       onReload?.();
@@ -258,8 +287,11 @@ export default function AdminImportSecteurs({ onReload }) {
         <FileSpreadsheet className="h-4 w-4 text-gd-orange" /> Import des bases par secteur (3 usages)
       </h3>
       <p className="text-sm text-muted-foreground mb-3">
-        Ajoutez chaque fichier avec son usage. Les clients sont dédoublonnés par SIREN (une fiche, plusieurs usages),
-        le matériel est rattaché, et le commercial est affecté par secteur. Créez ensuite la base.
+        Ajoutez chaque fichier avec son usage. Toutes les feuilles sont lues (TRACTEURS, MB, BB‑RB,
+        TÉLESCOPIQUES, ENSILEUSES, MAV / machines à vendanger…) ; toute feuille ou ligne écartée est signalée.
+        Les clients sont dédoublonnés par SIREN (une fiche, plusieurs usages), le matériel est rattaché,
+        et le commercial est affecté par secteur. Créez ensuite la base : l'import peut être relancé sans
+        créer de doublons, il complète les fiches déjà présentes.
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -288,7 +320,8 @@ export default function AdminImportSecteurs({ onReload }) {
               <span className="font-medium">{f.name}</span>
               <span className="text-xs text-muted-foreground">
                 {USAGES.find((u) => u.value === f.usage)?.label} · {f.materiels} machines
-                {f.exclus ? ` · ${f.exclus} lignes hors périmètre` : ''}
+                {(f.feuillesIgnorees?.length > 0) ? ` · ${f.feuillesIgnorees.length} feuille(s) non lue(s)` : ''}
+                {f.lignesIgnorees > 0 ? ` · ${f.lignesIgnorees} ligne(s) sans clé client` : ''}
               </span>
             </div>
           ))}
@@ -298,6 +331,12 @@ export default function AdminImportSecteurs({ onReload }) {
               Tous les clients des fichiers sont importés. Le fichier PAC sert uniquement de bonus (montant perçu et appétence).
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Commerce : {parUsage.commerce} · Atelier : {parUsage.atelier} · Agri‑précision : {parUsage.agri_precision}</p>
+            {(feuillesIgnoreesTotal.length > 0 || lignesIgnoreesTotal > 0) && (
+              <p className="mt-1 text-xs font-semibold text-amber-700">
+                {feuillesIgnoreesTotal.length > 0 && `Feuille(s) non lue(s), entête SIREN introuvable : ${feuillesIgnoreesTotal.join(', ')}. `}
+                {lignesIgnoreesTotal > 0 && `${lignesIgnoreesTotal} ligne(s) de matériel sans client identifiable : elles n'ont pas été importées.`}
+              </p>
+            )}
           </div>
           <Button onClick={creerBase} disabled={busy} className="bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark">
             {busy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Création…</> : <>Créer la base ({totalClients} clients)</>}
@@ -307,7 +346,9 @@ export default function AdminImportSecteurs({ onReload }) {
 
       {result && (
         <div className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4" /> Base créée : {result.clients} clients · {result.materiels} matériels.
+          <CheckCircle2 className="h-4 w-4" /> Base mise à jour : {result.clients} clients
+          {result.reutilises > 0 ? ` (dont ${result.reutilises} fiches déjà présentes, complétées)` : ''} · {result.materiels} matériels rattachés
+          {result.dejaPresents > 0 ? ` (${result.dejaPresents} déjà présents)` : ''}.
         </div>
       )}
     </div>
