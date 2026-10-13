@@ -72,20 +72,13 @@ async function envoyerBienvenue(base44, sr, nom, email, role) {
   // L'envoi d'email n'est autorisé qu'en service-role : un appel depuis le client
   // de l'utilisateur est refusé par la plateforme (restriction de routage).
   // On appelle la méthode sur son objet, sans l'extraire : elle perdrait son contexte.
-  let dernier = 'intégration SendEmail indisponible';
+  // Seul le canal service est accepté : pas de repli côté client (refusé par la plateforme).
   try {
     await sr.integrations.Core.SendEmail(charge);
     return { ok: true };
   } catch (e) {
-    dernier = e?.message || String(e);
+    return { ok: false, detail: e?.message || String(e) };
   }
-  try {
-    await base44.integrations.Core.SendEmail(charge);
-    return { ok: true };
-  } catch (e) {
-    dernier = e?.message || String(e);
-  }
-  return { ok: false, detail: dernier };
 }
 
 export default async function (req) {

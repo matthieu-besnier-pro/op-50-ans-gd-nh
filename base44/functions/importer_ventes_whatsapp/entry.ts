@@ -68,7 +68,8 @@ Messages à analyser :
 
       let llm;
       try {
-        llm = await base44.integrations.Core.InvokeLLM({ prompt, response_json_schema: schema });
+        // Appel LLM via le canal service (les intégrations Core ne s'exécutent pas côté application).
+        llm = await sr.integrations.Core.InvokeLLM({ prompt, response_json_schema: schema });
       } catch (e) {
         return Response.json({ error: `Analyse IA indisponible : ${e?.message || e}` }, { status: 500 });
       }
