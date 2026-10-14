@@ -29,6 +29,7 @@ const LIEN_APP = 'https://op-50-ans-gd-nh.base44.app';
 
 const ROLE_LISIBLE = {
   commercial: 'Commercial',
+  commercial_chef_atelier: "Chef d'atelier + Commercial",
   agri_precision: 'Agriculture de précision',
   responsable: 'Responsable commercial',
   chef_atelier: "Chef d'atelier",

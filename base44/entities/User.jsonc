@@ -15,6 +15,7 @@
       "type": "string",
       "enum": [
         "commercial",
+        "commercial_chef_atelier",
         "responsable",
         "direction",
         "collaborateur"
@@ -22,6 +23,7 @@
       "default": "collaborateur",
       "enumNames": [
         "Commercial",
+        "Chef d'atelier + Commercial",
         "Responsable commercial",
         "Direction / Marketing",
         "Collaborateur"

@@ -27,6 +27,7 @@ const emailPropose = (nom) => {
 
 const ROLES = [
   { value: 'commercial', label: 'Commercial' },
+  { value: 'commercial_chef_atelier', label: "Chef d'atelier + Commercial" },
   { value: 'agri_precision', label: 'Agriculture de précision' },
   { value: 'responsable', label: 'Responsable commercial' },
   { value: 'chef_atelier', label: "Chef d'atelier" },

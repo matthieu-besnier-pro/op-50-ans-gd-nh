@@ -11,6 +11,7 @@ import { UserPlus, Mail, Trash2, Briefcase } from 'lucide-react';
 
 const APP_ROLES = [
   { value: 'commercial', label: 'Commercial' },
+  { value: 'commercial_chef_atelier', label: "Chef d'atelier + Commercial" },
   { value: 'responsable', label: 'Responsable commercial' },
   { value: 'chef_atelier', label: 'Chef d\'atelier' },
   { value: 'responsable_sav', label: 'Responsable SAV' },
@@ -52,7 +53,7 @@ export default function AdminUsers({ bases, onReload }) {
         await base44.functions.invoke('definir_role', {
           utilisateur_id: newUser.id,
           app_role: inviteRole,
-          base_id: ['commercial', 'chef_atelier'].includes(inviteRole) ? inviteBase : undefined
+          base_id: ['commercial', 'commercial_chef_atelier', 'chef_atelier'].includes(inviteRole) ? inviteBase : undefined
         });
       }
       setInviteEmail('');
@@ -103,7 +104,7 @@ export default function AdminUsers({ bases, onReload }) {
               </SelectContent>
             </Select>
           </div>
-          {['commercial', 'chef_atelier'].includes(inviteRole) && (
+          {['commercial', 'commercial_chef_atelier', 'chef_atelier'].includes(inviteRole) && (
             <div className="space-y-1.5">
               <Label>Base de rattachement</Label>
               <Select value={inviteBase} onValueChange={setInviteBase}>
@@ -150,7 +151,7 @@ export default function AdminUsers({ bases, onReload }) {
                   </Select>
                 </td>
                 <td className="px-4 py-3">
-                  {['commercial', 'responsable', 'chef_atelier', 'responsable_sav'].includes(u.app_role) ? (
+                  {['commercial', 'commercial_chef_atelier', 'responsable', 'chef_atelier', 'responsable_sav'].includes(u.app_role) ? (
                     <Select value={u.base_id || ''} onValueChange={(v) => changeBase(u.id, v)}>
                       <SelectTrigger className="h-8 w-40"><SelectValue placeholder="—" /></SelectTrigger>
                       <SelectContent>

@@ -18,6 +18,7 @@ const ROLE_LABELS = {
   agri_precision: 'Agriculture de précision',
   responsable: 'Responsable commercial',
   chef_atelier: "Chef d'atelier",
+  commercial_chef_atelier: "Chef d'atelier + Commercial",
   responsable_sav: 'Responsable SAV',
   direction: 'Direction / Marketing',
   collaborateur: 'Collaborateur'
@@ -31,13 +32,13 @@ const SECTION_LABELS = {
 };
 
 const navItems = [
-  { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction', 'collaborateur'], section: 'pilotage' },
-  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'pilotage' },
+  { to: '/tableau-de-bord', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['commercial', 'agri_precision', 'commercial_chef_atelier', 'responsable', 'chef_atelier', 'responsable_sav', 'direction', 'collaborateur'], section: 'pilotage' },
+  { to: '/calendrier', label: 'Calendrier', icon: Calendar, roles: ['commercial', 'agri_precision', 'commercial_chef_atelier', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'pilotage' },
   { to: '/grand-ecran', label: 'Grand Écran', icon: Monitor, roles: ['responsable', 'direction', 'collaborateur'], section: 'pilotage' },
-  { to: '/portefeuille', label: 'Mes clients', icon: Briefcase, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'activite' },
+  { to: '/portefeuille', label: 'Mes clients', icon: Briefcase, roles: ['commercial', 'agri_precision', 'commercial_chef_atelier', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'activite' },
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['responsable', 'direction'], section: 'activite' },
-  { to: '/sav', label: 'SAV — OP 50 ans', icon: ClipboardCheck, roles: ['chef_atelier', 'responsable_sav', 'direction'], section: 'atelier' },
+  { to: '/sav', label: 'SAV — OP 50 ans', icon: ClipboardCheck, roles: ['chef_atelier', 'commercial_chef_atelier', 'responsable_sav', 'direction'], section: 'atelier' },
   { to: '/lancement', label: 'Lancement', icon: Rocket, roles: ['direction'], section: 'admin' },
   { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'], section: 'admin' },
   { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'], section: 'admin' },

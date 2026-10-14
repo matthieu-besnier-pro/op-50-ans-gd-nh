@@ -98,7 +98,7 @@ export default function ClientDetail() {
   const showPac = canSeePac(user, viewAsRole);
   // Un chef d'atelier ne porte pas la fiche : son changement de statut passe par le
   // serveur, qui vérifie son périmètre (comme dans la partie SAV).
-  const statutViaServeur = getAppRole(user, viewAsRole) === 'chef_atelier';
+  const statutViaServeur = ['chef_atelier', 'commercial_chef_atelier'].includes(getAppRole(user, viewAsRole));
 
   return (
     <Layout>

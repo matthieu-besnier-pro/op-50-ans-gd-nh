@@ -25,14 +25,16 @@ const variantes = (nom) => [nom, nom.replace(/-/g, ' '), nom.replace(/\s+/g, '-'
 // Renvoie le périmètre du référent connecté, ou null pour les autres rôles.
 export async function perimetreAtelier(sr, user) {
   const role = user?.app_role;
-  if (role !== 'chef_atelier' && role !== 'responsable_sav') return null;
+  // « commercial_chef_atelier » cumule les deux casquettes : il relève du périmètre
+  // atelier de son site (comme un chef d'atelier) en plus de son portefeuille commercial.
+  if (role !== 'chef_atelier' && role !== 'responsable_sav' && role !== 'commercial_chef_atelier') return null;
 
   const bases = await sr.entities.base.list('nom', LOT).catch(() => []);
   const moi = cleNom(user.full_name || user.email || '');
-  const champ = role === 'chef_atelier' ? 'chefs_atelier' : 'responsables_sav';
+  const champ = role === 'responsable_sav' ? 'responsables_sav' : 'chefs_atelier';
   const mesSites = bases.filter((b) =>
     (b[champ] || []).some((n) => cleNom(n) === moi) ||
-    (role === 'chef_atelier' && user.base_id && normNom(b.nom) === normNom(user.base_id))
+    (champ === 'chefs_atelier' && user.base_id && normNom(b.nom) === normNom(user.base_id))
   );
   if (mesSites.length === 0) return { sites: [], noms: [], ids: [], secteurs: [] };
 

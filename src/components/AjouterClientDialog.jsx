@@ -17,7 +17,7 @@ const VIDE = { raison_sociale: '', siren: '', adresse: '', code_postal: '', vill
 export default function AjouterClientDialog({ open, onOpenChange, commercials = [], onCreated }) {
   const { user } = useAuth();
   const role = getAppRole(user);
-  const estCommercial = role === 'commercial' || role === 'agri_precision';
+  const estCommercial = role === 'commercial' || role === 'agri_precision' || role === 'commercial_chef_atelier';
 
   const [form, setForm] = useState(VIDE);
   const [commercialId, setCommercialId] = useState('');

@@ -1,5 +1,10 @@
 import { useAuth } from '@/lib/AuthContext';
 
+// Rôle combiné : un commercial qui assure aussi le suivi atelier de son site.
+// Il cumule son portefeuille commercial et la liste SAV de l'opération 50 ans.
+export const ROLE_COMMERCIAL_ATELIER = 'commercial_chef_atelier';
+const estRoleAtelier = (r) => r === 'chef_atelier' || r === ROLE_COMMERCIAL_ATELIER;
+
 export function useCurrentUser() {
   const { user } = useAuth();
   return user;
@@ -38,13 +43,13 @@ export function isAgriPrecision(user) {
 // commercial classique ET agriculture de précision (spécialiste d'un usage).
 export function isTerrain(user, viewAsRole = null) {
   const r = viewAsRole || getAppRole(user);
-  return r === 'commercial' || r === 'agri_precision';
+  return r === 'commercial' || r === 'agri_precision' || r === ROLE_COMMERCIAL_ATELIER;
 }
 
 // Page d'accueil selon le profil (source unique, utilisée au login et lors
 // de la bascule « Voir en tant que »).
 export function accueilRole(role) {
-  if (role === 'commercial' || role === 'agri_precision') return '/portefeuille';
+  if (role === 'commercial' || role === 'agri_precision' || role === ROLE_COMMERCIAL_ATELIER) return '/portefeuille';
   // Atelier : la partie SAV « OP 50 ans » est l'écran de travail des référents.
   if (role === 'chef_atelier' || role === 'responsable_sav') return '/sav';
   return '/tableau-de-bord';
@@ -52,7 +57,7 @@ export function accueilRole(role) {
 
 export function canAccessClients(user) {
   const r = getAppRole(user);
-  return r === 'commercial' || r === 'agri_precision' || r === 'responsable' || isDirection(user);
+  return r === 'commercial' || r === 'agri_precision' || r === ROLE_COMMERCIAL_ATELIER || r === 'responsable' || isDirection(user);
 }
 
 export function canAccessEquipe(user) {
@@ -60,7 +65,7 @@ export function canAccessEquipe(user) {
 }
 
 export function isChefAtelier(user) {
-  return getAppRole(user) === 'chef_atelier';
+  return estRoleAtelier(getAppRole(user));
 }
 
 export function isResponsableSav(user) {
@@ -69,7 +74,7 @@ export function isResponsableSav(user) {
 
 export function canAccessAtelier(user) {
   const r = getAppRole(user);
-  return r === 'responsable' || r === 'chef_atelier' || r === 'responsable_sav' || isDirection(user);
+  return r === 'responsable' || estRoleAtelier(r) || r === 'responsable_sav' || isDirection(user);
 }
 
 export function canAccessAdmin(user) {

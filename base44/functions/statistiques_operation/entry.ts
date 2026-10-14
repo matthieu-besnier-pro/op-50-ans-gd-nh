@@ -70,7 +70,7 @@ export default async function (req) {
         gardeClients = (c) => (c.commerciaux_assignes || []).includes(user.id);
       }
       gardeActivite = (r) => r.commercial_id === user.id;
-    } else if (!estDirection && (role === 'chef_atelier' || role === 'responsable_sav')) {
+    } else if (!estDirection && (role === 'chef_atelier' || role === 'responsable_sav' || role === 'commercial_chef_atelier')) {
       // Périmètre « atelier » : les clients des commerciaux des sites du référent.
       const perimetre = await perimetreAtelier(sr, user);
       if (perimetre) {

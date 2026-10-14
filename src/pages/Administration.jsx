@@ -67,7 +67,7 @@ export default function Administration() {
       setParams(p[0] || { nom_operation: '50 ans Gonnin Duris × New Holland', date_debut_operation: '2026-10-13', date_fin_operation: '2026-10-30', date_debut_prise_rdv: '2026-10-13', date_fin_prise_rdv: '2026-10-14', objectif_rdv: 0, objectif_ventes: 0, objectif_ca_magasin: 0 });
       setVentesAValider(v);
       setBases(b);
-      const comms = users.filter((u) => u.app_role === 'commercial');
+      const comms = users.filter((u) => u.app_role === 'commercial' || u.app_role === 'commercial_chef_atelier');
       setCommerciaux(comms);
       const codesMap = {};
       comms.forEach((c) => { codesMap[c.id] = c.codes_communes || []; });

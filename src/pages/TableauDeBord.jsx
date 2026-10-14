@@ -96,7 +96,7 @@ export default function TableauDeBord() {
       // Les chiffres des listes s'affichent aussitôt, puis sont affinés.
       fetchOperationStats(persona.mode ? { commercial_ids: persona.ids, secteurs: persona.secteurs } : null).then(setExacts);
       // Chef d'atelier / responsable SAV : périmètre des commerciaux de ses sites.
-      if (!persona.mode && (role === 'chef_atelier' || role === 'responsable_sav')) {
+      if (!persona.mode && (role === 'chef_atelier' || role === 'responsable_sav' || role === 'commercial_chef_atelier')) {
         const sc = await base44.functions.invoke('lister_clients', { scope_only: true }).catch(() => null);
         setPerimetre(sc?.data?.scope || null);
       }
