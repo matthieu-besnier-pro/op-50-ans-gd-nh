@@ -3,13 +3,15 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { fetchOperationStats, invaliderStats } from '@/lib/operationStats';
+import { fetchAtelierStats, invaliderAtelierStats } from '@/lib/atelierStats';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { jouerAcclamation, debloquerSon, sonDebloque, sourceSon, enSourdine, basculerSourdine } from '@/lib/acclamation';
 import OpLogo from '@/components/OpLogo';
 import {
   Zap, Trophy, Wrench, Flame, Target,
-  CalendarCheck, Sparkles, X, Satellite, Volume2, VolumeX
+  CalendarCheck, Sparkles, X, Satellite, Volume2, VolumeX,
+  TrendingUp, Clock
 } from 'lucide-react';
 
 /* ---------- Célébration ---------- */
@@ -99,6 +101,10 @@ const TAILLES_PODIUM = {
   moyen: { medaille1: 'text-3xl', medaille: 'text-2xl', nom1: 'text-base', nom: 'text-sm', chiffre1: 'text-4xl', chiffre: 'text-2xl', rang: 'text-lg', marche: 0.7, marge: 'mb-3' },
   petit: { medaille1: 'text-2xl', medaille: 'text-xl', nom1: 'text-sm', nom: 'text-xs', chiffre1: 'text-3xl', chiffre: 'text-xl', rang: 'text-sm', marche: 0.45, marge: 'mb-2' }
 };
+
+// Valeurs de départ de la moitié « ateliers » : une référence stable, pour que le
+// classement ne se recalcule pas à chaque rendu.
+const ATELIER_VIDE = { cibles: 0, contactes: 0, ok: 0, refus: 0, restants: 0, par_site: {}, recents: [] };
 
 function Podium({ entrees, unite, taille = 'grand' }) {
   const t = TAILLES_PODIUM[taille] || TAILLES_PODIUM.grand;
@@ -338,6 +344,10 @@ export default function GrandEcran() {
   }, []);
 
   const [exacts, setExacts] = useState(null);
+  // Contacts atelier : comptés par leur propre fonction, qui ne lit que les clients
+  // ciblés par l'atelier. Le balayage complet, trop lourd pour cet écran, n'est plus
+  // sur le chemin de la moitié ateliers.
+  const [atelierExact, setAtelierExact] = useState(null);
 
   // Tout est préparé AVANT le moindre setState : sur un écran projeté, la
   // célébration doit tomber d'un seul bloc. Auparavant les confettis partaient
@@ -349,13 +359,14 @@ export default function GrandEcran() {
       lancerConfettis();
     };
     try {
-      const [p, r, v, u, st, statsRes] = await Promise.all([
+      const [p, r, v, u, st, statsRes, atelierRes] = await Promise.all([
         listerPartage('parametres_operation', '-created_date', 1),
         listerPartage('rdv', '-date_heure', 500),
         listerPartage('vente', '-date_vente', 500),
         listerPartage('User', '-created_date', 300).catch(() => []),
         listerPartage('structure_commerciale', '-nom_commercial', 200),
-        fetchOperationStats()
+        fetchOperationStats(),
+        fetchAtelierStats()
       ]);
 
       // Le rendez-vous vient d'être créé : s'il n'est pas encore remonté dans la
@@ -384,7 +395,11 @@ export default function GrandEcran() {
         }
       }
 
-      setExacts(statsRes || null);
+      // Un comptage raté (limite de débit) ne doit pas vider ce qui est déjà à
+      // l'écran : sur un écran projeté, mieux vaut des chiffres d'une minute que
+      // deux moitiés vides le temps que le serveur respire.
+      setExacts((precedent) => statsRes || precedent);
+      setAtelierExact((precedent) => atelierRes || precedent);
       setParams(p[0] || null);
       setRdvs(liste);
       setVentes(v);
@@ -418,6 +433,7 @@ export default function GrandEcran() {
       if (Date.now() - derniersComptages.current > 20000) {
         derniersComptages.current = Date.now();
         invaliderStats();
+        invaliderAtelierStats();
       }
       // Confettis, bandeau, ligne du feed, compteurs et podium partent ensemble,
       // une fois les données arrivées : c'est load() qui déclenche la salve.
@@ -538,15 +554,15 @@ export default function GrandEcran() {
   // Les contacts pris par les ateliers. Le marquage n'enregistre pas QUI l'a
   // posé, seulement le client et son site : le classement se fait donc par
   // atelier, ce qui est aussi la maille demandée.
-  const atelier = exacts?.atelier || { cibles: 0, contactes: 0, ok: 0, refus: 0, restants: 0, par_site: {}, recents: [] };
+  const atelier = atelierExact || exacts?.atelier || ATELIER_VIDE;
 
   const classementAteliers = useMemo(() => {
-    const sites = exacts?.atelier?.par_site || {};
+    const sites = atelier.par_site || {};
     return Object.entries(sites)
       .map(([site, v]) => ({ id: site, name: site, count: v.contactes || 0 }))
       .filter((e) => e.count > 0)
       .sort((a, b) => b.count - a.count);
-  }, [exacts]);
+  }, [atelier]);
 
   const [prevRangsAtelier, setPrevRangsAtelier] = useState({});
   useEffect(() => {

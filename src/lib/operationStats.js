@@ -13,7 +13,13 @@ import { base44 } from '@/api/base44Client';
  * @returns {Promise<object|null>} les statistiques, ou null en cas d'échec.
  */
 const TTL = 60 * 1000;
+// Après un échec (limite de débit atteinte), on laisse passer ce délai avant de
+// rappeler : sans cela, un écran qui se rafraîchit toutes les 15 s relançait la
+// fonction à chaque relecture — puisqu'un échec n'est pas mis en cache — et
+// entretenait lui-même la surcharge dont il souffrait.
+const REPOS = 45 * 1000;
 const cache = new Map(); // clé → { at, data }
+const echecs = new Map(); // clé → horodatage du dernier échec
 const enCours = new Map(); // clé → promesse en vol (évite les appels simultanés)
 
 export function fetchOperationStats(scope) {
@@ -26,15 +32,25 @@ export function fetchOperationStats(scope) {
 
   const connu = cache.get(cle);
   if (connu && Date.now() - connu.at < TTL) return Promise.resolve(connu.data);
+  const echec = echecs.get(cle);
+  if (echec && Date.now() - echec < REPOS) return Promise.resolve(null);
   if (enCours.has(cle)) return enCours.get(cle);
 
   const promesse = base44.functions.invoke('statistiques_operation', payload)
     .then((res) => {
       const data = res?.data || null;
-      if (data) cache.set(cle, { at: Date.now(), data });
+      if (data) {
+        cache.set(cle, { at: Date.now(), data });
+        echecs.delete(cle);
+      } else {
+        echecs.set(cle, Date.now());
+      }
       return data;
     })
-    .catch(() => null)
+    .catch(() => {
+      echecs.set(cle, Date.now());
+      return null;
+    })
     .finally(() => enCours.delete(cle));
 
   enCours.set(cle, promesse);
