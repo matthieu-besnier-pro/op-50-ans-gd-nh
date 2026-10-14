@@ -512,15 +512,21 @@ export default function GrandEcran() {
       // Le sprint récompense la PRISE de rendez-vous : on retient la date à
       // laquelle il a été posé, pas celle à laquelle il aura lieu. Un RDV pris
       // le 13 pour le 25 compte bien pour le sprint.
+      // Le rendez-vous atelier est compté côté atelier : il n'apparaît pas dans
+      // l'affichage commerce (compteur, classement et fil).
+      if (r.type === 'RDV atelier hivernage') return false;
       const d = (r.created_date || r.date_heure || '').slice(0, 10);
       return d >= params.date_debut_prise_rdv && d <= params.date_fin_prise_rdv;
     });
   }, [rdvs, params]);
 
   // Comptages exacts côté serveur ; repli sur la liste chargée en attendant.
-  const sprintRdvCount = exacts?.rdv?.sprint?.total ?? sprintRdvs.length;
+  // Total commerce : les rendez-vous atelier sont retirés du comptage (ils sont
+  // comptés dans la moitié atelier), pour ne pas compter deux fois le même RDV.
+  const sprintRdvCount = exacts?.rdv?.sprint
+    ? (exacts.rdv.sprint.total || 0) - (exacts.rdv.sprint.atelier || 0)
+    : sprintRdvs.length;
   const objRdv = params?.objectif_rdv || 100;
-  const sprintAtelierCount = exacts?.rdv?.sprint?.atelier ?? sprintRdvs.filter(r => r.type === 'RDV atelier hivernage').length;
   const sprintCommercialCount = exacts?.rdv?.sprint?.commercial ?? sprintRdvs.filter(r => r.type === 'RDV commercial').length;
   const sprintAgriCount = exacts?.rdv?.sprint?.agri ?? sprintRdvs.filter(r => r.type === 'RDV agri. précision').length;
 
@@ -530,7 +536,8 @@ export default function GrandEcran() {
   // servir faisait disparaître du classement les commerciaux dont les
   // rendez-vous tombaient hors de la tranche chargée.
   const leaderboard = useMemo(() => {
-    const exact = exacts?.rdv?.sprint_par_commercial;
+    // Classement commerce : rendez-vous atelier exclus, ils sont comptés côté atelier.
+    const exact = exacts?.rdv?.sprint_par_commercial_commerce;
     const counts = {};
     if (exact && Object.keys(exact).length > 0) {
       Object.entries(exact).forEach(([id, n]) => { counts[id] = n; });
@@ -555,6 +562,9 @@ export default function GrandEcran() {
   // posé, seulement le client et son site : le classement se fait donc par
   // atelier, ce qui est aussi la maille demandée.
   const atelier = atelierExact || exacts?.atelier || ATELIER_VIDE;
+
+  // Les refus ne s'affichent plus : le fil atelier ne montre que les rendez-vous obtenus.
+  const contactsAtelier = (atelier.recents || []).filter((c) => !c.refus);
 
   const classementAteliers = useMemo(() => {
     const sites = atelier.par_site || {};
@@ -591,7 +601,8 @@ export default function GrandEcran() {
   const liveFeed = useMemo(() => {
     // Un rendez-vous annulé ne doit pas défiler comme une victoire.
     return rdvs
-      .filter((r) => r.statut !== 'Annulé')
+      // Ni les annulés, ni les rendez-vous atelier : ils défilent côté atelier.
+      .filter((r) => r.statut !== 'Annulé' && r.type !== 'RDV atelier hivernage')
       .sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''))
       .slice(0, 8);
   }, [rdvs]);
@@ -721,7 +732,6 @@ export default function GrandEcran() {
               <>
                 <ProgressRing value={sprintRdvCount} max={objRdv} size={96} stroke={9} label="RDV Sprint" sublabel="obj." />
                 <Compteur Icone={CalendarCheck} valeur={sprintCommercialCount} libelle="Matériel" couleur="text-white" fond="bg-gd-navy/40" />
-                <Compteur Icone={Wrench} valeur={sprintAtelierCount} libelle="Atelier" couleur="text-gd-orange" fond="bg-gd-orange/15" />
                 <Compteur Icone={Satellite} valeur={sprintAgriCount} libelle="Agri. précision" couleur="text-emerald-400" fond="bg-emerald-500/15" />
               </>
             ) : (
@@ -779,7 +789,6 @@ export default function GrandEcran() {
           <div className="flex shrink-0 items-center gap-3">
             <ProgressRing value={atelier.contactes} max={atelier.cibles || 1} size={96} stroke={9} label="Contacts" sublabel="ciblés" />
             <Compteur Icone={CalendarCheck} valeur={atelier.ok} libelle="OK pour un RDV" couleur="text-gd-orange" fond="bg-gd-orange/15" />
-            <Compteur Icone={X} valeur={atelier.refus} libelle="Refus" couleur="text-white/70" fond="bg-white/5" />
             <Compteur Icone={Target} valeur={atelier.restants} libelle="À contacter" couleur="text-white" fond="bg-gd-navy/40" />
           </div>
 
@@ -796,10 +805,10 @@ export default function GrandEcran() {
             </h3>
             <div className="space-y-2">
               <AnimatePresence initial={false}>
-                {(atelier.recents || []).length === 0 ? (
+                {contactsAtelier.length === 0 ? (
                   <p className="py-3 text-center text-sm text-white/40">Pas encore de contact atelier.</p>
                 ) : (
-                  atelier.recents.slice(0, 3).map((contact) => (
+                  contactsAtelier.slice(0, 3).map((contact) => (
                     <LigneContactAtelier key={contact.id} contact={contact} />
                   ))
                 )}

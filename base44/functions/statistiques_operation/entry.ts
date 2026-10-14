@@ -211,6 +211,9 @@ export default async function (req) {
     const rdvParType = {};
     const rdvParCommercial = {};
     const rdvSprintParCommercial = {};
+    // Même comptage, rendez-vous atelier retirés : ils alimentent la moitié atelier
+    // du Grand Écran, pas le classement commerce.
+    const rdvSprintParCommercialCommerce = {};
     let rdvMois = 0;
     let rdvRealisesMois = 0;
     let rdvAtelierMois = 0;
@@ -286,7 +289,10 @@ export default async function (req) {
         sprintTotal += 1;
         if (atelier) sprintAtelier += 1; else if (agriPrecision) sprintAgri += 1; else sprintCommercial += 1;
         if (realise) sprintRealises += 1;
-        if (r.commercial_id) rdvSprintParCommercial[r.commercial_id] = (rdvSprintParCommercial[r.commercial_id] || 0) + 1;
+        if (r.commercial_id) {
+          rdvSprintParCommercial[r.commercial_id] = (rdvSprintParCommercial[r.commercial_id] || 0) + 1;
+          if (!atelier) rdvSprintParCommercialCommerce[r.commercial_id] = (rdvSprintParCommercialCommerce[r.commercial_id] || 0) + 1;
+        }
       }
 
       if (r.commercial_id) {
@@ -452,6 +458,7 @@ export default async function (req) {
         par_type: rdvParType,
         par_commercial: rdvParCommercial,
         sprint_par_commercial: rdvSprintParCommercial,
+        sprint_par_commercial_commerce: rdvSprintParCommercialCommerce,
         du_mois: rdvMois,
         pris_du_mois: rdvPrisMois,
         realises_du_mois: rdvRealisesMois,
