@@ -64,7 +64,10 @@ export default function Sav() {
   // assuré par le serveur pour un vrai compte, et par le référent choisi en mode démo.
   const travail = useMemo(
     () => clients.filter(
-      (c) => (c.cible_atelier || c.statut === 'Offre SAV à proposer') && persona.matchClient(c)
+      // Un client déjà marqué par l'atelier reste dans la liste même s'il n'était là que
+      // pour une offre SAV : sans cela il disparaîtrait au marquage, et la marque ne
+      // pourrait plus être annulée.
+      (c) => (c.cible_atelier || c.statut === 'Offre SAV à proposer' || contactAtelierPose(c)) && persona.matchClient(c)
     ),
     [clients, persona.matchClient]
   );
