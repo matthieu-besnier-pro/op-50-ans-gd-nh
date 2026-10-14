@@ -76,7 +76,10 @@ export function useDemoPersona() {
           : null,
         matchClient: (c) =>
           (c.commerciaux_assignes || []).some((i) => ids.includes(i)) ||
-          secteurs.some((n) => normNom(n) === normNom(c.secteur)),
+          secteurs.some((n) => normNom(n) === normNom(c.secteur)) ||
+          // Cibles du fichier atelier de ses sites : elles ne portent aucun commercial,
+          // le site les rattache (même règle que le serveur).
+          (!!c.cible_atelier && mesSites.some((b) => normNom(b.nom) === normNom(c.site_atelier))),
         matchCommercialId: (id) => ids.includes(id),
       };
     }

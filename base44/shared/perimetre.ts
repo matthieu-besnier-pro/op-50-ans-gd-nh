@@ -106,3 +106,30 @@ export function estDansPerimetre({ ids, secteurs }) {
   return (c) =>
     (c.commerciaux_assignes || []).some((i) => sIds.has(i)) || sNoms.has(normNom(c.secteur));
 }
+
+// Le client est-il dans le périmètre du compte connecté ? Même règle que la liste :
+// Direction / admin voient tout ; un référent atelier (chef d'atelier, responsable SAV)
+// les clients des commerciaux de ses sites et les cibles du fichier atelier de ses sites
+// (tableau de répartition) ; un responsable son équipe ; un commercial le sien.
+// Sert aux lectures et écritures serveur visant UN client précis : sans ce contrôle,
+// une fiche hors périmètre resterait atteignable par son identifiant.
+export async function clientDansPerimetre(sr, user, client) {
+  if (!user || !client) return false;
+  if (user.role === 'admin' || user.app_role === 'direction') return true;
+
+  const atelier = await perimetreAtelier(sr, user);
+  if (atelier) {
+    const mesSites = new Set((atelier.sites || []).map(normNom));
+    const site = client.cible_atelier && mesSites.has(normNom(client.site_atelier));
+    const nomme = client.cible_atelier && (client.chefs_atelier || []).some((n) => cleNom(n) === cleNom(user.full_name || ''));
+    return !!(site || nomme || estDansPerimetre(atelier)(client));
+  }
+
+  const equipe = await perimetreResponsable(sr, user);
+  if (equipe) return estDansPerimetre(equipe)(client) || client.base_responsable_id === user.id;
+
+  const sien = await perimetreCommercial(sr, user);
+  if (sien) return estDansPerimetre(sien)(client);
+
+  return false;
+}

@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre, clientDansPerimetre } from '../../shared/perimetre.ts';
 
 // Renvoie les clients selon le rôle, en asServiceRole (contourne le RLS navigateur).
 // Optimisé perf : UN seul appel filtré + projection légère (champs de la liste seulement).
@@ -45,9 +45,13 @@ export default async function(req) {
 
     const body = await req.json().catch(() => ({}));
 
-    // Fiche client : un seul client complet
+    // Fiche client : un seul client complet — mais seulement s'il est dans le périmètre
+    // du compte connecté (la lecture se fait en service role, donc sans RLS).
     if (body.client_id) {
       const c = await sr.entities.client.get(body.client_id).catch(() => null);
+      if (c && !(await clientDansPerimetre(sr, user, c))) {
+        return Response.json({ clients: [], hors_perimetre: true });
+      }
       return Response.json({ clients: c ? [c] : [] });
     }
 
@@ -71,6 +75,10 @@ export default async function(req) {
     // Parc matériel d'un client (fiche client) : lecture asServiceRole — le parc de la
     // fiche doit toujours s'afficher, quelles que soient les règles d'accès du navigateur.
     if (body.materiel_client_id) {
+      const c = await sr.entities.client.get(body.materiel_client_id).catch(() => null);
+      if (!c || !(await clientDansPerimetre(sr, user, c))) {
+        return Response.json({ materiels: [], hors_perimetre: true });
+      }
       const mats = await sr.entities.materiel.filter({ client_id: body.materiel_client_id }, '-created_date', 500);
       return Response.json({ materiels: mats });
     }
@@ -101,10 +109,11 @@ export default async function(req) {
       raw = await lireTout((skip) => sr.entities.client.filter(filtre, 'id', CHUNK, skip), limit);
     } else if (perimetre) {
       const filtre = filtreClientsPerimetre(perimetre);
-      // Chef d'atelier : il voit en plus les cibles de la partie SAV de son site (fichier
-      // atelier de l'opération 50 ans). Ces fiches ne sont dans aucun portefeuille
-      // commercial ; celles qui y sont déjà restent visibles par le commercial, donc par les deux.
-      if (user.app_role === 'chef_atelier' && (perimetre.sites || []).length > 0) {
+      // Chef d'atelier et responsable SAV : ils voient en plus les cibles de la partie SAV
+      // de leurs sites (fichier atelier de l'opération 50 ans). Ces fiches ne sont dans
+      // aucun portefeuille commercial ; celles qui y sont déjà restent visibles par le
+      // commercial, donc par les deux.
+      if ((perimetre.sites || []).length > 0) {
         filtre.$or.push({ cible_atelier: true, site_atelier: { $in: perimetre.sites } });
       }
       raw = await lireTout((skip) => sr.entities.client.filter(filtre, 'id', CHUNK, skip), limit);

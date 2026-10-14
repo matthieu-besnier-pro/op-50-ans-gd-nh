@@ -87,6 +87,21 @@ async function poserResponsable(entite, secteurs, userId) {
   return maj.length;
 }
 
+// Référent atelier : les cibles du fichier atelier d'un site ne sont assignées à aucun
+// commercial. On les marque de l'identifiant du référent du site (chef d'atelier ou
+// responsable SAV) : ce champ ouvre la lecture de ces fiches, et uniquement celles-là.
+async function marquerCiblesAtelier(sr, sites, userId) {
+  if (!sites || sites.length === 0) return;
+  // Les mises à jour groupées sont plafonnées : on reprend tant qu'il en reste.
+  for (let i = 0; i < 8; i++) {
+    const res = await sr.entities.client.updateMany(
+      { cible_atelier: true, site_atelier: { $in: sites }, chefs_atelier_ids: { $ne: userId } },
+      { $addToSet: { chefs_atelier_ids: userId } }
+    ).catch(() => null);
+    if (!res || !res.has_more) break;
+  }
+}
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -199,6 +214,13 @@ export default async function(req) {
         bilan.clients_equipe = await poserResponsable(sr.entities.client, secteurs, compte.id);
         bilan.materiels_equipe = await poserResponsable(sr.entities.materiel, secteurs, compte.id);
       }
+    }
+
+    // Référent atelier (chef d'atelier / responsable SAV) : les cibles du fichier atelier
+    // de ses sites portent son identifiant, pour qu'il soit le seul à les lire.
+    if (roleCible === 'chef_atelier' || roleCible === 'responsable_sav') {
+      const mesSites = (roleCible === 'chef_atelier' ? ateliersChef : ateliersSav).map((b) => b.nom);
+      await marquerCiblesAtelier(sr, mesSites, compte.id);
     }
 
     return Response.json({

@@ -8,6 +8,7 @@ import RdvExpress from '@/components/RdvExpress';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import { categorieMeta } from '@/components/MaterielPicto';
 import { useAuth } from '@/lib/AuthContext';
+import { useDemoPersona } from '@/lib/useDemoPersona';
 import { useStatuts } from '@/lib/statuts';
 import { listerPartage } from '@/lib/donneesPartagees';
 import { clientPasseFiltres, categoriesDuParc } from '@/lib/filtresClients';
@@ -29,6 +30,8 @@ const FILTRES_INIT = {
 // + clients des commerciaux du site.
 export default function Sav() {
   const { user } = useAuth();
+  // « Voir en tant que » : le périmètre du référent choisi s'applique aussi ici.
+  const persona = useDemoPersona();
   // Liste des statuts administrée par la Direction (Administration → Statuts).
   const statuts = useStatuts();
   const [clients, setClients] = useState([]);
@@ -60,10 +63,14 @@ export default function Sav() {
   useEffect(() => { load(); }, []);
 
   // Liste de travail SAV : les cibles du fichier atelier, et les clients que les
-  // commerciaux du site ont marqués « Offre SAV à proposer ».
+  // commerciaux du site ont marqués « Offre SAV à proposer ». Chaque chef d'atelier ne
+  // voit que son périmètre (tableau de répartition : ses sites et leurs commerciaux) —
+  // assuré par le serveur pour un vrai compte, et par le référent choisi en mode démo.
   const travail = useMemo(
-    () => clients.filter((c) => c.cible_atelier || c.statut === 'Offre SAV à proposer'),
-    [clients]
+    () => clients.filter(
+      (c) => (c.cible_atelier || c.statut === 'Offre SAV à proposer') && persona.matchClient(c)
+    ),
+    [clients, persona.matchClient]
   );
 
   // Noms des commerciaux assignés (structure commerciale) : recherche et filtre
@@ -153,7 +160,8 @@ export default function Sav() {
     return parFiltres.filter((c) => (c.offres_sav || []).includes(filtre));
   }, [travail, filtre, filters, commByUser]);
 
-  if (loading) {
+  // En mode démo, on attend aussi le référentiel qui détermine le périmètre du référent.
+  if (loading || (persona.mode && persona.loading)) {
     return <Layout><Loader label="Ouverture de la partie SAV…" /></Layout>;
   }
 
