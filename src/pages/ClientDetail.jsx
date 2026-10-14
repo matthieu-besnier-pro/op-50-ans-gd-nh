@@ -260,7 +260,17 @@ export default function ClientDetail() {
         </div>
       </div>
 
-      <RdvExpress open={rdvOpen} onOpenChange={setRdvOpen} client={client} commercialId={user.id} onSaved={loadAll} />
+      {/* Un référent d'atelier pose des rendez-vous d'ATELIER : laisser « RDV
+          commercial » par défaut les faisait compter du côté commerce, et ils
+          ne remontaient pas dans le suivi SAV. */}
+      <RdvExpress
+        open={rdvOpen}
+        onOpenChange={setRdvOpen}
+        client={client}
+        commercialId={user.id}
+        defaultType={['chef_atelier', 'responsable_sav'].includes(user?.app_role) ? 'RDV atelier hivernage' : 'RDV commercial'}
+        onSaved={loadAll}
+      />
       <VenteDialog open={venteOpen} onOpenChange={setVenteOpen} client={client} commercialId={user.id} onSaved={loadAll} />
       <ModifierClientDialog open={editOpen} onOpenChange={setEditOpen} client={client} onSaved={loadAll} />
     </Layout>

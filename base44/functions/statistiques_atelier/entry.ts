@@ -34,10 +34,11 @@ export default async function(req) {
     const estDirection = user.role === 'admin' || user.app_role === 'direction';
     let filtre = estDirection ? { cible_atelier: true } : null;
     let idsPerimetre = null;
+    let sitesPerimetre = null;
 
     if (!estDirection) {
       const atelier = await perimetreAtelier(sr, user);
-      if (atelier) idsPerimetre = atelier.ids || [];
+      if (atelier) { idsPerimetre = atelier.ids || []; sitesPerimetre = atelier.sites || []; }
       if (atelier) {
         const branches = [];
         if ((atelier.sites || []).length > 0) branches.push({ cible_atelier: true, site_atelier: { $in: atelier.sites } });
@@ -72,10 +73,7 @@ export default async function(req) {
     // le seul statut du client laissait de côté tout rendez-vous pris sur une fiche
     // absente du fichier de ciblage : un atelier pouvait en poser des dizaines sans
     // qu'aucun ne remonte.
-    const filtreRdv = { type: TYPE_RDV_ATELIER, statut: { $ne: 'Annulé' } };
-    if (idsPerimetre) filtreRdv.commercial_id = { $in: idsPerimetre };
-    const [rdvsAtelier, bases, users] = await Promise.all([
-      sr.entities.rdv.filter(filtreRdv, '-date_heure', 2000).catch(() => []),
+    const [bases, users] = await Promise.all([
       sr.entities.base.list('nom', 200).catch(() => []),
       sr.entities.User.list('-created_date', 500).catch(() => [])
     ]);
@@ -87,6 +85,30 @@ export default async function(req) {
       const noms = [...(b.chefs_atelier || []), ...(b.responsables_sav || [])];
       comptesDesChefs(noms, users || []).ids.forEach((id) => { siteParUser[id] = b.nom; });
     });
+    const referents = Object.keys(siteParUser);
+
+    // Un rendez-vous est « atelier » par son type, MAIS aussi dès qu'un référent
+    // d'atelier l'a posé : depuis la fiche client, le type proposé par défaut est
+    // « RDV commercial », et des rendez-vous d'atelier se sont retrouvés rangés
+    // du côté commerce. On les récupère par leur auteur.
+    const branches = [{ type: TYPE_RDV_ATELIER }];
+    if (referents.length > 0) branches.push({ commercial_id: { $in: referents } });
+    const rdvsBruts = await sr.entities.rdv
+      .filter(branches.length > 1 ? { $or: branches } : branches[0], '-date_heure', 3000)
+      .catch(() => []);
+
+    // Portée : un référent ne voit que ses sites — les siens et ceux de ses
+    // commerciaux. Le filtrage se fait ici, le filtre serveur ne sachant pas
+    // combiner cette union avec le reste.
+    const autorises = idsPerimetre
+      ? new Set([
+          ...idsPerimetre,
+          ...referents.filter((id) => (sitesPerimetre || []).includes(siteParUser[id]))
+        ])
+      : null;
+    const rdvsAtelier = (rdvsBruts || []).filter((r) =>
+      r.statut !== 'Annulé' && (!autorises || autorises.has(r.commercial_id))
+    );
 
     let contactes = 0;
     let ok = 0;
