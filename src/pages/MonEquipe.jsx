@@ -15,6 +15,8 @@ import { useStatuts, tonaliteDe } from '@/lib/statuts';
 
 export default function MonEquipe() {
   const { user } = useAuth();
+  // Le responsable SAV encadre des chefs d'atelier : le vocabulaire doit suivre.
+  const estSav = (user?.app_role || '') === 'responsable_sav';
   const persona = useDemoPersona();
   const stats = useOperationStats();
   // Liste des statuts administrée par la Direction (Administration → Statuts).
@@ -161,7 +163,12 @@ export default function MonEquipe() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mon équipe</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{commerciaux.length} commercial{commerciaux.length > 1 ? 'aux' : ''} · {(stats?.clients?.total ?? clients.length).toLocaleString('fr-FR')} clients suivis</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {/* Un responsable SAV encadre des chefs d'atelier, pas des commerciaux. */}
+            {commerciaux.length} {estSav
+              ? `chef${commerciaux.length > 1 ? 's' : ''} d'atelier`
+              : `commercial${commerciaux.length > 1 ? 'aux' : ''}`} · {(stats?.clients?.total ?? clients.length).toLocaleString('fr-FR')} clients suivis
+          </p>
         </div>
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>

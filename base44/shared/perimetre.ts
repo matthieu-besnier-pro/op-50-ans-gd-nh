@@ -1,3 +1,4 @@
+import { comptesDesChefs } from './atelier.ts';
 // Périmètre « atelier » — partagé par lister_clients et statistiques_operation.
 //
 // Un chef d'atelier voit les clients des commerciaux de son site, un responsable SAV
@@ -43,10 +44,25 @@ export async function perimetreAtelier(sr, user) {
   const cles = new Set(noms.map(normNom));
   const mesFiches = fiches.filter((f) => cles.has(normNom(f.nom_commercial)));
 
+  // Les RÉFÉRENTS des sites, en plus de leurs commerciaux : un responsable SAV
+  // encadre des chefs d'atelier, et leur activité doit entrer dans son
+  // périmètre — sinon il les voit sans rien voir de ce qu'ils font.
+  const nomsReferents = [...new Set(mesSites.flatMap((b) => [
+    ...(b.chefs_atelier || []),
+    ...(b.responsables_sav || [])
+  ]).filter(Boolean))];
+  const comptes = await sr.entities.User.list('-created_date', LOT).catch(() => []);
+  const idsReferents = comptesDesChefs(nomsReferents, comptes).ids;
+
   return {
     sites: mesSites.map((b) => b.nom),
     noms,
-    ids: [...new Set(mesFiches.flatMap((f) => [f.id, f.user_id]).filter(Boolean))],
+    referents: nomsReferents,
+    ids: [...new Set([
+      ...mesFiches.flatMap((f) => [f.id, f.user_id]),
+      ...idsReferents,
+      user.id
+    ].filter(Boolean))],
     secteurs: [...new Set(mesFiches.flatMap((f) => variantes(f.nom_commercial || '')))]
   };
 }
