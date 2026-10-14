@@ -10,8 +10,19 @@ import { categorieMeta } from '@/components/MaterielPicto';
 import { useAuth } from '@/lib/AuthContext';
 import { useStatuts } from '@/lib/statuts';
 import { listerPartage } from '@/lib/donneesPartagees';
-import { FILTRES_CLIENT_INIT, clientPasseFiltres, categoriesDuParc } from '@/lib/filtresClients';
+import { clientPasseFiltres, categoriesDuParc } from '@/lib/filtresClients';
 import { OFFRES_SAV } from '@/lib/offresSav';
+
+// Filtres de la liste SAV : ceux de la partie commerciale, sans les scores d'appétence.
+const FILTRES_INIT = {
+  search: '',
+  statut: 'all',
+  commercial: 'all',
+  suivi: 'all',
+  parc: 'all',
+  agri: 'all',
+  site: 'all'
+};
 
 // Partie SAV de l'opération 50 ans, pour les chefs d'atelier et la Direction.
 // Le périmètre est résolu côté serveur : cibles du fichier atelier du site
@@ -25,7 +36,7 @@ export default function Sav() {
   const [loading, setLoading] = useState(true);
   const [filtre, setFiltre] = useState('toutes'); // cartes « offres SAV »
   // Filtres fins de la liste : les mêmes que la partie commerciale.
-  const [filters, setFilters] = useState(FILTRES_CLIENT_INIT);
+  const [filters, setFilters] = useState(FILTRES_INIT);
   // Client sur lequel on pose un rendez-vous atelier depuis la liste.
   const [rdvClient, setRdvClient] = useState(null);
 
@@ -158,23 +169,29 @@ export default function Sav() {
 
       <SavOffres compteurs={compteurs} filtre={filtre} onFiltre={setFiltre} />
 
-      {/* Mêmes filtres que la partie commerciale : recherche, statut, appétence,
-          suivi, parc cible, agri. précision, commercial, site. */}
+      {/* Mêmes filtres que la partie commerciale, sans les scores d'appétence :
+          recherche, statut, suivi, parc cible, agri. précision, commercial, site. */}
       <PortefeuilleFiltres
         filters={filters}
         onChange={(key, value) => setFilters((f) => ({ ...f, [key]: value }))}
-        onReset={() => setFilters(FILTRES_CLIENT_INIT)}
+        onReset={() => setFilters(FILTRES_INIT)}
         statutCounts={statutCounts}
         commercials={commercialOptions}
         parcOptions={parcOptions}
         agriOptions={agriOptions}
         sites={siteOptions}
         showCommercial
+        showAppetence={false}
         count={liste.length}
         total={travail.length}
       />
 
-      <SavListe clients={liste} onSaved={load} onPrendreRdv={setRdvClient} />
+      <SavListe
+        clients={liste}
+        onSaved={load}
+        onPrendreRdv={setRdvClient}
+        nomCommerciaux={commercialNames}
+      />
 
       {/* Le rendez-vous appartient à celui qui le pose : l'agenda consulté est le sien. */}
       <RdvExpress

@@ -59,6 +59,7 @@ export default function PortefeuilleFiltres({
   agriOptions = [],
   sites = [],
   showCommercial = false,
+  showAppetence = true,
   sortByAppetence,
   onToggleSort,
   count = 0,
@@ -117,15 +118,18 @@ export default function PortefeuilleFiltres({
           </Select>
         </Champ>
 
-        <Champ label="Appétence" icone={Gauge} actif={actif('appetence')}>
-          <Select value={filters.appetence} onValueChange={(v) => onChange('appetence', v)}>
-            <SelectTrigger className={triggerClass(actif('appetence'))}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes appétences</SelectItem>
-              {APPETENCES.map((a) => <SelectItem key={a} value={a}>{APPETENCE_LABELS[a]}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </Champ>
+        {/* Scores d'appétence : masqués sur les écrans qui ne les utilisent pas (liste SAV). */}
+        {showAppetence && (
+          <Champ label="Appétence" icone={Gauge} actif={actif('appetence')}>
+            <Select value={filters.appetence} onValueChange={(v) => onChange('appetence', v)}>
+              <SelectTrigger className={triggerClass(actif('appetence'))}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes appétences</SelectItem>
+                {APPETENCES.map((a) => <SelectItem key={a} value={a}>{APPETENCE_LABELS[a]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Champ>
+        )}
 
         <Champ label="Suivi (RDV / rappels)" icone={CalendarClock} actif={actif('suivi')}>
           <Select value={filters.suivi} onValueChange={(v) => onChange('suivi', v)}>
