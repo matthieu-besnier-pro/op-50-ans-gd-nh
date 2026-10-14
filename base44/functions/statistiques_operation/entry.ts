@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre, filtreClientsPerimetre } from '../../shared/perimetre.ts';
-import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu } from '../../shared/atelier.ts';
+import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv } from '../../shared/atelier.ts';
 
 // Comptages EXACTS de l'opération, calculés côté serveur en parcourant l'intégralité
 // des données : les pages n'affichent plus de totaux issus de listes tronquées
@@ -116,7 +116,7 @@ export default async function (req) {
       ? sr.entities[entite].filter(filtre, 'id', CHUNK, skip)
       : sr.entities[entite].list('id', CHUNK, skip));
 
-    const [allClients, allRdvs, allVentes, offres, badges, obtenus, paramsListe, structure] = await Promise.all([
+    const [allClients, allRdvs, allVentes, offres, badges, obtenus, paramsListe, structure, bases, users] = await Promise.all([
       lireTout(lecteur('client', filtreClients)),
       lireTout(lecteur('rdv', filtreActivite)),
       lireTout(lecteur('vente', filtreActivite)),
@@ -124,12 +124,21 @@ export default async function (req) {
       sr.entities.badge.list('-created_date', 200).catch(() => []),
       sr.entities.badge_obtenu.list('-created_date', 1000).catch(() => []),
       sr.entities.parametres_operation.list('-created_date', 1).catch(() => []),
-      sr.entities.structure_commerciale.list('-nom_commercial', 500).catch(() => [])
+      sr.entities.structure_commerciale.list('-nom_commercial', 500).catch(() => []),
+      sr.entities.base.list('nom', 200).catch(() => []),
+      sr.entities.User.list('-created_date', 500).catch(() => [])
     ]);
     const params = paramsListe[0] || null;
 
+    // Les rendez-vous d'atelier appartiennent au SAV : ils sont posés par les
+    // chefs d'atelier, et n'ont rien à faire dans les chiffres du commerce. On
+    // ne les écarte évidemment pas quand c'est un référent d'atelier qui
+    // consulte ses propres chiffres.
+    const { estAtelier, referents } = routageRdv(bases, users);
+    const gardeCommerce = portee === 'atelier' ? () => true : (r) => !estAtelier(r);
+
     const clients = allClients.filter(gardeClients);
-    const rdvs = allRdvs.filter(gardeActivite);
+    const rdvs = allRdvs.filter((r) => gardeActivite(r) && gardeCommerce(r));
     const ventes = allVentes.filter(gardeActivite);
 
     const parStatut = {};
@@ -475,6 +484,9 @@ export default async function (req) {
           .slice(0, 12)
       },
       rdv: {
+        // Les auteurs côté atelier : l'écran s'en sert pour que son fil en direct
+        // ne montre pas des rendez-vous que ses compteurs ont écartés.
+        auteurs_atelier: referents,
         total: rdvs.length - rdvAnnules, // les annulés sont soustraits
         annules: rdvAnnules,
         par_statut: rdvParStatut,

@@ -119,6 +119,40 @@ export function apparierSite(nomFichier, chefFichier, sites) {
 // Comptes correspondant à des noms de chefs d'atelier (« David FIAUD »).
 // Un nom n'est retenu que s'il ne désigne qu'un seul compte : en cas d'ambiguïté,
 // le nom est signalé pour que la Direction rattache le compte à la main.
+export const TYPE_RDV_ATELIER = 'RDV atelier hivernage';
+
+/**
+ * À qui revient un rendez-vous : au commerce, ou à l'atelier ?
+ *
+ * La règle est celle du terrain : les rendez-vous commerciaux sont pris par les
+ * commerciaux, les rendez-vous d'atelier par les chefs d'atelier. C'est donc
+ * l'AUTEUR qui tranche, et non le type enregistré — la fiche client propose
+ * « RDV commercial » par défaut, et des rendez-vous d'atelier s'y sont rangés
+ * sans que personne ne le voie.
+ *
+ * Seul celui qui cumule les deux casquettes (commercial_chef_atelier) se juge
+ * sur le type, faute de pouvoir le déduire de son rôle.
+ *
+ * Renvoie aussi le site de chaque référent, pour rattacher ses rendez-vous.
+ */
+export function routageRdv(bases, users) {
+  const siteParUser = {};
+  for (const b of bases || []) {
+    const noms = [...(b.chefs_atelier || []), ...(b.responsables_sav || [])];
+    comptesDesChefs(noms, users || []).ids.forEach((id) => { siteParUser[id] = b.nom; });
+  }
+  const cumul = new Set((users || []).filter((u) => u.app_role === 'commercial_chef_atelier').map((u) => u.id));
+
+  const estAtelier = (rdv) => {
+    const id = rdv?.commercial_id;
+    if (!id) return false;
+    if (cumul.has(id)) return rdv?.type === TYPE_RDV_ATELIER;
+    return !!siteParUser[id];
+  };
+
+  return { siteParUser, estAtelier, referents: Object.keys(siteParUser), cumul: [...cumul] };
+}
+
 export function comptesDesChefs(noms, users) {
   const ids = new Set();
   const inconnus = [];

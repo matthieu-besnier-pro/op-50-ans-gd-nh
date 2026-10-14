@@ -602,13 +602,18 @@ export default function GrandEcran() {
 
   // Live feed (most recent RDVs)
   const liveFeed = useMemo(() => {
-    // Un rendez-vous annulé ne doit pas défiler comme une victoire.
+    // Ni les annulés, ni ce qui relève de l'atelier : celui-ci défile dans
+    // l'autre moitié. Le type ne suffit pas — un chef d'atelier qui pose depuis
+    // la fiche client laisse « RDV commercial » — donc on écarte aussi par
+    // l'auteur, exactement comme les compteurs du serveur.
+    const ateliers = new Set(exacts?.rdv?.auteurs_atelier || []);
     return rdvs
-      // Ni les annulés, ni les rendez-vous atelier : ils défilent côté atelier.
-      .filter((r) => r.statut !== 'Annulé' && r.type !== 'RDV atelier hivernage')
+      .filter((r) => r.statut !== 'Annulé'
+        && r.type !== 'RDV atelier hivernage'
+        && !ateliers.has(r.commercial_id))
       .sort((a, b) => (b.created_date || '').localeCompare(a.created_date || ''))
       .slice(0, 8);
-  }, [rdvs]);
+  }, [rdvs, exacts]);
 
   // Ventes stats (phase ventes)
   const ventesValidees = ventes.filter(v => v.statut_validation === 'Validé');

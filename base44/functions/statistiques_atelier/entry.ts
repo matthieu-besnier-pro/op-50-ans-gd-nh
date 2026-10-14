@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre } from '../../shared/perimetre.ts';
-import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, comptesDesChefs } from '../../shared/atelier.ts';
+import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv } from '../../shared/atelier.ts';
 
 // Comptage des contacts pris par les ateliers, pour la moitié « ateliers » du Grand Écran.
 //
@@ -19,7 +19,6 @@ const CHAMPS = ['id', 'raison_sociale', 'site_atelier', 'statut', 'rdv_obtenus',
 const LOT = 2000;
 const MAX_LOTS = 10;
 
-const TYPE_RDV_ATELIER = 'RDV atelier hivernage';
 const VIDE = { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv_pris: 0, restants: 0, par_site: {}, recents: [] };
 
 export default async function(req) {
@@ -78,24 +77,13 @@ export default async function(req) {
       sr.entities.User.list('-created_date', 500).catch(() => [])
     ]);
 
-    // À quel atelier rattacher un rendez-vous : au site du client quand il est
-    // ciblé, sinon à celui de la personne qui l'a posé.
-    const siteParUser = {};
-    (bases || []).forEach((b) => {
-      const noms = [...(b.chefs_atelier || []), ...(b.responsables_sav || [])];
-      comptesDesChefs(noms, users || []).ids.forEach((id) => { siteParUser[id] = b.nom; });
-    });
-    const referents = Object.keys(siteParUser);
-
-    // Un rendez-vous est « atelier » par son type, MAIS aussi dès qu'un référent
-    // d'atelier l'a posé : depuis la fiche client, le type proposé par défaut est
-    // « RDV commercial », et des rendez-vous d'atelier se sont retrouvés rangés
-    // du côté commerce. On les récupère par leur auteur.
-    const branches = [{ type: TYPE_RDV_ATELIER }];
-    if (referents.length > 0) branches.push({ commercial_id: { $in: referents } });
-    const rdvsBruts = await sr.entities.rdv
-      .filter(branches.length > 1 ? { $or: branches } : branches[0], '-date_heure', 3000)
-      .catch(() => []);
+    // Les rendez-vous d'atelier sont ceux posés par les chefs d'atelier — c'est
+    // l'auteur qui tranche, pas le type enregistré (voir routageRdv).
+    const { siteParUser, estAtelier, referents, cumul } = routageRdv(bases, users);
+    const auteurs = [...referents, ...cumul];
+    const rdvsBruts = auteurs.length > 0
+      ? await sr.entities.rdv.filter({ commercial_id: { $in: auteurs } }, '-date_heure', 3000).catch(() => [])
+      : [];
 
     // Portée : un référent ne voit que ses sites — les siens et ceux de ses
     // commerciaux. Le filtrage se fait ici, le filtre serveur ne sachant pas
@@ -107,7 +95,7 @@ export default async function(req) {
         ])
       : null;
     const rdvsAtelier = (rdvsBruts || []).filter((r) =>
-      r.statut !== 'Annulé' && (!autorises || autorises.has(r.commercial_id))
+      r.statut !== 'Annulé' && estAtelier(r) && (!autorises || autorises.has(r.commercial_id))
     );
 
     let contactes = 0;
