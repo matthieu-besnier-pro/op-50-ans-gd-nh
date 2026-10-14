@@ -600,9 +600,13 @@ export default function GrandEcran() {
   const classementAteliers = useMemo(() => {
     const sites = atelier.par_site || {};
     return Object.entries(sites)
-      .map(([site, v]) => ({ id: site, name: site, count: v.contactes || 0 }))
-      .filter((e) => e.count > 0)
-      .sort((a, b) => b.count - a.count);
+      // Le classement compte les RENDEZ-VOUS posés, tous : plusieurs créneaux
+      // sur un même client sont autant de travail fait, et doivent compter
+      // autant de fois. Les contacts départagent ceux qui n'en ont pas encore.
+      .map(([site, v]) => ({ id: site, name: site, count: v.rdv || 0, contacts: v.contactes || 0 }))
+      // Un atelier qui a contacté sans encore caler de créneau reste visible.
+      .filter((e) => e.count > 0 || e.contacts > 0)
+      .sort((a, b) => (b.count - a.count) || (b.contacts - a.contacts));
   }, [atelier]);
 
   const [prevRangsAtelier, setPrevRangsAtelier] = useState({});
@@ -815,7 +819,7 @@ export default function GrandEcran() {
         <section className="col-span-6 flex min-h-0 flex-col gap-3 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex shrink-0 items-center justify-between">
             <h2 className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-wider text-white">
-              <Wrench className="h-6 w-6 text-gd-orange" /> Ateliers — contacts et RDV
+              <Wrench className="h-6 w-6 text-gd-orange" /> Ateliers — RDV posés
             </h2>
             <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-gd-orange">
               <span className="h-2 w-2 animate-pulse rounded-full bg-gd-orange" /> Temps réel
@@ -831,9 +835,9 @@ export default function GrandEcran() {
 
           <BlocClassement
             liste={classementAteliers}
-            unite="contacts"
+            unite="RDV"
             prevRanks={prevRangsAtelier}
-            vide="En attente du premier contact atelier…"
+            vide="En attente du premier RDV atelier…"
           />
 
           <div className="shrink-0">
