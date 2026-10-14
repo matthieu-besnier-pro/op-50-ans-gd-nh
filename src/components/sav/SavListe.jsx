@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import MarquesAtelier from '@/components/sav/MarquesAtelier';
+import StatutAtelier from '@/components/sav/StatutAtelier';
 import RdvMentions from '@/components/RdvMentions';
 import ParcPictos from '@/components/ParcPictos';
 import TelephoneClient from '@/components/TelephoneClient';
@@ -90,8 +90,8 @@ export default function SavListe({ clients, onSaved, nomCommerciaux }) {
                 </td>
                 <td className="hidden px-4 py-3 xl:table-cell"><ParcPictos pictos={c.parc_pictos} /></td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                  <MarquesAtelier client={c} onSaved={onSaved} />
-                  {/* Suivis déjà obtenus : un RDV commercial reste mentionné à côté du suivi atelier. */}
+                  <StatutAtelier client={c} onSaved={onSaved} />
+                  {/* Suivis déjà obtenus : un RDV commercial reste mentionné à côté du statut atelier. */}
                   <RdvMentions client={c} className="mt-1.5" />
                 </td>
                 <td className="hidden px-4 py-3 text-sm text-muted-foreground xl:table-cell">{c.date_prochain_rdv || '—'}</td>

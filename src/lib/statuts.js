@@ -30,15 +30,14 @@ export const STATUTS_DEFAUT = [
   { nom: 'RDV Commercial obtenu', ordre: 5, tonalite: 'bleu', systeme: true, usage: "Coché automatiquement à la prise d'un rendez-vous commercial." },
   { nom: 'RDV Atelier obtenu', ordre: 6, tonalite: 'indigo', systeme: true, usage: "Coché automatiquement à la prise d'un rendez-vous atelier." },
   { nom: 'RDV Agri. précision obtenu', ordre: 7, tonalite: 'violet', systeme: true, usage: "Coché automatiquement à la prise d'un rendez-vous agriculture de précision." },
-  // Suivi du contact atelier : le rendez-vous ne se prend plus tout de suite, le
-  // référent trace le contact puis l'accord du client (voir src/lib/statutsAtelier.js).
-  { nom: "Contacté par l'atelier", ordre: 8, tonalite: 'cyan', systeme: true, usage: "Posé depuis la liste SAV : le client a été appelé par l'atelier." },
-  { nom: 'OK pour un RDV', ordre: 9, tonalite: 'vert', systeme: true, usage: "Posé depuis la liste SAV : le client est d'accord pour un rendez-vous." },
-  { nom: 'Offre magasin à proposer', ordre: 10, tonalite: 'cyan', systeme: true, usage: 'Compte les offres magasin (badge « offre magasin »).' },
-  { nom: 'Offre SAV à proposer', ordre: 11, tonalite: 'fuchsia', systeme: false, usage: '' },
-  { nom: 'Offre agri. précision à proposer', ordre: 12, tonalite: 'teal', systeme: false, usage: '' },
-  { nom: 'Vente conclue', ordre: 13, tonalite: 'vert', systeme: true, usage: 'Compte les ventes et le taux de transformation.' },
-  { nom: 'Refus', ordre: 14, tonalite: 'rouge', systeme: true, usage: 'Impose un motif de refus.' }
+  // Suivi atelier : le rendez-vous ne se prend plus tout de suite, le référent pose
+  // ce statut unique (voir src/lib/statutsAtelier.js).
+  { nom: "Contacté par l'atelier OK pour un RDV", ordre: 8, tonalite: 'cyan', systeme: true, usage: "Posé depuis la liste SAV : le client a été contacté par l'atelier et est d'accord pour un rendez-vous." },
+  { nom: 'Offre magasin à proposer', ordre: 9, tonalite: 'cyan', systeme: true, usage: 'Compte les offres magasin (badge « offre magasin »).' },
+  { nom: 'Offre SAV à proposer', ordre: 10, tonalite: 'fuchsia', systeme: false, usage: '' },
+  { nom: 'Offre agri. précision à proposer', ordre: 11, tonalite: 'teal', systeme: false, usage: '' },
+  { nom: 'Vente conclue', ordre: 12, tonalite: 'vert', systeme: true, usage: 'Compte les ventes et le taux de transformation.' },
+  { nom: 'Refus', ordre: 13, tonalite: 'rouge', systeme: true, usage: 'Impose un motif de refus.' }
 ];
 
 // Cache partagé : les badges affichent la bonne couleur sans recharger la configuration.

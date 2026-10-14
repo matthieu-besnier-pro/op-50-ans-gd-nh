@@ -8,15 +8,14 @@ import { clientDansPerimetre } from '../../shared/perimetre.ts';
 // body = { client_id, updates } — `updates.rdv_obtenus` liste les RDV déjà obtenus sur le client.
 
 const CHAMPS = ['statut', 'date_prochain_rdv', 'date_dernier_contact', 'date_rappel', 'motif_refus', 'nb_tentatives_contact'];
-// Suivis cumulables : les rendez-vous obtenus et le suivi du contact atelier
-// (le rendez-vous atelier ne se prend pas tout de suite : on marque d'abord le
-// contact, puis l'accord du client). Un suivi déjà acquis n'est jamais écrasé.
+// Suivis cumulables : les rendez-vous obtenus et le statut du suivi atelier (le
+// rendez-vous atelier ne se prend pas tout de suite). Un suivi déjà acquis n'est
+// jamais écrasé.
 const STATUTS_SUIVI = [
   'RDV Commercial obtenu',
   'RDV Atelier obtenu',
   'RDV Agri. précision obtenu',
-  "Contacté par l'atelier",
-  'OK pour un RDV'
+  "Contacté par l'atelier OK pour un RDV"
 ];
 
 export default async function (req) {
