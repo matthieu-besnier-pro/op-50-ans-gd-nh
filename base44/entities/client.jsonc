@@ -276,6 +276,36 @@
       "type": "string",
       "format": "date",
       "description": "Prochain RDV"
+    },
+    "cible_atelier": {
+      "type": "boolean",
+      "default": false,
+      "description": "Client cibl\u00e9 par la partie SAV de l'op\u00e9ration 50 ans (fichier atelier consolid\u00e9) \u2014 visible par les chefs d'atelier du site"
+    },
+    "site_atelier": {
+      "type": "string",
+      "description": "Site (agence) d'origine du ciblage atelier \u2014 rapproch\u00e9 de la base correspondante"
+    },
+    "chefs_atelier": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Chefs d'atelier du site destinataires du ciblage SAV (noms)"
+    },
+    "chefs_atelier_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Comptes des chefs d'atelier destinataires du ciblage SAV (d\u00e9normalis\u00e9 pour le filtrage RLS)"
+    },
+    "offres_sav": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Offres SAV \u00e0 proposer sur ce client, d'apr\u00e8s les OP du fichier atelier (inspection annuelle, r\u00e9vision, contrat de service)"
     }
   },
   "required": [
@@ -289,6 +319,9 @@
         },
         {
           "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "data.chefs_atelier_ids": "{{user.id}}"
         },
         {
           "user_condition": {
@@ -327,6 +360,13 @@
         },
         {
           "data.base_responsable_id": "{{user.id}}"
+        },
+        {
+          "data.chefs_atelier_ids": {
+            "$in": [
+              "{{user.id}}"
+            ]
+          }
         },
         {
           "user_condition": {
