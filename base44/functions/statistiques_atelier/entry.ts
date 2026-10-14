@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { avecReprise } from '../../shared/debit.ts';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre } from '../../shared/perimetre.ts';
-import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_ATELIER } from '../../shared/atelier.ts';
+import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_ATELIER, basesCompletees, cleNom, cleSite } from '../../shared/atelier.ts';
 
 // Comptage des contacts pris par les ateliers, pour la moitié « ateliers » du Grand Écran.
 //
@@ -80,10 +80,22 @@ export default async function(req) {
     // le seul statut du client laissait de côté tout rendez-vous pris sur une fiche
     // absente du fichier de ciblage : un atelier pouvait en poser des dizaines sans
     // qu'aucun ne remonte.
-    const [bases, users] = await Promise.all([
+    const [bases, users, fiches] = await Promise.all([
       lire('sites', () => sr.entities.base.list('nom', 200)),
-      lire('comptes', () => sr.entities.User.list('-created_date', 500))
+      lire('comptes', () => sr.entities.User.list('-created_date', 500)),
+      lire('structure', () => sr.entities.structure_commerciale.list('-nom_commercial', 500))
     ]);
+
+    // Le secteur de chaque commercial, d'après le tableau de répartition : il
+    // permet de rattacher à son atelier un rendez-vous d'hivernage posé par un
+    // commercial, là où ni la fiche client ni l'auteur ne donnent de site.
+    const siteParCommercial = {};
+    for (const b of basesCompletees(bases)) {
+      for (const nom of (b.commerciaux || [])) {
+        const f = (fiches || []).find((x) => cleNom(x.nom_commercial || '') === cleNom(nom));
+        if (f?.user_id && !siteParCommercial[f.user_id]) siteParCommercial[f.user_id] = b.nom;
+      }
+    }
 
     // Carte des fiches ciblées — leur atelier, leur raison sociale, et les
     // référents que l'import du fichier atelier leur a déjà rattachés (des
@@ -132,14 +144,25 @@ export default async function(req) {
     // quelqu'un que le tableau de répartition ne nomme pas — chef sans compte,
     // remplaçant, responsable qui cale le créneau — disparaissait purement et
     // simplement, et son atelier restait à zéro.
-    const surCible = (r) => !!siteParClient[r.client_id];
+    // L'atelier d'un rendez-vous : sa fiche d'abord, sinon l'auteur — référent
+    // ou commercial du secteur.
+    const siteDuRdv = (r) => siteParClient[r.client_id]
+      || siteParUser[r.commercial_id]
+      || siteParCommercial[r.commercial_id]
+      || 'Sans site';
+
     const rdvsAtelier = (rdvsBruts || []).filter((r) => {
       if (r.statut === 'Annulé') return false;
-      const releveDeAtelier = estAtelier(r) || (surCible(r) && r.type === TYPE_RDV_ATELIER);
-      if (!releveDeAtelier) return false;
-      // Portée d'un référent : ses commerciaux, ses collègues de site, et les
-      // fiches ciblées de ses ateliers quel que soit l'auteur.
-      return !autorises || autorises.has(r.commercial_id) || surCible(r);
+      // TOUT ce qui est atelier remonte ici : un rendez-vous de type atelier,
+      // quel que soit celui qui l'a posé, et tout rendez-vous posé par un
+      // référent d'atelier, quel que soit son type.
+      if (!(estAtelier(r) || r.type === TYPE_RDV_ATELIER)) return false;
+      if (!autorises) return true;
+      // Portée d'un référent : ses commerciaux, ses collègues de site, et tout
+      // rendez-vous qui retombe sur l'un de ses ateliers.
+      const cle = cleSite(siteDuRdv(r));
+      return autorises.has(r.commercial_id)
+        || (sitesPerimetre || []).some((x) => cleSite(x) === cle);
     });
 
     let contactes = 0;
@@ -186,7 +209,7 @@ export default async function(req) {
     let cibles = clients.length;
     (rdvsAtelier || []).forEach((r) => {
       if (!r.client_id) return;
-      const site = siteParClient[r.client_id] || siteParUser[r.commercial_id] || 'Sans site';
+      const site = siteDuRdv(r);
       const e = (parSite[site] = parSite[site] || { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv: 0 });
       e.rdv += 1;
       rdvPris += 1;
