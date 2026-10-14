@@ -4,10 +4,14 @@ import StatusBadge from '@/components/StatusBadge';
 import { STATUTS_ATELIER } from '@/lib/rdvStatuts';
 
 // RDV déjà obtenus sur un client. Un client peut cumuler un RDV commercial ET un
-// RDV atelier ou agri. précision : chaque RDV pris reste mentionné, même quand un
-// nouveau rendez-vous a changé le statut courant du client.
-export default function RdvMentions({ client, className = '' }) {
-  const obtenus = Array.isArray(client?.rdv_obtenus) ? client.rdv_obtenus : [];
+// RDV atelier ou agri. précision : le statut obtenu reste en place et chaque
+// rendez-vous pris reste mentionné.
+export default function RdvMentions({ client, className = '', complet = false }) {
+  const tous = Array.isArray(client?.rdv_obtenus) ? client.rdv_obtenus : [];
+  // En liste, la pastille de statut juste au-dessus affiche déjà le statut courant :
+  // on ne mentionne que les RDV supplémentaires. Dans les fenêtres de prise de
+  // rendez-vous (`complet`), on affiche tout ce qui est déjà obtenu.
+  const obtenus = complet ? tous : tous.filter((s) => s !== client?.statut);
   if (obtenus.length === 0) return null;
 
   return (

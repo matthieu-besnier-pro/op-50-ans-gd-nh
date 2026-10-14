@@ -4,11 +4,13 @@ import StatutInline from '@/components/StatutInline';
 import RdvMentions from '@/components/RdvMentions';
 import { metaOffre, labelOffre } from '@/lib/offresSav';
 import { useAuth } from '@/lib/AuthContext';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, CalendarPlus } from 'lucide-react';
 
 // Liste de travail SAV : chaque client avec ses offres SAV à proposer et son statut,
-// modifiable directement depuis la liste.
-export default function SavListe({ clients, onSaved }) {
+// modifiable directement depuis la liste. On peut y poser un RDV atelier en plus du
+// RDV commercial déjà obtenu : le statut commercial reste affiché, le RDV atelier
+// s'ajoute en mention.
+export default function SavListe({ clients, onSaved, onPrendreRdv }) {
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -29,7 +31,7 @@ export default function SavListe({ clients, onSaved }) {
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Site</th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Offres SAV à proposer</th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
-            <th className="w-24"></th>
+            <th className="w-56"></th>
           </tr>
         </thead>
         <tbody>
@@ -58,14 +60,24 @@ export default function SavListe({ clients, onSaved }) {
                 {/* RDV déjà obtenus : un RDV commercial peut se cumuler avec un RDV atelier ou agri. précision. */}
                 <RdvMentions client={c} className="mt-1.5" />
               </td>
-              <td className="px-4 py-3 text-right">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/client/${c.id}`)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-gd-navy hover:text-gd-orange"
-                >
-                  Fiche <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+              <td className="px-4 py-3">
+                <div className="flex items-center justify-end gap-2">
+                  {/* RDV atelier à poser en plus du RDV commercial : le statut commercial reste en place. */}
+                  <button
+                    type="button"
+                    onClick={() => onPrendreRdv?.(c)}
+                    className="inline-flex h-8 items-center gap-1 rounded-md border border-gd-orange/50 px-2 text-xs font-semibold text-gd-orange whitespace-nowrap transition hover:bg-gd-orange hover:text-gd-navy-dark"
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5" /> RDV Atelier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/client/${c.id}`)}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-gd-navy hover:text-gd-orange whitespace-nowrap"
+                  >
+                    Fiche <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

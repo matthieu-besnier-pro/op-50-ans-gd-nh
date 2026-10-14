@@ -4,15 +4,20 @@ import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
 import SavOffres from '@/components/sav/SavOffres';
 import SavListe from '@/components/sav/SavListe';
+import RdvExpress from '@/components/RdvExpress';
+import { useAuth } from '@/lib/AuthContext';
 import { OFFRES_SAV } from '@/lib/offresSav';
 
 // Partie SAV de l'opération 50 ans, pour les chefs d'atelier et la Direction.
 // Le périmètre est résolu côté serveur : cibles du fichier atelier du site
 // + clients des commerciaux du site.
 export default function Sav() {
+  const { user } = useAuth();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtre, setFiltre] = useState('toutes');
+  // Client sur lequel on pose un rendez-vous atelier depuis la liste.
+  const [rdvClient, setRdvClient] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -66,7 +71,17 @@ export default function Sav() {
       </div>
 
       <SavOffres compteurs={compteurs} filtre={filtre} onFiltre={setFiltre} />
-      <SavListe clients={liste} onSaved={load} />
+      <SavListe clients={liste} onSaved={load} onPrendreRdv={setRdvClient} />
+
+      {/* Le rendez-vous appartient à celui qui le pose : l'agenda consulté est le sien. */}
+      <RdvExpress
+        open={!!rdvClient}
+        onOpenChange={(o) => { if (!o) setRdvClient(null); }}
+        client={rdvClient}
+        commercialId={user?.id}
+        defaultType="RDV atelier hivernage"
+        onSaved={load}
+      />
     </Layout>
   );
 }

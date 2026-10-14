@@ -16,6 +16,13 @@ export const STATUTS_ATELIER = ['RDV Atelier obtenu', 'RDV Agri. précision obte
 
 export const statutDuRdv = (type) => STATUT_PAR_TYPE[type] || 'RDV Commercial obtenu';
 
+// Statut du client après la prise d'un rendez-vous. Un statut de RDV déjà obtenu
+// n'est JAMAIS écrasé : un RDV commercial reste affiché, et le nouveau rendez-vous
+// (atelier ou agri. précision) s'ajoute en mention à côté. Le statut ne bascule sur
+// le RDV pris que si le client n'avait pas encore de rendez-vous.
+export const statutApresRdv = (client, type) =>
+  String(client?.statut || '').startsWith('RDV ') ? client.statut : statutDuRdv(type);
+
 // Liste des RDV obtenus, complétée (sans doublon) par le RDV qui vient d'être pris.
 export const rdvObtenus = (client, type) => {
   const obtenus = Array.isArray(client?.rdv_obtenus) ? client.rdv_obtenus : [];

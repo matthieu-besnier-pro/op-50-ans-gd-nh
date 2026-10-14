@@ -5,7 +5,7 @@ import { invalider } from '@/lib/donneesPartagees';
 import confetti from 'canvas-confetti';
 import { Search, Tractor, Wrench, Sprout, ChevronLeft, Check, Loader2, CalendarDays, PartyPopper } from 'lucide-react';
 import RdvMentions from '@/components/RdvMentions';
-import { statutDuRdv, rdvObtenus } from '@/lib/rdvStatuts';
+import { statutApresRdv, rdvObtenus } from '@/lib/rdvStatuts';
 
 // Créneaux de départ 07:00 → 23:00, par pas de 30 min : les visites du soir
 // sont courantes, on ne bride pas les horaires.
@@ -138,8 +138,8 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
       const updates = {
         date_prochain_rdv: day,
         date_dernier_contact: dayISO(0),
-        statut: statutDuRdv(type),
-        // Un client peut cumuler les RDV : chaque RDV pris reste mentionné.
+        // Un statut de RDV déjà obtenu est conservé ; le nouveau RDV s'ajoute en mention.
+        statut: statutApresRdv(client, type),
         rdv_obtenus: rdvObtenus(client, type)
       };
       // Si le client n'est pas dans le périmètre d'écriture de l'utilisateur (chef
@@ -236,7 +236,7 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
                     <span className="text-[11px] text-muted-foreground">Agriculture de précision</span>
                   </button>
                   {/* Ce qui est déjà obtenu : le client peut cumuler un RDV commercial ET un RDV atelier. */}
-                  <RdvMentions client={client} className="col-span-2" />
+                  <RdvMentions client={client} className="col-span-2" complet />
                 </div>
               )}
 

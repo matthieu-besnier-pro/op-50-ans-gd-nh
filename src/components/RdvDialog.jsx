@@ -13,7 +13,7 @@ import { base44 } from '@/api/base44Client';
 import { invalider } from '@/lib/donneesPartagees';
 import { AlertTriangle } from 'lucide-react';
 import RdvMentions from '@/components/RdvMentions';
-import { statutDuRdv, rdvObtenus } from '@/lib/rdvStatuts';
+import { statutApresRdv, rdvObtenus } from '@/lib/rdvStatuts';
 
 export default function RdvDialog({ open, onOpenChange, client, commercialId, onSaved }) {
   // Le rendez-vous appartient à CELUI QUI LE POSE : c'est son agenda qu'on
@@ -86,8 +86,8 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
       const updates = {
         date_prochain_rdv: new Date(form.date_heure).toISOString().slice(0, 10),
         date_dernier_contact: new Date().toISOString().slice(0, 10),
-        statut: statutDuRdv(form.type),
-        // Un client peut cumuler les RDV : chaque RDV pris reste mentionné.
+        // Un statut de RDV déjà obtenu est conservé ; le nouveau RDV s'ajoute en mention.
+        statut: statutApresRdv(client, form.type),
         rdv_obtenus: rdvObtenus(client, form.type)
       };
       // Si le client n'est pas dans le périmètre d'écriture de l'utilisateur (chef
@@ -118,7 +118,7 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
         </DialogHeader>
         <div className="space-y-4 py-2">
           {/* RDV déjà obtenus : le client peut cumuler un RDV commercial ET un RDV atelier. */}
-          <RdvMentions client={client} />
+          <RdvMentions client={client} complet />
           <div className="space-y-1.5">
             <Label>Date et heure</Label>
             <Input
