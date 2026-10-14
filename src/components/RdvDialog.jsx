@@ -98,7 +98,9 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
 
       // Vérifier les badges
       invalider('rdv');
-      try { await base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }); } catch (e) { /* ignore */ }
+      // Sans attendre : le résultat n'est pas utilisé ici, et faire patienter
+      // le commercial sur un calcul de badges n'a aucun sens.
+      base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }).catch(() => {});
 
       onSaved?.(rdv);
       onOpenChange(false);

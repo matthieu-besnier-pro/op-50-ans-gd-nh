@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre, filtreClientsPerimetre } from '../../shared/perimetre.ts';
 import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu } from '../../shared/atelier.ts';
 
 // Comptages EXACTS de l'opération, calculés côté serveur en parcourant l'intégralité
@@ -44,6 +44,14 @@ export default async function (req) {
     let portee = 'operation';
     let gardeClients = () => true;
     let gardeActivite = () => true;
+    // Mêmes sélections, mais confiées au SERVEUR. Sans elles, chaque compte
+    // rapatriait l'intégralité des clients, des rendez-vous et des ventes avant
+    // d'en jeter 95 % en mémoire : d'où une attente de plusieurs secondes sur
+    // chaque tableau de bord, et une pression inutile sur la limite de débit.
+    // Les prédicats ci-dessus restent appliqués ensuite : le résultat est
+    // identique, seul le volume transporté change.
+    let filtreClients = null;
+    let filtreActivite = null;
 
     if (!estDirection && role === 'responsable') {
       portee = 'equipe';
@@ -55,9 +63,13 @@ export default async function (req) {
         const idsEquipe = new Set(equipe.ids);
         gardeClients = (c) => dansEquipe(c) || c.base_responsable_id === user.id;
         gardeActivite = (r) => idsEquipe.has(r.commercial_id) || r.base_responsable_id === user.id;
+        filtreClients = { $or: [...filtreClientsPerimetre(equipe).$or, { base_responsable_id: user.id }] };
+        filtreActivite = { $or: [{ commercial_id: { $in: equipe.ids } }, { base_responsable_id: user.id }] };
       } else {
         gardeClients = (c) => c.base_responsable_id === user.id;
         gardeActivite = (r) => r.base_responsable_id === user.id;
+        filtreClients = { base_responsable_id: user.id };
+        filtreActivite = { base_responsable_id: user.id };
       }
     } else if (!estDirection && (role === 'commercial' || role === 'agri_precision')) {
       portee = 'portefeuille';
@@ -67,10 +79,13 @@ export default async function (req) {
       if (sien && sien.secteurs.length > 0) {
         const aMoi = estDansPerimetre(sien);
         gardeClients = (c) => aMoi(c);
+        filtreClients = filtreClientsPerimetre(sien);
       } else {
         gardeClients = (c) => (c.commerciaux_assignes || []).includes(user.id);
+        filtreClients = { commerciaux_assignes: { $in: [user.id] } };
       }
       gardeActivite = (r) => r.commercial_id === user.id;
+      filtreActivite = { commercial_id: user.id };
     } else if (!estDirection && (role === 'chef_atelier' || role === 'responsable_sav' || role === 'commercial_chef_atelier')) {
       // Périmètre « atelier » : les clients des commerciaux des sites du référent.
       const perimetre = await perimetreAtelier(sr, user);
@@ -79,6 +94,8 @@ export default async function (req) {
         gardeClients = estDansPerimetre(perimetre);
         const ids = new Set(perimetre.ids);
         gardeActivite = (r) => ids.has(r.commercial_id);
+        filtreClients = filtreClientsPerimetre(perimetre);
+        filtreActivite = { commercial_id: { $in: perimetre.ids } };
       }
     } else if (estDirection && body?.scope) {
       const ids = body.scope.commercial_ids || [];
@@ -93,10 +110,16 @@ export default async function (req) {
     }
 
     // Tri par identifiant : clé unique, donc pagination sans doublon ni oubli.
+    // Lecture filtrée dès qu'un périmètre est posé ; la Direction, qui voit tout,
+    // garde la lecture intégrale.
+    const lecteur = (entite, filtre) => (skip) => (filtre
+      ? sr.entities[entite].filter(filtre, 'id', CHUNK, skip)
+      : sr.entities[entite].list('id', CHUNK, skip));
+
     const [allClients, allRdvs, allVentes, offres, badges, obtenus, paramsListe, structure] = await Promise.all([
-      lireTout((skip) => sr.entities.client.list('id', CHUNK, skip)),
-      lireTout((skip) => sr.entities.rdv.list('id', CHUNK, skip)),
-      lireTout((skip) => sr.entities.vente.list('id', CHUNK, skip)),
+      lireTout(lecteur('client', filtreClients)),
+      lireTout(lecteur('rdv', filtreActivite)),
+      lireTout(lecteur('vente', filtreActivite)),
       sr.entities.offre_magasin.list('-date_debut', 500).catch(() => []),
       sr.entities.badge.list('-created_date', 200).catch(() => []),
       sr.entities.badge_obtenu.list('-created_date', 1000).catch(() => []),

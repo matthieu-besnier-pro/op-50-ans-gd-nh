@@ -148,7 +148,9 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
       await base44.entities.client.update(client.id, updates)
         .catch(() => base44.functions.invoke('maj_statut_sav', { client_id: client.id, updates }).catch(() => {}));
       invalider('rdv'); // le nouveau rendez-vous doit apparaître tout de suite
-      try { await base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }); } catch (e) { /* ignore */ }
+      // Sans attendre : le résultat n'est pas utilisé ici, et faire patienter
+      // le commercial sur un calcul de badges n'a aucun sens.
+      base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }).catch(() => {});
 
       // Récompense visuelle (sans son côté saisie ; le son est réservé au Grand Écran)
       confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 }, colors: ['#FFC107', '#0A2540', '#4ADE80'] });

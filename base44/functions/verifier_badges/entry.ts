@@ -7,11 +7,16 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Tous les clients, sans troncature.
-async function listerClients(sr) {
+// Les clients qui entrent dans les conditions de badge. Pour un porteur donné,
+// seules SES fiches comptent : les lire toutes — 6 500 — à chaque changement de
+// statut et à chaque prise de rendez-vous rendait l'outil poussif en pleine
+// opération. Le recalcul global (Direction) garde la lecture intégrale.
+async function listerClients(sr, userId) {
   const out = [];
   for (let i = 0; i < 30; i++) {
-    const page = await sr.entities.client.list('-created_date', 1000, i * 1000);
+    const page = userId
+      ? await sr.entities.client.filter({ commerciaux_assignes: { $in: [userId] } }, '-created_date', 1000, i * 1000)
+      : await sr.entities.client.list('-created_date', 1000, i * 1000);
     if (!page || page.length === 0) break;
     out.push(...page);
     if (page.length < 1000) break;
@@ -165,9 +170,11 @@ export default async function (req) {
     const body = await req.json().catch(() => ({}));
     const sr = base44.asServiceRole;
 
+    // Recalcul global : toute la base. Sinon, le seul portefeuille concerné.
+    const porteur = body.tous ? null : (body.utilisateur_id || user.id);
     const [badges, clients, params] = await Promise.all([
       sr.entities.badge.list('-created_date', 100),
-      listerClients(sr),
+      listerClients(sr, porteur),
       sr.entities.parametres_operation.list('-created_date', 1)
     ]);
     const p = params[0] || {};
