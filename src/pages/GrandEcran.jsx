@@ -600,15 +600,13 @@ export default function GrandEcran() {
   const classementAteliers = useMemo(() => {
     const sites = atelier.par_site || {};
     return Object.entries(sites)
-      // Ce qu'un atelier a obtenu : le PLUS GRAND de ses deux chiffres, les
-      // rendez-vous posés dans l'agenda ou les accords donnés au téléphone.
-      // Les additionner compterait deux fois le même client — un rendez-vous
-      // posé vaut déjà accord ; n'en retenir qu'un effacerait la moitié des
-      // ateliers, selon qu'ils calent le créneau tout de suite ou plus tard.
+      // Ce qu'un atelier a obtenu : ses rendez-vous posés dans l'agenda PLUS les
+      // accords donnés au téléphone. Les deux comptent, et s'additionnent —
+      // c'est la règle retenue pour le tableau de marche.
       .map(([site, v]) => ({
         id: site,
         name: site,
-        count: Math.max(v.rdv || 0, v.ok || 0),
+        count: (v.rdv || 0) + (v.ok || 0),
         contacts: v.contactes || 0
       }))
       // Un atelier qui a contacté sans encore caler de créneau reste visible.
@@ -826,7 +824,7 @@ export default function GrandEcran() {
         <section className="col-span-6 flex min-h-0 flex-col gap-3 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex shrink-0 items-center justify-between">
             <h2 className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-wider text-white">
-              <Wrench className="h-6 w-6 text-gd-orange" /> Ateliers — RDV obtenus
+              <Wrench className="h-6 w-6 text-gd-orange" /> Ateliers — RDV et accords
             </h2>
             <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-gd-orange">
               <span className="h-2 w-2 animate-pulse rounded-full bg-gd-orange" /> Temps réel
@@ -842,7 +840,7 @@ export default function GrandEcran() {
 
           <BlocClassement
             liste={classementAteliers}
-            unite="RDV obtenus"
+            unite="RDV + accords"
             prevRanks={prevRangsAtelier}
             vide="En attente du premier RDV obtenu…"
           />
