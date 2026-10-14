@@ -1,4 +1,4 @@
-import { STATUT_ATELIER } from '@/lib/statutsAtelier';
+import { STATUT_ATELIER, STATUT_ATELIER_REFUS } from '@/lib/statutsAtelier';
 
 // Statuts de rendez-vous : prendre le rendez-vous, c'est l'avoir obtenu.
 //
@@ -13,9 +13,9 @@ export const STATUT_PAR_TYPE = {
   'RDV agri. précision': 'RDV Agri. précision obtenu'
 };
 
-// Mentions de la partie atelier : rendez-vous atelier, agri. précision, et le
-// statut du suivi atelier (client contacté et d'accord pour un rendez-vous).
-export const STATUTS_ATELIER = ['RDV Atelier obtenu', 'RDV Agri. précision obtenu', STATUT_ATELIER];
+// Mentions de la partie atelier : rendez-vous atelier, agri. précision, et les
+// statuts du suivi atelier (client contacté, d'accord pour un rendez-vous ou non).
+export const STATUTS_ATELIER = ['RDV Atelier obtenu', 'RDV Agri. précision obtenu', STATUT_ATELIER, STATUT_ATELIER_REFUS];
 
 export const statutDuRdv = (type) => STATUT_PAR_TYPE[type] || 'RDV Commercial obtenu';
 

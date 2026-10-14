@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { perimetreResponsable, perimetreCommercial, estDansPerimetre } from '../../shared/perimetre.ts';
-import { contactAtelierPose, STATUT_CONTACT_ATELIER } from '../../shared/atelier.ts';
+import { contactAtelierPose, STATUTS_CONTACT_ATELIER } from '../../shared/atelier.ts';
 
 // Export des clients TRAVAILLÉS : ceux qui ont quitté le statut « À contacter ».
 // C'est la trace de l'activité de l'opération — complément de l'export des RDV.
@@ -99,7 +99,7 @@ export default async function (req) {
       // Le suivi atelier est un marquage, pas seulement un statut courant : un client
       // dont le statut a évolué depuis reste une prise de contact atelier — il reste
       // compté dans l'outil, et donc exporté ici avec la colonne « Contact atelier ».
-      const avecAtelier = retenus.has(STATUT_CONTACT_ATELIER);
+      const avecAtelier = STATUTS_CONTACT_ATELIER.some((s) => retenus.has(s));
       liste = liste.filter((c) => retenus.has(c.statut || 'À contacter') || (avecAtelier && contactAtelierPose(c)));
     } else if (!body.tous) {
       liste = liste.filter((c) => (c.statut || 'À contacter') !== 'À contacter');

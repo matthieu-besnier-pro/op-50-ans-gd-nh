@@ -25,10 +25,14 @@ export const cleSite = (v) => norm(v).split(' ').filter((t) => t && !MOTS_VIDES.
 // C'est ce marquage qui compte les prises de contact atelier (un client = un clic) :
 // partagé par la mise à jour du statut (maj_statut_sav) et par les exports.
 export const STATUT_CONTACT_ATELIER = "Contacté par l'atelier OK pour un RDV";
+export const STATUT_CONTACT_ATELIER_REFUS = "Contacté par l'atelier REFUS";
+
+// Les deux issues possibles du contact atelier : le référent en marque une seule.
+export const STATUTS_CONTACT_ATELIER = [STATUT_CONTACT_ATELIER, STATUT_CONTACT_ATELIER_REFUS];
 
 export const contactAtelierPose = (client) =>
-  (client?.statut || '') === STATUT_CONTACT_ATELIER ||
-  (Array.isArray(client?.rdv_obtenus) && client.rdv_obtenus.includes(STATUT_CONTACT_ATELIER));
+  STATUTS_CONTACT_ATELIER.includes(client?.statut || '') ||
+  (Array.isArray(client?.rdv_obtenus) && STATUTS_CONTACT_ATELIER.some((s) => client.rdv_obtenus.includes(s)));
 
 // Offres SAV de l'opération : ce sont les OP du fichier atelier.
 export const OFFRES_SAV = ['INSPECTION ANNUELLE', 'REVISION', 'CONTRAT DE SERVICE'];
