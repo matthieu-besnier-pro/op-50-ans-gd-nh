@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import { fetchOperationStats } from '@/lib/operationStats';
@@ -7,7 +7,6 @@ import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
-import ProspectsMap from '@/components/ProspectsMap';
 import { isDirection, getAppRole } from '@/lib/permissions';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -41,12 +40,10 @@ export default function TableauDeBord() {
   const [offres, setOffres] = useState([]);
   const [users, setUsers] = useState([]);
   const [structure, setStructure] = useState([]);
-  const [clients, setClients] = useState({});
   const [perimetre, setPerimetre] = useState(null); // chef d'atelier / responsable SAV : périmètre renvoyé par le serveur
   const [loading, setLoading] = useState(true);
   const direction = isDirection(user, viewAsRole);
   const role = getAppRole(user, viewAsRole);
-  const canFilterMap = role === 'direction' || role === 'responsable';
   // Périmètre des données : le persona « Voir en tant que » est prioritaire, sinon le rôle réel.
   // Commercial → ses RDV ; Responsable → son équipe ; Direction → tout.
   const inScope = (commId, baseRespId) => {
@@ -59,28 +56,9 @@ export default function TableauDeBord() {
   };
   const scopedRdvs = rdvs.filter((r) => inScope(r.commercial_id, r.base_responsable_id));
   const scopedVentes = ventes.filter((v) => inScope(v.commercial_id, v.base_responsable_id));
-  // Un rendez-vous annulé ne laisse pas de point sur la carte.
-  const mapRdvs = scopedRdvs.filter((r) => r.statut !== 'Annulé');
 
   const [exacts, setExacts] = useState(null);
   const [tousRdvs, setTousRdvs] = useState([]); // liste complète : indicateurs moi / mon équipe / entreprise
-
-  // Clients de la carte : chargés en arrière-plan et une seule fois par client,
-  // pour ne pas retarder l'affichage du tableau de bord.
-  const clientsCarte = useRef({});
-  const chargerClientsCarte = useCallback(async (rdvsCarte) => {
-    const aCharger = [...new Set(rdvsCarte.map((rd) => rd.client_id))]
-      .filter((id) => id && !clientsCarte.current[id])
-      .slice(0, 200);
-    if (aCharger.length === 0) return;
-    const trouves = {};
-    for (let i = 0; i < aCharger.length; i += 50) {
-      const morceau = await base44.entities.client.filter({ id: { $in: aCharger.slice(i, i + 50) } }, '-created_date', 50).catch(() => []);
-      (morceau || []).forEach((c) => { trouves[c.id] = c; });
-    }
-    clientsCarte.current = { ...clientsCarte.current, ...trouves };
-    setClients(clientsCarte.current);
-  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -110,14 +88,12 @@ export default function TableauDeBord() {
       setOffres(o);
       setUsers(u);
       setStructure(s);
-      // Carte : chargée après l'affichage (aucun blocage de la page), puis réutilisée.
-      chargerClientsCarte(personaRdvs);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [persona.mode, persona.ids.join(','), chargerClientsCarte]);
+  }, [persona.mode, persona.ids.join(',')]);
 
   useEffect(() => {
     load();
@@ -149,7 +125,11 @@ export default function TableauDeBord() {
   const rdvMoisPris = scopedRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart);
   // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
   const rdvMaterielMonth = exacts?.rdv?.operation?.commercial ?? exacts?.rdv?.commercial_pris_du_mois ?? rdvMoisPris.filter((r) => r.type !== 'RDV atelier hivernage' && r.type !== 'RDV agri. précision').length;
-  const rdvAtelierMonth = exacts?.rdv?.operation?.atelier ?? exacts?.rdv?.atelier_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV atelier hivernage').length;
+  // RDV Atelier : les deux façons d'obtenir un rendez-vous se cumulent — celui posé
+  // dans l'agenda (« RDV Atelier obtenu ») et la marque du référent d'atelier
+  // (« Contacté par l'atelier OK pour un RDV »). Un client qui porte les deux
+  // mentions n'est compté qu'une fois.
+  const rdvAtelierObtenus = exacts?.atelier?.ok ?? exacts?.rdv?.operation?.atelier ?? rdvMoisPris.filter((r) => r.type === 'RDV atelier hivernage').length;
   const rdvAgriMonth = exacts?.rdv?.operation?.agri ?? exacts?.rdv?.agri_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV agri. précision').length;
   const rdvTotalMonth = exacts?.rdv?.operation?.pris ?? exacts?.rdv?.pris_du_mois ?? rdvMoisPris.length;
 
@@ -210,7 +190,7 @@ export default function TableauDeBord() {
           <StatCard label="Fin prise de RDV" value={`${countdownRdv} j`} sublabel={params?.date_fin_prise_rdv} icon={Timer} accent />
         )}
         <StatCard label="RDV Matériel" value={rdvMaterielMonth} icon={CheckCircle2} />
-        <StatCard label="RDV Atelier" value={rdvAtelierMonth} icon={Timer} />
+        <StatCard label="RDV Atelier" value={rdvAtelierObtenus} icon={Timer} />
         <StatCard label="RDV Agri. précision" value={rdvAgriMonth} icon={Satellite} />
       </div>
 
@@ -246,7 +226,7 @@ export default function TableauDeBord() {
           <ProgressBar value={rdvTotalMonth} max={objRdv} className="mt-3" />
           <div className="mt-3 flex gap-4 text-xs">
             <span className="text-muted-foreground">🚜 Matériel : <span className="font-bold text-gd-navy-dark">{rdvMaterielMonth}</span></span>
-            <span className="text-muted-foreground">🔧 Atelier : <span className="font-bold text-gd-navy-dark">{rdvAtelierMonth}</span></span>
+            <span className="text-muted-foreground">🔧 Atelier : <span className="font-bold text-gd-navy-dark">{rdvAtelierObtenus}</span></span>
             <span className="text-muted-foreground">🛰️ Agri. précision : <span className="font-bold text-gd-navy-dark">{rdvAgriMonth}</span></span>
           </div>
         </div>
@@ -332,13 +312,6 @@ export default function TableauDeBord() {
           <Podium rdvs={rdvs} nameMap={nameMap} />
         </div>
       </div>
-
-      {/* Carte des prospects avec RDV — masquée en consultation publique (collaborateur) : localisations clients privées */}
-      {role !== 'collaborateur' && (
-        <div className="mt-6">
-          <ProspectsMap rdvs={mapRdvs} clients={clients} users={users} canFilter={canFilterMap} />
-        </div>
-      )}
 
       {lastWhatsapp && (
         <p className="mt-4 text-xs text-muted-foreground">
