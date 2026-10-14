@@ -104,7 +104,7 @@ const TAILLES_PODIUM = {
 
 // Valeurs de départ de la moitié « ateliers » : une référence stable, pour que le
 // classement ne se recalcule pas à chaque rendu.
-const ATELIER_VIDE = { cibles: 0, contactes: 0, ok: 0, refus: 0, restants: 0, par_site: {}, recents: [] };
+const ATELIER_VIDE = { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv_pris: 0, restants: 0, par_site: {}, recents: [] };
 
 function Podium({ entrees, unite, taille = 'grand' }) {
   const t = TAILLES_PODIUM[taille] || TAILLES_PODIUM.grand;
@@ -274,12 +274,15 @@ function LigneContactAtelier({ contact }) {
       <Wrench className={`h-4 w-4 shrink-0 ${contact.refus ? 'text-white/30' : 'text-gd-orange'}`} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-white">{contact.nom || 'Client'}</p>
-        <p className="truncate text-[10px] uppercase tracking-wide text-white/40">{contact.site}</p>
+        <p className="truncate text-[10px] uppercase tracking-wide text-white/40">
+          {contact.site}
+          {contact.creneau ? ` · ${new Date(contact.creneau).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
+        </p>
       </div>
       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
         contact.refus ? 'bg-white/10 text-white/50' : 'bg-gd-orange/20 text-gd-orange'
       }`}>
-        {contact.refus ? 'Refus' : 'OK RDV'}
+        {contact.refus ? 'Refus' : contact.creneau ? 'RDV posé' : 'OK RDV'}
       </span>
     </motion.div>
   );
@@ -779,7 +782,7 @@ export default function GrandEcran() {
         <section className="col-span-6 flex min-h-0 flex-col gap-3 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex shrink-0 items-center justify-between">
             <h2 className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-wider text-white">
-              <Wrench className="h-6 w-6 text-gd-orange" /> Ateliers — contacts pris
+              <Wrench className="h-6 w-6 text-gd-orange" /> Ateliers — contacts et RDV
             </h2>
             <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-gd-orange">
               <span className="h-2 w-2 animate-pulse rounded-full bg-gd-orange" /> Temps réel
@@ -788,7 +791,8 @@ export default function GrandEcran() {
 
           <div className="flex shrink-0 items-center gap-3">
             <ProgressRing value={atelier.contactes} max={atelier.cibles || 1} size={96} stroke={9} label="Contacts" sublabel="ciblés" />
-            <Compteur Icone={CalendarCheck} valeur={atelier.ok} libelle="OK pour un RDV" couleur="text-gd-orange" fond="bg-gd-orange/15" />
+            <Compteur Icone={Clock} valeur={atelier.rdv_pris || 0} libelle="RDV posés" couleur="text-gd-orange" fond="bg-gd-orange/15" />
+            <Compteur Icone={CalendarCheck} valeur={atelier.ok} libelle="OK pour un RDV" couleur="text-white" fond="bg-gd-navy/40" />
             <Compteur Icone={Target} valeur={atelier.restants} libelle="À contacter" couleur="text-white" fond="bg-gd-navy/40" />
           </div>
 
