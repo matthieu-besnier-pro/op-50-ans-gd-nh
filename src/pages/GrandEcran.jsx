@@ -275,8 +275,11 @@ function LigneContactAtelier({ contact }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-white">{contact.nom || 'Client'}</p>
         <p className="truncate text-[10px] uppercase tracking-wide text-white/40">
-          {contact.site}
-          {contact.creneau ? ` · ${new Date(contact.creneau).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
+          {[
+            contact.site,
+            contact.auteur,
+            contact.creneau && new Date(contact.creneau).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+          ].filter(Boolean).join(' · ')}
         </p>
       </div>
       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${

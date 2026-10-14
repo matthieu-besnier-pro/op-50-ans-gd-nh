@@ -134,7 +134,9 @@ export default async function (req) {
     // chefs d'atelier, et n'ont rien à faire dans les chiffres du commerce. On
     // ne les écarte évidemment pas quand c'est un référent d'atelier qui
     // consulte ses propres chiffres.
-    const { estAtelier, referents } = routageRdv(bases, users);
+    const idsDesFiches = new Set();
+    allClients.forEach((c) => (c.chefs_atelier_ids || []).forEach((id) => id && idsDesFiches.add(id)));
+    const { estAtelier, referents } = routageRdv(bases, users, [...idsDesFiches]);
     const gardeCommerce = portee === 'atelier' ? () => true : (r) => !estAtelier(r);
 
     const clients = allClients.filter(gardeClients);

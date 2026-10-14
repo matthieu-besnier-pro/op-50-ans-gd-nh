@@ -15,7 +15,7 @@ import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_AT
 // ciblés par l'atelier (un peu plus de 800) et seulement les champs nécessaires :
 // le même comptage, pour une charge négligeable.
 
-const CHAMPS = ['id', 'raison_sociale', 'site_atelier', 'statut', 'rdv_obtenus', 'updated_date', 'date_dernier_contact'];
+const CHAMPS = ['id', 'raison_sociale', 'site_atelier', 'statut', 'rdv_obtenus', 'updated_date', 'date_dernier_contact', 'chefs_atelier_ids'];
 const LOT = 2000;
 const MAX_LOTS = 10;
 
@@ -79,7 +79,23 @@ export default async function(req) {
 
     // Les rendez-vous d'atelier sont ceux posés par les chefs d'atelier — c'est
     // l'auteur qui tranche, pas le type enregistré (voir routageRdv).
-    const { siteParUser, estAtelier, referents, cumul } = routageRdv(bases, users);
+    // Les référents que l'import du fichier atelier a déjà rattachés aux fiches :
+    // des identifiants sûrs, et le site qui va avec.
+    const idsDesFiches = new Set();
+    const siteDesFiches = {};
+    clients.forEach((c) => {
+      (c.chefs_atelier_ids || []).forEach((id) => {
+        if (!id) return;
+        idsDesFiches.add(id);
+        if (!siteDesFiches[id] && c.site_atelier) siteDesFiches[id] = String(c.site_atelier).trim();
+      });
+    });
+
+    const nomParUser = {};
+    (users || []).forEach((u) => { nomParUser[u.id] = u.full_name || u.email || ''; });
+
+    const { siteParUser, estAtelier, referents, cumul } = routageRdv(bases, users, [...idsDesFiches]);
+    Object.entries(siteDesFiches).forEach(([id, site]) => { if (!siteParUser[id]) siteParUser[id] = site; });
     // On ratisse large — auteurs reconnus OU type atelier — puis estAtelier
     // tranche. Mieux vaut lire quelques rendez-vous de trop que d'en manquer un.
     const auteurs = [...referents, ...cumul];
@@ -164,6 +180,9 @@ export default async function(req) {
         id: `rdv-${r.id}`,
         nom: nomParClient[r.client_id] || 'Client',
         site,
+        // Qui l'a posé : c'est ce qui permet de voir d'un coup d'œil qu'un
+        // référent est bien reconnu, et sur le bon atelier.
+        auteur: nomParUser[r.commercial_id] || '',
         refus: false,
         creneau: r.date_heure || '',
         date: r.created_date || r.date_heure || ''

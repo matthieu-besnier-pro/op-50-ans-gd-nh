@@ -135,7 +135,7 @@ export const TYPE_RDV_ATELIER = 'RDV atelier hivernage';
  *
  * Renvoie aussi le site de chaque référent, pour rattacher ses rendez-vous.
  */
-export function routageRdv(bases, users) {
+export function routageRdv(bases, users, idsAtelier) {
   const siteParUser = {};
 
   // Le tableau de répartition nomme les référents de chaque site : c'est lui qui
@@ -150,6 +150,12 @@ export function routageRdv(bases, users) {
   // le tableau et le compte. Un référent absent du tableau restait invisible,
   // et tous ses rendez-vous avec lui.
   const atelier = new Set(Object.keys(siteParUser));
+
+  // Les référents déjà rattachés aux fiches clients par l'import du fichier
+  // atelier : ces identifiants-là sont résolus une fois pour toutes, sans
+  // dépendre d'aucune orthographe.
+  for (const id of idsAtelier || []) if (id) atelier.add(id);
+
   for (const u of users || []) {
     if (u.app_role !== 'chef_atelier' && u.app_role !== 'responsable_sav') continue;
     atelier.add(u.id);
