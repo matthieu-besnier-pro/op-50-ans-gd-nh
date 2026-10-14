@@ -190,7 +190,7 @@ export default function MonEquipe() {
     <Layout>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-gd-navy-dark">Mon équipe</h1>
+          <h1 className="text-2xl font-extrabold text-gd-navy-dark">{estSav ? 'Mon équipe SAV' : 'Mon équipe'}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {/* Un responsable SAV encadre des chefs d'atelier, pas des commerciaux. */}
             {commerciaux.length} {estSav
