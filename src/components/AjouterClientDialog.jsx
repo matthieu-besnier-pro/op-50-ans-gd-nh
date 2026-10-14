@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { invalider } from '@/lib/donneesPartagees';
 import { useAuth } from '@/lib/AuthContext';
@@ -21,6 +21,31 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
 
   const [form, setForm] = useState(VIDE);
   const [commercialId, setCommercialId] = useState('');
+  // Agence de rattachement : choisir l'agence réduit la liste des commerciaux à
+  // ceux qui y travaillent, au lieu de chercher dans toute la société.
+  const [agences, setAgences] = useState([]);
+  const [agence, setAgence] = useState('');
+
+  useEffect(() => {
+    if (!open || agences.length > 0) return;
+    base44.functions.invoke('creer_client_manuel', { liste_agences: true })
+      .then((res) => setAgences(res?.data?.agences || []))
+      .catch(() => setAgences([]));
+  }, [open, agences.length]);
+
+  // Sans agence choisie, on garde la liste complète transmise par la page.
+  const choix = useMemo(() => {
+    const a = agences.find((x) => x.nom === agence);
+    if (!a) return commercials;
+    return (a.commerciaux || []).map((c) => ({ value: c.id, label: c.nom }));
+  }, [agence, agences, commercials]);
+
+  // Une seule personne sur l'agence : inutile de la faire choisir.
+  useEffect(() => {
+    if (!agence) return;
+    if (choix.length === 1) setCommercialId(choix[0].value);
+    else if (!choix.some((c) => c.value === commercialId)) setCommercialId('');
+  }, [agence, choix]);
   const [prioritaire, setPrioritaire] = useState(false);
   const [saving, setSaving] = useState(false);
   const [erreur, setErreur] = useState('');
@@ -32,7 +57,7 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
   const fermer = (ouvert) => {
     if (saving) return;
     onOpenChange(ouvert);
-    if (!ouvert) { setForm(VIDE); setCommercialId(''); setPrioritaire(false); setErreur(''); setConflit(null); }
+    if (!ouvert) { setForm(VIDE); setCommercialId(''); setAgence(''); setPrioritaire(false); setErreur(''); setConflit(null); }
   };
 
   const enregistrer = async (options = {}) => {
@@ -43,6 +68,7 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
       const res = await base44.functions.invoke('creer_client_manuel', {
         ...form,
         commercial_id: estCommercial ? null : (commercialId || null),
+        site_atelier: agence || null,
         priorite_commercial: prioritaire,
         ...options
       });
@@ -118,16 +144,38 @@ export default function AjouterClientDialog({ open, onOpenChange, commercials = 
           </div>
 
           {!estCommercial && commercials.length > 0 && (
-            <div className="sm:col-span-2">
-              <Label>Commercial à affecter</Label>
-              <Select value={commercialId || 'aucun'} onValueChange={(v) => setCommercialId(v === 'aucun' ? '' : v)}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Aucun" /></SelectTrigger>
-                <SelectContent className="max-h-72">
-                  <SelectItem value="aucun">Aucun (à affecter plus tard)</SelectItem>
-                  {commercials.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="sm:col-span-2">
+                <Label>Agence de rattachement</Label>
+                <Select value={agence || 'aucune'} onValueChange={(v) => setAgence(v === 'aucune' ? '' : v)}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Aucune" /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="aucune">Aucune</SelectItem>
+                    {agences.map((a) => <SelectItem key={a.nom} value={a.nom}>{a.nom}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Restreint la liste ci-dessous aux commerciaux de l'agence, et rattache la
+                  fiche à ses référents d'atelier.
+                </p>
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label>Commercial à affecter</Label>
+                <Select value={commercialId || 'aucun'} onValueChange={(v) => setCommercialId(v === 'aucun' ? '' : v)}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Aucun" /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="aucun">Aucun (à affecter plus tard)</SelectItem>
+                    {choix.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {agence && choix.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Aucun commercial avec un compte actif sur cette agence.
+                  </p>
+                )}
+              </div>
+            </>
           )}
 
           <div className="sm:col-span-2">
