@@ -11,6 +11,7 @@ import { useStatuts } from '@/lib/statuts';
 import { listerPartage } from '@/lib/donneesPartagees';
 import { clientPasseFiltres, categoriesDuParc } from '@/lib/filtresClients';
 import { OFFRES_SAV } from '@/lib/offresSav';
+import { contactAtelierPose } from '@/lib/statutsAtelier';
 
 // Filtres de la liste SAV : ceux de la partie commerciale, sans les scores d'appétence.
 const FILTRES_INIT = {
@@ -140,11 +141,14 @@ export default function Sav() {
   const compteurs = useMemo(() => {
     const par = Object.fromEntries(OFFRES_SAV.map((o) => [o, 0]));
     let aProposer = 0;
+    // Prises de contact atelier : un client marqué = un clic du chef d'atelier.
+    let contactsAtelier = 0;
     travail.forEach((c) => {
       (c.offres_sav || []).forEach((o) => { if (par[o] !== undefined) par[o] += 1; });
       if (c.statut === 'Offre SAV à proposer') aProposer += 1;
+      if (contactAtelierPose(c)) contactsAtelier += 1;
     });
-    return { par, aProposer, total: travail.length };
+    return { par, aProposer, total: travail.length, contactsAtelier };
   }, [travail]);
 
   // Filtres fins (recherche, statut, parc, site…), puis carte d'offre sélectionnée.
@@ -152,6 +156,7 @@ export default function Sav() {
     const parFiltres = travail.filter((c) => clientPasseFiltres(c, filters, { nomsCommerciaux: commercialNames(c) }));
     if (filtre === 'toutes') return parFiltres;
     if (filtre === 'statut') return parFiltres.filter((c) => c.statut === 'Offre SAV à proposer');
+    if (filtre === 'contacts') return parFiltres.filter(contactAtelierPose);
     return parFiltres.filter((c) => (c.offres_sav || []).includes(filtre));
   }, [travail, filtre, filters, commByUser]);
 

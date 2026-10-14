@@ -32,7 +32,7 @@ export const STATUTS_DEFAUT = [
   { nom: 'RDV Agri. précision obtenu', ordre: 7, tonalite: 'violet', systeme: true, usage: "Coché automatiquement à la prise d'un rendez-vous agriculture de précision." },
   // Suivi atelier : le rendez-vous ne se prend plus tout de suite, le référent pose
   // ce statut unique (voir src/lib/statutsAtelier.js).
-  { nom: "Contacté par l'atelier OK pour un RDV", ordre: 8, tonalite: 'cyan', systeme: true, usage: "Posé depuis la liste SAV : le client a été contacté par l'atelier et est d'accord pour un rendez-vous." },
+  { nom: "Contacté par l'atelier OK pour un RDV", ordre: 8, tonalite: 'vert', systeme: true, usage: "Posé d'un clic par le chef d'atelier dans la liste SAV : c'est ce marquage qui compte les prises de contact atelier." },
   { nom: 'Offre magasin à proposer', ordre: 9, tonalite: 'cyan', systeme: true, usage: 'Compte les offres magasin (badge « offre magasin »).' },
   { nom: 'Offre SAV à proposer', ordre: 10, tonalite: 'fuchsia', systeme: false, usage: '' },
   { nom: 'Offre agri. précision à proposer', ordre: 11, tonalite: 'teal', systeme: false, usage: '' },

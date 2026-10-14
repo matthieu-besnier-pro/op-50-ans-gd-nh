@@ -6,6 +6,12 @@
 // est le suivi, et chaque suivi posé reste mentionné sur la fiche client.
 export const STATUT_ATELIER = "Contacté par l'atelier OK pour un RDV";
 
+// La prise de contact atelier a-t-elle déjà été posée sur ce client ? Un clic par
+// client : c'est ce marquage qui compte les prises de contact atelier, il ne doit
+// donc jamais pouvoir être posé deux fois.
+export const contactAtelierPose = (client) =>
+  client?.statut === STATUT_ATELIER || (Array.isArray(client?.rdv_obtenus) && client.rdv_obtenus.includes(STATUT_ATELIER));
+
 // Mise à jour d'un client après ce statut : il devient le statut courant et s'ajoute
 // aux suivis obtenus, sans jamais en effacer un seul. Le suivi en cours (RDV
 // commercial, RDV atelier, agri. précision) est d'abord mentionné, puisque le statut

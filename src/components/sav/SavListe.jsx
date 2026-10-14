@@ -11,7 +11,7 @@ import { ArrowRight } from 'lucide-react';
 
 // Liste de travail SAV, présentée comme le portefeuille commercial (téléphone, parc,
 // prochain RDV, commercial) mais sans les scores d'appétence. Chaque client avec ses
-// offres SAV à proposer et le suivi du contact atelier (contacté, puis OK pour un RDV).
+// offres SAV à proposer et le suivi du contact atelier (statut posé d'un clic).
 export default function SavListe({ clients, onSaved, nomCommerciaux }) {
   const navigate = useNavigate();
   const commerciaux = nomCommerciaux || (() => '—');

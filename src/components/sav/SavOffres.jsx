@@ -5,12 +5,14 @@ import { OFFRES_SAV, metaOffre } from '@/lib/offresSav';
 export default function SavOffres({ compteurs, filtre, onFiltre }) {
   const cartes = [
     { cle: 'toutes', label: 'Toutes les cibles SAV', valeur: compteurs.total, icone: '🎯', carte: 'border-gd-navy/30 bg-gd-navy/5 text-gd-navy' },
+    // Un clic du chef d'atelier = une prise de contact atelier.
+    { cle: 'contacts', label: 'Contacts atelier', valeur: compteurs.contactsAtelier || 0, icone: '📞', carte: 'border-emerald-400 bg-emerald-50 text-emerald-800' },
     ...OFFRES_SAV.map((o) => ({ cle: o, label: o, valeur: compteurs.par[o] || 0, icone: metaOffre(o).emoji, carte: metaOffre(o).carte })),
     { cle: 'statut', label: 'Offre SAV à proposer (commerciaux)', valeur: compteurs.aProposer, icone: '🔧', carte: 'border-fuchsia-300 bg-fuchsia-50 text-fuchsia-800' }
   ];
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-6">
       {cartes.map((c) => (
         <button
           key={c.cle}
