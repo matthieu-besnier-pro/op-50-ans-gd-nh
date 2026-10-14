@@ -4,7 +4,8 @@
 // marque d'un clic l'issue de son appel, « OK pour un RDV » ou « REFUS ». Les deux
 // marques se CUMULENT avec les suivis déjà obtenus (RDV commercial, ou autre) : le
 // statut courant dit où en est le suivi, et chaque suivi posé reste mentionné sur la
-// fiche client.
+// fiche client. Une marque posée par erreur se retire en recliquant dessus (après
+// confirmation).
 export const STATUT_ATELIER = "Contacté par l'atelier OK pour un RDV";
 export const STATUT_ATELIER_REFUS = "Contacté par l'atelier REFUS";
 
@@ -32,6 +33,18 @@ export const updatesApresStatutAtelier = (client, statut = STATUT_ATELIER) => {
   return {
     statut,
     date_dernier_contact: new Date().toISOString().slice(0, 10),
+    rdv_obtenus: obtenus
+  };
+};
+
+// Annulation du marquage (re-clic sur la marque posée) : le statut est retiré des
+// suivis obtenus, et le dernier rendez-vous qui le précédait redevient le statut
+// courant — sinon le client repasse dans les contacts à faire.
+export const updatesApresAnnulationAtelier = (client, statut = STATUT_ATELIER) => {
+  const obtenus = (Array.isArray(client?.rdv_obtenus) ? client.rdv_obtenus : []).filter((s) => s !== statut);
+  const precedent = [...obtenus].reverse().find((s) => String(s).startsWith('RDV '));
+  return {
+    statut: client?.statut === statut ? (precedent || 'À contacter') : client?.statut,
     rdv_obtenus: obtenus
   };
 };
