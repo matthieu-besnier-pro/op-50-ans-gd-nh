@@ -128,10 +128,18 @@ export default async function (req) {
       sr.entities.offre_magasin.list('-date_debut', 500).catch(() => []),
       sr.entities.badge.list('-created_date', 200).catch(() => []),
       sr.entities.badge_obtenu.list('-created_date', 1000).catch(() => []),
-      sr.entities.parametres_operation.list('-created_date', 1).catch(() => []),
-      sr.entities.structure_commerciale.list('-nom_commercial', 500).catch(() => []),
-      sr.entities.base.list('nom', 200).catch(() => []),
-      sr.entities.User.list('-created_date', 500).catch(() => [])
+      // Sans les paramètres, la fenêtre du sprint disparaît et TOUS les compteurs
+      // de la période tombent à zéro. Sans la structure, le rattachement des
+      // vendeurs se défait. Ni l'un ni l'autre ne doit échouer en silence.
+      avecReprise(() => sr.entities.parametres_operation.list('-created_date', 1)),
+      avecReprise(() => sr.entities.structure_commerciale.list('-nom_commercial', 500)),
+      // Ces deux-là décident de quel côté — commerce ou atelier — tombe chaque
+      // rendez-vous (voir routageRdv). Les laisser échouer en silence faisait
+      // basculer la règle d'attribution d'un rafraîchissement à l'autre, et les
+      // compteurs montaient puis redescendaient sans que rien n'ait bougé.
+      // Mieux vaut échouer franchement : l'écran garde ses chiffres précédents.
+      avecReprise(() => sr.entities.base.list('nom', 200)),
+      avecReprise(() => sr.entities.User.list('-created_date', 500))
     ]);
     const params = paramsListe[0] || null;
 

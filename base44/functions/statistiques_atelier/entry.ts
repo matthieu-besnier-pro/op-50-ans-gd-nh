@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { avecReprise } from '../../shared/debit.ts';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre } from '../../shared/perimetre.ts';
 import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_ATELIER } from '../../shared/atelier.ts';
 
@@ -27,6 +28,14 @@ export default async function(req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 });
     const sr = base44.asServiceRole;
+
+    // Un comptage PARTIEL est pire que pas de comptage : l'écran afficherait des
+    // chiffres en baisse puis en hausse sans que rien n'ait bougé sur le terrain.
+    // Chaque lecture est donc réessayée ; si l'une échoue malgré tout, la fonction
+    // le dit au lieu de publier un total amputé — l'écran garde alors les siens.
+    const lire = (quoi, fn) => avecReprise(fn).catch((e) => {
+      throw new Error(`${quoi} — ${e?.message || e}`);
+    });
 
     // Périmètre : mêmes règles que le reste de l'opération. Une cible atelier relève
     // aussi de son SITE (site_atelier), pas seulement des clients du commercial.
@@ -59,9 +68,8 @@ export default async function(req) {
     const clients = [];
     let curseur;
     for (let i = 0; i < MAX_LOTS; i++) {
-      const page = await sr.entities.client
-        .filter(filtre, { sort: 'id', limit: LOT, fields: CHAMPS, cursor: curseur })
-        .catch(() => []);
+      const page = await lire('clients', () => sr.entities.client
+        .filter(filtre, { sort: 'id', limit: LOT, fields: CHAMPS, cursor: curseur }));
       const items = Array.isArray(page) ? page : (page?.items || []);
       clients.push(...items);
       if (Array.isArray(page) || !page?.has_more || !page?.next_cursor) break;
@@ -73,8 +81,8 @@ export default async function(req) {
     // absente du fichier de ciblage : un atelier pouvait en poser des dizaines sans
     // qu'aucun ne remonte.
     const [bases, users] = await Promise.all([
-      sr.entities.base.list('nom', 200).catch(() => []),
-      sr.entities.User.list('-created_date', 500).catch(() => [])
+      lire('sites', () => sr.entities.base.list('nom', 200)),
+      lire('comptes', () => sr.entities.User.list('-created_date', 500))
     ]);
 
     // Les rendez-vous d'atelier sont ceux posés par les chefs d'atelier — c'est
@@ -102,7 +110,7 @@ export default async function(req) {
     const filtreRdv = auteurs.length > 0
       ? { $or: [{ commercial_id: { $in: auteurs } }, { type: TYPE_RDV_ATELIER }] }
       : { type: TYPE_RDV_ATELIER };
-    const rdvsBruts = await sr.entities.rdv.filter(filtreRdv, '-date_heure', 3000).catch(() => []);
+    const rdvsBruts = await lire('rendez-vous', () => sr.entities.rdv.filter(filtreRdv, '-date_heure', 3000));
 
     // Portée : un référent ne voit que ses sites — les siens et ceux de ses
     // commerciaux. Le filtrage se fait ici, le filtre serveur ne sachant pas
@@ -203,6 +211,11 @@ export default async function(req) {
       }
     });
   } catch (error) {
-    return Response.json({ error: '[statistiques_atelier] ' + error.message }, { status: 500 });
+    // Pas de chiffres plutôt que de faux chiffres : l'écran conserve les derniers
+    // connus au lieu de les voir retomber, puis remonter au cycle suivant.
+    return Response.json({
+      indisponible: true,
+      raison: `[statistiques_atelier] ${error?.message || String(error)}`
+    });
   }
 }

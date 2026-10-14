@@ -37,7 +37,11 @@ export function fetchOperationStats(scope) {
   const connu = cache.get(cle);
   if (connu && Date.now() - connu.at < TTL) return Promise.resolve(connu.data);
   const echec = echecs.get(cle);
-  if (echec && Date.now() - echec < REPOS) return Promise.resolve(null);
+  // Après un échec, on rend les DERNIERS CHIFFRES CONNUS plutôt que rien : sur un
+  // écran projeté, des compteurs qui retombent puis remontent au cycle suivant
+  // font croire à une activité qui disparaît. Mieux vaut un chiffre d'il y a une
+  // minute qu'un chiffre faux.
+  if (echec && Date.now() - echec < REPOS) return Promise.resolve(connu ? connu.data : null);
   if (enCours.has(cle)) return enCours.get(cle);
 
   const promesse = base44.functions.invoke('statistiques_operation', payload)
@@ -46,14 +50,14 @@ export function fetchOperationStats(scope) {
       if (data) {
         cache.set(cle, { at: Date.now(), data });
         echecs.delete(cle);
-      } else {
-        echecs.set(cle, Date.now());
+        return data;
       }
-      return data;
+      echecs.set(cle, Date.now());
+      return connu ? connu.data : null;
     })
     .catch(() => {
       echecs.set(cle, Date.now());
-      return null;
+      return connu ? connu.data : null;
     })
     .finally(() => enCours.delete(cle));
 
