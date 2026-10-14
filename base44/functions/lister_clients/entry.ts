@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { avecReprise } from '../../shared/debit.ts';
-import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre, clientDansPerimetre } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre, clientDansPerimetre, RESTREINDRE_PAR_FICHE } from '../../shared/perimetre.ts';
 
 // Renvoie les clients selon le rôle, en asServiceRole (contourne le RLS navigateur).
 // Optimisé perf : UN seul appel filtré + projection légère (champs de la liste seulement).
@@ -46,11 +46,12 @@ export default async function(req) {
 
     const body = await req.json().catch(() => ({}));
 
-    // Fiche client : un seul client complet — mais seulement s'il est dans le périmètre
-    // du compte connecté (la lecture se fait en service role, donc sans RLS).
+    // Fiche client : un seul client complet. L'accès à une fiche nommée n'est plus
+    // restreint au périmètre (voir RESTREINDRE_PAR_FICHE) : l'outil ne doit pas
+    // empêcher quelqu'un de travailler un client qu'on vient de lui signaler.
     if (body.client_id) {
       const c = await sr.entities.client.get(body.client_id).catch(() => null);
-      if (c && !(await clientDansPerimetre(sr, user, c))) {
+      if (RESTREINDRE_PAR_FICHE && c && !(await clientDansPerimetre(sr, user, c))) {
         return Response.json({ clients: [], hors_perimetre: true });
       }
       return Response.json({ clients: c ? [c] : [] });
@@ -77,7 +78,7 @@ export default async function(req) {
     // fiche doit toujours s'afficher, quelles que soient les règles d'accès du navigateur.
     if (body.materiel_client_id) {
       const c = await sr.entities.client.get(body.materiel_client_id).catch(() => null);
-      if (!c || !(await clientDansPerimetre(sr, user, c))) {
+      if (!c || (RESTREINDRE_PAR_FICHE && !(await clientDansPerimetre(sr, user, c)))) {
         return Response.json({ materiels: [], hors_perimetre: true });
       }
       const mats = await sr.entities.materiel.filter({ client_id: body.materiel_client_id }, '-created_date', 500);

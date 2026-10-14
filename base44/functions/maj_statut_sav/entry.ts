@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { clientDansPerimetre } from '../../shared/perimetre.ts';
+import { clientDansPerimetre, RESTREINDRE_PAR_FICHE } from '../../shared/perimetre.ts';
 import { STATUTS_CONTACT_ATELIER } from '../../shared/atelier.ts';
 
 // Changement de statut d'un client depuis la partie SAV, et prise de rendez-vous.
@@ -45,7 +45,7 @@ export default async function (req) {
 
     // Chef d'atelier / responsable SAV : uniquement les clients de son périmètre
     // (tableau de répartition) — la même règle que la liste.
-    if (!(await clientDansPerimetre(sr, user, client))) {
+    if (RESTREINDRE_PAR_FICHE && !(await clientDansPerimetre(sr, user, client))) {
       return Response.json({ error: "Ce client n'est pas dans votre périmètre SAV." }, { status: 403 });
     }
 

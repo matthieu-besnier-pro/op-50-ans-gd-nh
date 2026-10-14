@@ -115,6 +115,22 @@ export function estDansPerimetre({ ids, secteurs }) {
 // (tableau de répartition) ; un responsable son équipe ; un commercial le sien.
 // Sert aux lectures et écritures serveur visant UN client précis : sans ce contrôle,
 // une fiche hors périmètre resterait atteignable par son identifiant.
+/**
+ * Le périmètre bloque-t-il l'accès à UNE fiche précise ?
+ *
+ * Non, et c'est délibéré. Pendant l'opération, l'outil ne doit jamais empêcher
+ * quelqu'un de travailler : toutes les fiches appartiennent à la même
+ * opération, tous les comptes sont internes, et un chef d'atelier qui tombe sur
+ * un client absent de son tableau de répartition doit pouvoir le traiter plutôt
+ * que de se heurter à un refus en pleine prise de rendez-vous.
+ *
+ * Le périmètre continue de décider ce qu'on AFFICHE par défaut — les listes,
+ * les comptages, les classements. Il ne ferme plus l'accès à une fiche nommée.
+ *
+ * Remettre à true pour rétablir le verrouillage, sans autre changement.
+ */
+export const RESTREINDRE_PAR_FICHE = false;
+
 export async function clientDansPerimetre(sr, user, client) {
   if (!user || !client) return false;
   if (user.role === 'admin' || user.app_role === 'direction') return true;

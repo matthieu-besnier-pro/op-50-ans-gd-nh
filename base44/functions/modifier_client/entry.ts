@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { perimetreCommercial, perimetreResponsable, perimetreAtelier, estDansPerimetre } from '../../shared/perimetre.ts';
+import { perimetreCommercial, perimetreResponsable, perimetreAtelier, estDansPerimetre, RESTREINDRE_PAR_FICHE } from '../../shared/perimetre.ts';
 
 // Modification d'une fiche client : raison sociale, SIREN, coordonnées, cible prioritaire.
 // Le RLS réserve l'écriture à la Direction : on passe donc par le rôle service, après
@@ -31,7 +31,7 @@ export default async function (req) {
         || (await perimetreAtelier(sr, user));
       autorise = !!perimetre && estDansPerimetre(perimetre)(client);
     }
-    if (!autorise) return Response.json({ error: "Cette fiche n'est pas dans votre périmètre." }, { status: 403 });
+    if (RESTREINDRE_PAR_FICHE && !autorise) return Response.json({ error: "Cette fiche n'est pas dans votre périmètre." }, { status: 403 });
 
     const raison = texte(body.raison_sociale).toUpperCase();
     if (raison.length < 2) return Response.json({ error: 'Indiquez la raison sociale du client.' }, { status: 400 });
