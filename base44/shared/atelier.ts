@@ -34,6 +34,19 @@ export const contactAtelierPose = (client) =>
   STATUTS_CONTACT_ATELIER.includes(client?.statut || '') ||
   (Array.isArray(client?.rdv_obtenus) && STATUTS_CONTACT_ATELIER.some((s) => client.rdv_obtenus.includes(s)));
 
+// Rendez-vous atelier réellement pris : posé dans l'agenda avec son créneau, il
+// laisse cette mention sur la fiche client (voir la prise de RDV dans l'outil).
+export const STATUT_RDV_ATELIER_OBTENU = 'RDV Atelier obtenu';
+
+// Un rendez-vous atelier est obtenu de DEUX façons, qui se cumulent :
+//   - le rendez-vous pris dans l'agenda (mention « RDV Atelier obtenu », avec horaire) ;
+//   - la marque du référent d'atelier « OK pour un RDV », posée d'un clic quand le
+//     créneau n'est pas encore fixé.
+// C'est ce cumul qu'affichent les compteurs de l'opération, un client compté une
+// seule fois même s'il porte les deux mentions.
+export const rdvAtelierObtenu = (suivis) =>
+  (suivis || []).includes(STATUT_CONTACT_ATELIER) || (suivis || []).includes(STATUT_RDV_ATELIER_OBTENU);
+
 // Offres SAV de l'opération : ce sont les OP du fichier atelier.
 export const OFFRES_SAV = ['INSPECTION ANNUELLE', 'REVISION', 'CONTRAT DE SERVICE'];
 

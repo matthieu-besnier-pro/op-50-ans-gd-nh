@@ -1,8 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre } from '../../shared/perimetre.ts';
-import { STATUT_CONTACT_ATELIER, STATUT_CONTACT_ATELIER_REFUS } from '../../shared/atelier.ts';
+import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu } from '../../shared/atelier.ts';
 
 // Comptage des contacts pris par les ateliers, pour la moitié « ateliers » du Grand Écran.
+//
+// Le compteur « OK pour un RDV » affiche le CUMUL des deux façons d'obtenir un
+// rendez-vous atelier : le rendez-vous pris dans l'agenda (avec son créneau) et la
+// marque du référent d'atelier posée quand le créneau n'est pas encore fixé.
+// Un même client n'est compté qu'une fois.
 //
 // statistiques_operation balaie toutes les données de l'opération : sur un écran qui
 // se rafraîchit en continu, ce balayage finissait par dépasser la limite de lecture de
@@ -73,7 +78,8 @@ export default async function(req) {
 
       // Le suivi courant ET les suivis déjà obtenus : le statut n'en garde qu'un.
       const suivis = [c.statut || '', ...(Array.isArray(c.rdv_obtenus) ? c.rdv_obtenus : [])];
-      const gagne = suivis.includes(STATUT_CONTACT_ATELIER);
+      // Rendez-vous pris dans l'agenda ET marque « OK pour un RDV » : cumul.
+      const gagne = rdvAtelierObtenu(suivis);
       const perdu = !gagne && suivis.includes(STATUT_CONTACT_ATELIER_REFUS);
       if (!gagne && !perdu) return;
 

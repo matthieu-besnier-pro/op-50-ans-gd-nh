@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre } from '../../shared/perimetre.ts';
-import { STATUT_CONTACT_ATELIER, STATUT_CONTACT_ATELIER_REFUS } from '../../shared/atelier.ts';
+import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu } from '../../shared/atelier.ts';
 
 // Comptages EXACTS de l'opération, calculés côté serveur en parcourant l'intégralité
 // des données : les pages n'affichent plus de totaux issus de listes tronquées
@@ -150,7 +150,9 @@ export default async function (req) {
         e.cibles += 1;
         // Le suivi courant ET les suivis déjà obtenus : le statut n'en garde qu'un.
         const suivis = [st, ...(Array.isArray(c.rdv_obtenus) ? c.rdv_obtenus : [])];
-        const ok = suivis.includes(STATUT_CONTACT_ATELIER);
+        // Cumul : rendez-vous atelier pris dans l'agenda (avec créneau) et marque
+        // « OK pour un RDV » posée par le référent : un client compté une fois.
+        const ok = rdvAtelierObtenu(suivis);
         const refus = !ok && suivis.includes(STATUT_CONTACT_ATELIER_REFUS);
         if (ok || refus) {
           e.contactes += 1;
