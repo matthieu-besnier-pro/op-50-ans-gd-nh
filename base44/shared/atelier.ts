@@ -182,15 +182,22 @@ export function routageRdv(bases, users, idsAtelier) {
 export function comptesDesChefs(noms, users) {
   const ids = new Set();
   const inconnus = [];
+  // Un compte se reconnaît par son nom complet, mais aussi par l'identifiant de
+  // son adresse : « amandine-chauveau » vaut « Amandine CHAUVEAU ». Sans cela,
+  // un compte au nom complet absent ou écrit autrement restait introuvable.
+  const identEmail = (u) => String(u?.email || '').split('@')[0].replace(/[._-]+/g, ' ');
+  const jetonsCompte = (u) => new Set([...jetons(u.full_name || ''), ...jetons(identEmail(u))]);
+  const clesCompte = (u) => [cleNom(u.full_name || ''), cleNom(identEmail(u))].filter(Boolean);
+
   for (const nom of noms || []) {
     const c = cleNom(nom);
     if (!c) continue;
     const t = jetons(nom);
     const candidats = users.filter((u) => {
-      const ut = jetons(u.full_name || '');
+      const ut = jetonsCompte(u);
       return [...t].every((x) => ut.has(x));
     });
-    const exacts = candidats.filter((u) => cleNom(u.full_name) === c);
+    const exacts = candidats.filter((u) => clesCompte(u).includes(c));
     if (exacts.length > 0) { exacts.forEach((u) => ids.add(u.id)); continue; }
     if (candidats.length === 1) { ids.add(candidats[0].id); continue; }
     inconnus.push(nom);

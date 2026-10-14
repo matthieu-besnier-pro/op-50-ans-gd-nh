@@ -31,11 +31,23 @@ export async function perimetreAtelier(sr, user) {
   if (role !== 'chef_atelier' && role !== 'responsable_sav' && role !== 'commercial_chef_atelier') return null;
 
   const bases = await sr.entities.base.list('nom', LOT).catch(() => []);
-  const moi = cleNom(user.full_name || user.email || '');
+
+  // Rapprochement du compte avec le tableau de répartition. Le nom complet
+  // d'abord ; à défaut l'identifiant de l'adresse — « samuel-chassat » devient
+  // « chassat samuel ». Comparer l'adresse ENTIÈRE, domaine compris, ne pouvait
+  // jamais correspondre : le référent restait alors sans aucun site, donc sans
+  // équipe, sans clients et sans chiffres.
+  const parNom = cleNom(user.full_name || '');
+  const parEmail = cleNom(String(user.email || '').split('@')[0].replace(/[._-]+/g, ' '));
+  const estMoi = (n) => {
+    const k = cleNom(n);
+    return !!k && (k === parNom || (!!parEmail && k === parEmail));
+  };
+
   const champ = role === 'responsable_sav' ? 'responsables_sav' : 'chefs_atelier';
   const mesSites = bases.filter((b) =>
-    (b[champ] || []).some((n) => cleNom(n) === moi) ||
-    (champ === 'chefs_atelier' && user.base_id && normNom(b.nom) === normNom(user.base_id))
+    (b[champ] || []).some(estMoi) ||
+    (user.base_id && normNom(b.nom) === normNom(user.base_id))
   );
   if (mesSites.length === 0) return { sites: [], noms: [], ids: [], secteurs: [] };
 
