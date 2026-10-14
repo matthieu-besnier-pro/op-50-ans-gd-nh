@@ -135,7 +135,7 @@ function Podium({ entrees, unite, taille = 'grand', sous }) {
             {/* Le second chiffre de la même agence : ses contacts. */}
             {sous && (
               <p className="mt-0.5 w-full truncate text-center text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                {sous(e)}
+                {sous(e).valeur} {sous(e).libelle}
               </p>
             )}
             <div
@@ -157,10 +157,10 @@ function Podium({ entrees, unite, taille = 'grand', sous }) {
 // Densité des places 4 et suivantes. L'argument est le nombre de LIGNES de la
 // grille, pas le nombre de commerciaux : trois colonnes en logent trois.
 function densiteClassement(n) {
-  if (n <= 3) return { pad: 'px-4 py-4', gap: 'gap-3', rang: 'text-2xl w-9', nom: 'text-2xl', compteur: 'text-4xl', icone: 'h-6 w-6', grille: 'gap-3' };
-  if (n <= 5) return { pad: 'px-4 py-3', gap: 'gap-3', rang: 'text-xl w-8', nom: 'text-xl', compteur: 'text-3xl', icone: 'h-5 w-5', grille: 'gap-3' };
-  if (n <= 8) return { pad: 'px-3 py-2', gap: 'gap-2', rang: 'text-base w-6', nom: 'text-base', compteur: 'text-2xl', icone: 'h-4 w-4', grille: 'gap-2' };
-  return { pad: 'px-2.5 py-1.5', gap: 'gap-2', rang: 'text-sm w-5', nom: 'text-sm', compteur: 'text-xl', icone: 'h-3.5 w-3.5', grille: 'gap-1.5' };
+  if (n <= 3) return { pad: 'px-4 py-4', gap: 'gap-3', rang: 'text-2xl w-9', nom: 'text-2xl', compteur: 'text-4xl', sec: 'text-2xl', icone: 'h-6 w-6', grille: 'gap-3' };
+  if (n <= 5) return { pad: 'px-4 py-3', gap: 'gap-3', rang: 'text-xl w-8', nom: 'text-xl', compteur: 'text-3xl', sec: 'text-lg', icone: 'h-5 w-5', grille: 'gap-3' };
+  if (n <= 8) return { pad: 'px-3 py-2', gap: 'gap-2', rang: 'text-base w-6', nom: 'text-base', compteur: 'text-2xl', sec: 'text-base', icone: 'h-4 w-4', grille: 'gap-2' };
+  return { pad: 'px-2.5 py-1.5', gap: 'gap-2', rang: 'text-sm w-5', nom: 'text-sm', compteur: 'text-xl', sec: 'text-sm', icone: 'h-3.5 w-3.5', grille: 'gap-1.5' };
 }
 
 // À trois colonnes, « Corentin BERNIER » ne tient pas dans la carte. Plutôt
@@ -172,7 +172,7 @@ function nomAbrege(nom) {
   return `${mots[0].charAt(0).toUpperCase()}. ${mots.slice(1).join(' ')}`;
 }
 
-function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, sous }) {
+function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, sous, unite }) {
   // Un minimum de remplissage : même le dernier doit avoir une carte habitée.
   const pct = total > 0 ? Math.max((count / total) * 100, 8) : 0;
   const movedUp = prevRank !== null && prevRank > rank;
@@ -203,12 +203,21 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, s
             <Flame className={d.icone} />
           </motion.span>
         )}
+        {/* Une ligne par agence, deux chiffres, chacun sous son intitulé — les
+            contacts d'abord, les rendez-vous ensuite — exactement comme les pavés
+            du haut : à deux nombres nus, on ne savait plus lequel était lequel. */}
         {sous && (
-          <span className="shrink-0 whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-white/40">
-            {sous}
+          <span className="flex shrink-0 flex-col items-end leading-none">
+            <span className={`${d.sec} font-bold tabular-nums text-white/45`}>{sous.valeur}</span>
+            <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/30">{sous.libelle}</span>
           </span>
         )}
-        <AnimatedCounter value={count} className={`${d.compteur} shrink-0 font-extrabold tabular-nums text-white`} />
+        <span className="flex shrink-0 flex-col items-end leading-none">
+          <AnimatedCounter value={count} className={`${d.compteur} font-extrabold tabular-nums text-white`} />
+          {sous && (
+            <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/35">{unite}</span>
+          )}
+        </span>
       </div>
     </motion.div>
   );
@@ -264,6 +273,7 @@ function BlocClassement({ liste, unite, abrege, prevRanks, vide, sous }) {
                 isAtelier={entree.isAtelier}
                 prevRank={prevRanks[entree.id] || null}
                 d={d}
+                unite={unite}
                 abrege={abrege && colonnes === 3}
                 sous={sous ? sous(entree) : undefined}
               />
@@ -836,7 +846,7 @@ export default function GrandEcran() {
           <BlocClassement
             liste={classementAteliers}
             unite="RDV"
-            sous={(e) => `${e.contacts} contact${e.contacts > 1 ? 's' : ''}`}
+            sous={(e) => ({ valeur: e.contacts, libelle: e.contacts > 1 ? 'contacts' : 'contact' })}
             prevRanks={prevRangsAtelier}
             vide="En attente du premier contact atelier…"
           />
