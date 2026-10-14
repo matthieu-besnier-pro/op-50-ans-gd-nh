@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre } from '../../shared/perimetre.ts';
-import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv } from '../../shared/atelier.ts';
+import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_ATELIER } from '../../shared/atelier.ts';
 
 // Comptage des contacts pris par les ateliers, pour la moitié « ateliers » du Grand Écran.
 //
@@ -80,10 +80,13 @@ export default async function(req) {
     // Les rendez-vous d'atelier sont ceux posés par les chefs d'atelier — c'est
     // l'auteur qui tranche, pas le type enregistré (voir routageRdv).
     const { siteParUser, estAtelier, referents, cumul } = routageRdv(bases, users);
+    // On ratisse large — auteurs reconnus OU type atelier — puis estAtelier
+    // tranche. Mieux vaut lire quelques rendez-vous de trop que d'en manquer un.
     const auteurs = [...referents, ...cumul];
-    const rdvsBruts = auteurs.length > 0
-      ? await sr.entities.rdv.filter({ commercial_id: { $in: auteurs } }, '-date_heure', 3000).catch(() => [])
-      : [];
+    const filtreRdv = auteurs.length > 0
+      ? { $or: [{ commercial_id: { $in: auteurs } }, { type: TYPE_RDV_ATELIER }] }
+      : { type: TYPE_RDV_ATELIER };
+    const rdvsBruts = await sr.entities.rdv.filter(filtreRdv, '-date_heure', 3000).catch(() => []);
 
     // Portée : un référent ne voit que ses sites — les siens et ceux de ses
     // commerciaux. Le filtrage se fait ici, le filtre serveur ne sachant pas

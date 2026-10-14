@@ -137,20 +137,40 @@ export const TYPE_RDV_ATELIER = 'RDV atelier hivernage';
  */
 export function routageRdv(bases, users) {
   const siteParUser = {};
+
+  // Le tableau de répartition nomme les référents de chaque site : c'est lui qui
+  // donne le SITE, par rapprochement des noms.
   for (const b of bases || []) {
     const noms = [...(b.chefs_atelier || []), ...(b.responsables_sav || [])];
     comptesDesChefs(noms, users || []).ids.forEach((id) => { siteParUser[id] = b.nom; });
   }
+
+  // Mais c'est le RÔLE DU COMPTE qui dit si quelqu'un est de l'atelier — jamais
+  // un rapprochement de noms, qui échoue dès qu'une orthographe diffère entre
+  // le tableau et le compte. Un référent absent du tableau restait invisible,
+  // et tous ses rendez-vous avec lui.
+  const atelier = new Set(Object.keys(siteParUser));
+  for (const u of users || []) {
+    if (u.app_role !== 'chef_atelier' && u.app_role !== 'responsable_sav') continue;
+    atelier.add(u.id);
+    if (!siteParUser[u.id] && u.base_id) siteParUser[u.id] = u.base_id;
+  }
+
   const cumul = new Set((users || []).filter((u) => u.app_role === 'commercial_chef_atelier').map((u) => u.id));
+
+  // Dernier filet : si la liste des comptes n'a pas pu être lue, on ne peut
+  // juger de personne. Le type vaut alors mieux qu'un écran vide partout.
+  const sansComptes = (users || []).length === 0;
 
   const estAtelier = (rdv) => {
     const id = rdv?.commercial_id;
     if (!id) return false;
+    if (sansComptes) return rdv?.type === TYPE_RDV_ATELIER;
     if (cumul.has(id)) return rdv?.type === TYPE_RDV_ATELIER;
-    return !!siteParUser[id];
+    return atelier.has(id);
   };
 
-  return { siteParUser, estAtelier, referents: Object.keys(siteParUser), cumul: [...cumul] };
+  return { siteParUser, estAtelier, referents: [...atelier], cumul: [...cumul] };
 }
 
 export function comptesDesChefs(noms, users) {
