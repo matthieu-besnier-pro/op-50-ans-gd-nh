@@ -106,7 +106,7 @@ const TAILLES_PODIUM = {
 // classement ne se recalcule pas à chaque rendu.
 const ATELIER_VIDE = { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv_pris: 0, restants: 0, par_site: {}, recents: [] };
 
-function Podium({ entrees, unite, taille = 'grand', sous }) {
+function Podium({ entrees, unite, taille = 'grand', details }) {
   const t = TAILLES_PODIUM[taille] || TAILLES_PODIUM.grand;
   return (
     <div className={`flex items-end justify-center gap-3 shrink-0 ${t.marge}`}>
@@ -128,16 +128,18 @@ function Podium({ entrees, unite, taille = 'grand', sous }) {
             <p className={`mt-1.5 w-full truncate text-center font-bold text-white ${m.rang === 1 ? t.nom1 : t.nom}`}>
               {e.name}
             </p>
+            {/* Ce que l'agence a sous la main, à sa maille : ses clients ciblés et
+                ses contacts — les deux chiffres que l'anneau affiche en haut pour
+                tous les sites. */}
+            {details && (
+              <p className="mt-0.5 w-full truncate text-center text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                {details(e)}
+              </p>
+            )}
             <div className="flex items-baseline gap-1.5">
               <AnimatedCounter value={e.count} className={`font-extrabold tabular-nums ${m.rang === 1 ? `${t.chiffre1} text-gd-orange` : `${t.chiffre} text-white`}`} />
               <span className="text-[11px] uppercase tracking-widest text-white/40">{unite}</span>
             </div>
-            {/* Le second chiffre de la même agence : ses contacts. */}
-            {sous && (
-              <p className="mt-0.5 w-full truncate text-center text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                {sous(e).valeur} {sous(e).libelle}
-              </p>
-            )}
             <div
               className={`mt-2 w-full overflow-hidden rounded-t-2xl border border-b-0 bg-gradient-to-b ${m.socle} ${m.bord} flex items-start justify-center pt-1`}
               style={{ height: Math.round(m.hauteur * t.marche) }}
@@ -157,10 +159,10 @@ function Podium({ entrees, unite, taille = 'grand', sous }) {
 // Densité des places 4 et suivantes. L'argument est le nombre de LIGNES de la
 // grille, pas le nombre de commerciaux : trois colonnes en logent trois.
 function densiteClassement(n) {
-  if (n <= 3) return { pad: 'px-4 py-4', gap: 'gap-3', rang: 'text-2xl w-9', nom: 'text-2xl', compteur: 'text-4xl', sec: 'text-2xl', icone: 'h-6 w-6', grille: 'gap-3' };
-  if (n <= 5) return { pad: 'px-4 py-3', gap: 'gap-3', rang: 'text-xl w-8', nom: 'text-xl', compteur: 'text-3xl', sec: 'text-lg', icone: 'h-5 w-5', grille: 'gap-3' };
-  if (n <= 8) return { pad: 'px-3 py-2', gap: 'gap-2', rang: 'text-base w-6', nom: 'text-base', compteur: 'text-2xl', sec: 'text-base', icone: 'h-4 w-4', grille: 'gap-2' };
-  return { pad: 'px-2.5 py-1.5', gap: 'gap-2', rang: 'text-sm w-5', nom: 'text-sm', compteur: 'text-xl', sec: 'text-sm', icone: 'h-3.5 w-3.5', grille: 'gap-1.5' };
+  if (n <= 3) return { pad: 'px-4 py-4', gap: 'gap-3', rang: 'text-2xl w-9', nom: 'text-2xl', compteur: 'text-4xl', icone: 'h-6 w-6', grille: 'gap-3' };
+  if (n <= 5) return { pad: 'px-4 py-3', gap: 'gap-3', rang: 'text-xl w-8', nom: 'text-xl', compteur: 'text-3xl', icone: 'h-5 w-5', grille: 'gap-3' };
+  if (n <= 8) return { pad: 'px-3 py-2', gap: 'gap-2', rang: 'text-base w-6', nom: 'text-base', compteur: 'text-2xl', icone: 'h-4 w-4', grille: 'gap-2' };
+  return { pad: 'px-2.5 py-1.5', gap: 'gap-2', rang: 'text-sm w-5', nom: 'text-sm', compteur: 'text-xl', icone: 'h-3.5 w-3.5', grille: 'gap-1.5' };
 }
 
 // À trois colonnes, « Corentin BERNIER » ne tient pas dans la carte. Plutôt
@@ -172,7 +174,7 @@ function nomAbrege(nom) {
   return `${mots[0].charAt(0).toUpperCase()}. ${mots.slice(1).join(' ')}`;
 }
 
-function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, sous, unite }) {
+function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, details, unite }) {
   // Un minimum de remplissage : même le dernier doit avoir une carte habitée.
   const pct = total > 0 ? Math.max((count / total) * 100, 8) : 0;
   const movedUp = prevRank !== null && prevRank > rank;
@@ -194,8 +196,13 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, s
       />
       <div className={`relative flex items-center ${d.gap} ${d.pad}`}>
         <span className={`${d.rang} shrink-0 text-center font-black tabular-nums text-white/35`}>{rank}</span>
-        <span className={`${d.nom} min-w-0 flex-1 truncate font-bold text-white`}>
-          {abrege ? nomAbrege(name) : name}
+        <span className="min-w-0 flex-1">
+          <span className={`${d.nom} block truncate font-bold text-white`}>{abrege ? nomAbrege(name) : name}</span>
+          {/* Les ciblés et les contacts de l'agence, sous son nom : le classement se
+              lit alors sans quitter la ligne. */}
+          {details && (
+            <span className="block truncate text-[10px] font-semibold uppercase tracking-wide text-white/40">{details}</span>
+          )}
         </span>
         {isAtelier && <Wrench className={`${d.icone} shrink-0 text-gd-orange`} />}
         {movedUp && (
@@ -203,18 +210,11 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, s
             <Flame className={d.icone} />
           </motion.span>
         )}
-        {/* Une ligne par agence, deux chiffres, chacun sous son intitulé — les
-            contacts d'abord, les rendez-vous ensuite — exactement comme les pavés
-            du haut : à deux nombres nus, on ne savait plus lequel était lequel. */}
-        {sous && (
-          <span className="flex shrink-0 flex-col items-end leading-none">
-            <span className={`${d.sec} font-bold tabular-nums text-white/45`}>{sous.valeur}</span>
-            <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/30">{sous.libelle}</span>
-          </span>
-        )}
+        {/* Les rendez-vous posés, sous leur intitulé : c'est le chiffre que l'atelier
+            vient chercher, il doit se lire sans se demander de quoi il s'agit. */}
         <span className="flex shrink-0 flex-col items-end leading-none">
           <AnimatedCounter value={count} className={`${d.compteur} font-extrabold tabular-nums text-white`} />
-          {sous && (
+          {details && (
             <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/35">{unite}</span>
           )}
         </span>
@@ -241,7 +241,7 @@ function Compteur({ Icone, valeur, libelle, couleur, fond }) {
 
 // Podium + grille. Commerce et ateliers s'affichent avec la MÊME brique : c'est
 // ce qui fait que les deux moitiés se lisent pareil.
-function BlocClassement({ liste, unite, abrege, prevRanks, vide, sous }) {
+function BlocClassement({ liste, unite, abrege, prevRanks, vide, details }) {
   if (liste.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
@@ -259,7 +259,7 @@ function BlocClassement({ liste, unite, abrege, prevRanks, vide, sous }) {
   const d = densiteClassement(lignes);
   return (
     <div className={`flex min-h-0 flex-1 flex-col ${reste.length === 0 ? 'justify-center' : ''}`}>
-      <Podium entrees={liste.slice(0, 3)} unite={unite} taille={lignes <= 3 ? 'grand' : lignes <= 6 ? 'moyen' : 'petit'} sous={sous} />
+      <Podium entrees={liste.slice(0, 3)} unite={unite} taille={lignes <= 3 ? 'grand' : lignes <= 6 ? 'moyen' : 'petit'} details={details} />
       {reste.length > 0 && (
         <div className={`grid ${colonnes === 2 ? 'grid-cols-2' : 'grid-cols-3'} content-start ${d.grille} min-h-0 flex-1 overflow-y-auto pr-1`}>
           <AnimatePresence>
@@ -275,7 +275,7 @@ function BlocClassement({ liste, unite, abrege, prevRanks, vide, sous }) {
                 d={d}
                 unite={unite}
                 abrege={abrege && colonnes === 3}
-                sous={sous ? sous(entree) : undefined}
+                details={details ? details(entree) : undefined}
               />
             ))}
           </AnimatePresence>
@@ -604,17 +604,15 @@ export default function GrandEcran() {
   // Les refus ne s'affichent plus : le fil atelier ne montre que les rendez-vous obtenus.
   const contactsAtelier = (atelier.recents || []).filter((c) => !c.refus);
 
-  // Classement des ateliers : DEUX chiffres par agence, ceux de son atelier.
-  // Le premier est le nombre de rendez-vous qu'il a posés — un atelier qui en a
-  // posé 26 doit lire 26, et non le nombre de clients touchés, qui en masquait une
-  // partie. Le second, écrit à côté, est son nombre de contacts : chaque agence
-  // garde ainsi ses deux chiffres. Aucune agence ne quitte le classement : celle
-  // qui n'a pas encore posé de rendez-vous dans l'agenda reste listée avec ses
-  // contacts, au lieu de disparaître de l'écran.
+  // Classement des ateliers : chaque agence lit les chiffres de SON atelier, tels
+  // que le serveur les compte — ses clients ciblés, ses contacts, et les rendez-vous
+  // qu'il a posés (le rendez-vous compte pour l'atelier qui l'a posé). Aucune agence
+  // ne quitte le classement : celle qui n'a pas encore posé de rendez-vous dans
+  // l'agenda reste listée avec ses ciblés et ses contacts, au lieu de disparaître.
   const classementAteliers = useMemo(() => {
     const sites = atelier.par_site || {};
     return Object.entries(sites)
-      .map(([site, v]) => ({ id: site, name: site, count: v.rdv || 0, contacts: v.contactes || 0 }))
+      .map(([site, v]) => ({ id: site, name: site, count: v.rdv || 0, contacts: v.contactes || 0, cibles: v.cibles || 0 }))
       .filter((e) => e.count > 0 || e.contacts > 0)
       .sort((a, b) => b.count - a.count || b.contacts - a.contacts);
   }, [atelier]);
@@ -846,7 +844,7 @@ export default function GrandEcran() {
           <BlocClassement
             liste={classementAteliers}
             unite="RDV"
-            sous={(e) => ({ valeur: e.contacts, libelle: e.contacts > 1 ? 'contacts' : 'contact' })}
+            details={(e) => `${e.cibles} ciblés · ${e.contacts} contact${e.contacts > 1 ? 's' : ''}`}
             prevRanks={prevRangsAtelier}
             vide="En attente du premier contact atelier…"
           />
