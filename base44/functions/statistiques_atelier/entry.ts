@@ -85,13 +85,18 @@ export default async function(req) {
       lire('comptes', () => sr.entities.User.list('-created_date', 500))
     ]);
 
-    // Les rendez-vous d'atelier sont ceux posés par les chefs d'atelier — c'est
-    // l'auteur qui tranche, pas le type enregistré (voir routageRdv).
-    // Les référents que l'import du fichier atelier a déjà rattachés aux fiches :
-    // des identifiants sûrs, et le site qui va avec.
+    // Carte des fiches ciblées — leur atelier, leur raison sociale, et les
+    // référents que l'import du fichier atelier leur a déjà rattachés (des
+    // identifiants sûrs, avec le site qui va avec). Construite ICI, avant le tri
+    // des rendez-vous, qui s'en sert pour rattacher un rendez-vous à l'atelier
+    // de son client.
+    const siteParClient = {};
+    const nomParClient = {};
     const idsDesFiches = new Set();
     const siteDesFiches = {};
     clients.forEach((c) => {
+      siteParClient[c.id] = String(c.site_atelier || '').trim() || 'Sans site';
+      nomParClient[c.id] = c.raison_sociale || '';
       (c.chefs_atelier_ids || []).forEach((id) => {
         if (!id) return;
         idsDesFiches.add(id);
@@ -121,9 +126,21 @@ export default async function(req) {
           ...referents.filter((id) => (sitesPerimetre || []).includes(siteParUser[id]))
         ])
       : null;
-    const rdvsAtelier = (rdvsBruts || []).filter((r) =>
-      r.statut !== 'Annulé' && estAtelier(r) && (!autorises || autorises.has(r.commercial_id))
-    );
+    // Un rendez-vous revient à l'atelier de deux façons : son AUTEUR est un
+    // référent, OU il porte sur une fiche du fichier de ciblage atelier et il
+    // est du type atelier. Sans ce second chemin, un rendez-vous posé par
+    // quelqu'un que le tableau de répartition ne nomme pas — chef sans compte,
+    // remplaçant, responsable qui cale le créneau — disparaissait purement et
+    // simplement, et son atelier restait à zéro.
+    const surCible = (r) => !!siteParClient[r.client_id];
+    const rdvsAtelier = (rdvsBruts || []).filter((r) => {
+      if (r.statut === 'Annulé') return false;
+      const releveDeAtelier = estAtelier(r) || (surCible(r) && r.type === TYPE_RDV_ATELIER);
+      if (!releveDeAtelier) return false;
+      // Portée d'un référent : ses commerciaux, ses collègues de site, et les
+      // fiches ciblées de ses ateliers quel que soit l'auteur.
+      return !autorises || autorises.has(r.commercial_id) || surCible(r);
+    });
 
     let contactes = 0;
     let ok = 0;
@@ -135,14 +152,10 @@ export default async function(req) {
     const parAuteur = {};
     const parSite = {};
     const recents = [];
-    const siteParClient = {};
-    const nomParClient = {};
     const dejaComptes = new Set();
 
     clients.forEach((c) => {
-      const site = String(c.site_atelier || '').trim() || 'Sans site';
-      siteParClient[c.id] = site;
-      nomParClient[c.id] = c.raison_sociale || '';
+      const site = siteParClient[c.id] || 'Sans site';
       const e = (parSite[site] = parSite[site] || { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv: 0 });
       e.cibles += 1;
 
