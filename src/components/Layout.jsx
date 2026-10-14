@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import {
   Briefcase, Users, Calendar, LayoutDashboard, Wrench,
   Store, Settings, LogOut, Menu, X, Eye, Monitor, Bot, UserCircle, Rocket, Megaphone, Presentation,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, ClipboardCheck
 } from 'lucide-react';
 import { getAppRole, isDirection, accueilRole } from '@/lib/permissions';
 import OpLogo from '@/components/OpLogo';
@@ -38,6 +38,7 @@ const navItems = [
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'atelier' },
+  { to: '/sav', label: 'SAV — OP 50 ans', icon: ClipboardCheck, roles: ['chef_atelier', 'direction'], section: 'atelier' },
   { to: '/lancement', label: 'Lancement', icon: Rocket, roles: ['direction'], section: 'admin' },
   { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'], section: 'admin' },
   { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'], section: 'admin' },

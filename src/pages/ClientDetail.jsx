@@ -12,7 +12,7 @@ import VenteDialog from '@/components/VenteDialog';
 import ScriptAppel from '@/components/ScriptAppel';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { canSeePac } from '@/lib/permissions';
+import { canSeePac, getAppRole } from '@/lib/permissions';
 import ParcMaterielTable from '@/components/ParcMaterielTable';
 import { UsagesClient } from '@/components/MaterielPicto';
 import CoachCommercial from '@/components/CoachCommercial';
@@ -95,6 +95,9 @@ export default function ClientDetail() {
   }
 
   const showPac = canSeePac(user, viewAsRole);
+  // Un chef d'atelier ne porte pas la fiche : son changement de statut passe par le
+  // serveur, qui vérifie son périmètre (comme dans la partie SAV).
+  const statutViaServeur = getAppRole(user, viewAsRole) === 'chef_atelier';
 
   return (
     <Layout>
@@ -146,6 +149,7 @@ export default function ClientDetail() {
                 client={client}
                 user={user}
                 align="end"
+                viaServeur={statutViaServeur}
                 onSaved={(maj) => {
                   setClient((c) => ({ ...c, ...maj }));
                   if (maj.statut === 'RDV Commercial obtenu' || maj.statut === 'Offre magasin à proposer') {

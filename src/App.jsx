@@ -19,6 +19,7 @@ const MonEquipe = lazy(() => import('@/pages/MonEquipe'));
 const Calendrier = lazy(() => import('@/pages/Calendrier'));
 const TableauDeBord = lazy(() => import('@/pages/TableauDeBord'));
 const Atelier = lazy(() => import('@/pages/Atelier'));
+const Sav = lazy(() => import('@/pages/Sav'));
 const Magasin = lazy(() => import('@/pages/Magasin'));
 const Administration = lazy(() => import('@/pages/Administration'));
 const ClientDetail = lazy(() => import('@/pages/ClientDetail'));
@@ -78,6 +79,7 @@ const AuthenticatedApp = () => {
         <Route path="/calendrier" element={<Calendrier />} />
         <Route path="/tableau-de-bord" element={<TableauDeBord />} />
         <Route path="/atelier" element={<Atelier />} />
+        <Route path="/sav" element={<Sav />} />
         <Route path="/magasin" element={<Magasin />} />
         <Route path="/administration" element={<Administration />} />
         <Route path="/utilisateurs" element={<GestionUtilisateurs />} />

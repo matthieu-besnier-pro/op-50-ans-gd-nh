@@ -11,7 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Upload, CheckCircle2, MapPin, X, Plus, Zap, Users, Award, Tractor, Briefcase, Calendar, ShoppingBag } from 'lucide-react';
+import { Settings, Upload, CheckCircle2, MapPin, X, Plus, Zap, Users, Award, Tractor, Briefcase, Calendar, ShoppingBag, ClipboardCheck } from 'lucide-react';
 import AdminUsers from '@/components/AdminUsers';
 import AdminBadges from '@/components/AdminBadges';
 import AdminStatuts from '@/components/AdminStatuts';
@@ -31,6 +31,7 @@ import AdminComptesDemo from '@/components/AdminComptesDemo';
 import AdminDonneesDemo from '@/components/AdminDonneesDemo';
 import AdminDiagnostic from '@/components/AdminDiagnostic';
 import AdminImportVentesWhatsapp from '@/components/AdminImportVentesWhatsapp';
+import AdminImportSav from '@/components/AdminImportSav';
 import AdminStructureCommerciale from '@/components/AdminStructureCommerciale';
 
 export default function Administration() {
@@ -203,6 +204,7 @@ export default function Administration() {
           <TabsTrigger value="statuts">Statuts</TabsTrigger>
           <TabsTrigger value="bases">Bases</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
+          <TabsTrigger value="sav">SAV — OP 50 ans</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
         </TabsList>
 
@@ -381,6 +383,21 @@ export default function Administration() {
         {/* Diagnostic */}
         <TabsContent value="diagnostic">
           <AdminDiagnostic />
+        </TabsContent>
+
+        {/* Partie SAV — OP 50 ans */}
+        <TabsContent value="sav">
+          <div className="mb-4">
+            <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              <ClipboardCheck className="h-4 w-4 text-gd-orange" /> Équipe SAV — OP 50 ans
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Répartition des chefs d'atelier par secteur, puis intégration du fichier consolidé des cibles atelier
+              dans la base client. Ces fiches ne sont visibles que par les chefs d'atelier de leur site ; celles déjà
+              au portefeuille d'un commercial restent visibles par les deux.
+            </p>
+          </div>
+          <AdminImportSav onReload={load} />
         </TabsContent>
 
         {/* Ventes WhatsApp */}
