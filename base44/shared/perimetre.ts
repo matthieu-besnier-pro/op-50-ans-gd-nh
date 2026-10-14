@@ -1,4 +1,4 @@
-import { comptesDesChefs } from './atelier.ts';
+import { comptesDesChefs, basesCompletees } from './atelier.ts';
 // Périmètre « atelier » — partagé par lister_clients et statistiques_operation.
 //
 // Un chef d'atelier voit les clients des commerciaux de son site, un responsable SAV
@@ -30,7 +30,10 @@ export async function perimetreAtelier(sr, user) {
   // atelier de son site (comme un chef d'atelier) en plus de son portefeuille commercial.
   if (role !== 'chef_atelier' && role !== 'responsable_sav' && role !== 'commercial_chef_atelier') return null;
 
-  const bases = await sr.entities.base.list('nom', LOT).catch(() => []);
+  // Les sites, complétés par la répartition de secours tant que l'import n'a pas
+  // été lancé : sans chefs ni responsables en base, aucun référent ne se
+  // reconnaît dans aucun site, et tout le SAV reste muet.
+  const bases = basesCompletees(await sr.entities.base.list('nom', LOT).catch(() => []));
 
   // Rapprochement du compte avec le tableau de répartition. Le nom complet
   // d'abord ; à défaut l'identifiant de l'adresse — « samuel-chassat » devient

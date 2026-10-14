@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { cleNom, cleSite, comptesDesChefs } from '../../shared/atelier.ts';
+import { cleNom, cleSite, comptesDesChefs, basesCompletees } from '../../shared/atelier.ts';
 
 // Création manuelle d'un client absent des fichiers d'import.
 // Le RLS réserve la création à la Direction : on passe donc par le rôle service,
@@ -19,7 +19,7 @@ export default async function (req) {
     // Liste des agences, avec leurs commerciaux : choisir l'agence suffit alors à
     // désigner la bonne personne, au lieu de chercher dans toute la société.
     if (body.liste_agences) {
-      const [bases, fiches] = await Promise.all([
+      const [basesBrutes, fiches] = await Promise.all([
         sr.entities.base.list('nom', 500).catch(() => []),
         sr.entities.structure_commerciale.list('-nom_commercial', 500).catch(() => [])
       ]);
@@ -28,7 +28,7 @@ export default async function (req) {
         const k = cleNom(f.nom_commercial || '');
         if (k && f.user_id && !compteDuNom[k]) compteDuNom[k] = { id: f.user_id, nom: f.nom_commercial };
       });
-      const agences = (bases || []).map((b) => ({
+      const agences = basesCompletees(basesBrutes).map((b) => ({
         nom: b.nom,
         // Un commercial sans compte encore créé n'est pas proposé : on ne peut
         // rien lui attribuer tant qu'il ne s'est pas connecté.
@@ -120,8 +120,8 @@ export default async function (req) {
     // création côté SAV.
     const siteChoisi = texte(body.site_atelier);
     if (siteChoisi) {
-      const bases = await sr.entities.base.list('nom', 500).catch(() => []);
-      const site = (bases || []).find((b) => cleSite(b.nom) === cleSite(siteChoisi));
+      const bases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
+      const site = bases.find((b) => cleSite(b.nom) === cleSite(siteChoisi));
       if (site) {
         data.site_atelier = site.nom;
         const chefs = [...(site.chefs_atelier || []), ...(site.responsables_sav || [])].filter(Boolean);

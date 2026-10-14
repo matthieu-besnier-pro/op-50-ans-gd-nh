@@ -119,6 +119,64 @@ export function apparierSite(nomFichier, chefFichier, sites) {
 // Comptes correspondant à des noms de chefs d'atelier (« David FIAUD »).
 // Un nom n'est retenu que s'il ne désigne qu'un seul compte : en cas d'ambiguïté,
 // le nom est signalé pour que la Direction rattache le compte à la main.
+/**
+ * Répartition de secours — reprise du tableau « LISTE COMMERCIAUX et CHEF AT ».
+ *
+ * Elle ne sert QUE lorsque le tableau des sites, en base, ne porte pas
+ * l'information : l'import de la répartition n'a pas pu être lancé en pleine
+ * opération. Sans elle, l'outil affiche des ateliers sans savoir qui y travaille
+ * — d'où un responsable SAV sans équipe, des chefs d'atelier non reconnus et
+ * des rendez-vous rangés du mauvais côté.
+ *
+ * La base a TOUJOURS raison : dès qu'un site porte ses chefs, ses responsables
+ * ou ses commerciaux, ces valeurs-ci sont ignorées. Après l'opération, lancer
+ * l'import rendra ce tableau inutile, et il pourra disparaître.
+ */
+export const REPARTITION_SECOURS = [
+  { site: 'Arnac la Poste', chefs: ['David FIAUD'], sav: ['Pierre BARBELLION'], commerciaux: ['Donovan FAURE', 'Cyril BOUQUEROT'] },
+  { site: 'Rivarennes', chefs: ['Florian CHAMBLET'], sav: ['Pierre BARBELLION'], commerciaux: ['Bertrand MOULIN', 'Eric CLEMENT', 'Celian BRANCHEREAU'] },
+  { site: 'Béthines', chefs: ['Sébastien GABORIT'], sav: ['Pierre BARBELLION'], commerciaux: ['Julien MAREUIL', 'Victor GIRAULT'] },
+  { site: 'Noyers sur Cher', chefs: ['Alexandre BEYST'], sav: ['Samuel CHASSAT'], commerciaux: ['Michael HUET'] },
+  { site: 'Issoudun', chefs: ['Amandine CHAUVEAU', 'Frédéric BORDERIEUX'], sav: ['Samuel CHASSAT'], commerciaux: ['Nicolas ROVELON', 'Corentin BERNIER', 'Simon CALLES'] },
+  { site: 'Saint Maur', chefs: ['Anthony BONNEAU'], sav: ['Samuel CHASSAT'], commerciaux: ['Dimitri ESTEVE', 'Clement BERTHELOT'] },
+  { site: 'Luçay le Mâle', chefs: ['Pascal GIROUARD'], sav: ['Samuel CHASSAT'], commerciaux: ['Frederic TREFAULT'] },
+  { site: 'Sauzé', chefs: ['Geoffrey ROBIN'], sav: ['David Gayot'], commerciaux: ['Gaylord FOURNIER', 'Valentin PRIEUR', 'Alexandre BELLIN'] },
+  { site: 'Chasseneuil', chefs: ['Emmanuel DEVILLE'], sav: ['David Gayot'], commerciaux: ['Jonathan BASTIER'] },
+  { site: 'La Ferrière', chefs: ['Freddy COURTOIS'], sav: ['David Gayot'], commerciaux: ['Dorian BOUEROUX', 'Alexandre FOURNIER'] },
+  { site: 'Naintré', chefs: ['Steve STORIK'], sav: ['David Gayot'], commerciaux: ['Alexandre FOURNIER', 'Jean-Francois DRAGON'] },
+  { site: 'Melle', chefs: ['Damien DUTEMPLE'], sav: ['Loic BOUCHET'], commerciaux: ['Gaylord FOURNIER', 'Sylvain SUIRE'] },
+  { site: 'La Peyratte', chefs: ['Damien GUERRY', 'Dimitri CORBIN'], sav: ['Loic BOUCHET'], commerciaux: ['Harold CHAIGNEAU', 'Sebastien ETELLIN', 'Sylvain SUIRE', 'Alexandre FOURNIER', 'Alexandre BELLIN'] },
+  { site: 'Niort', chefs: ['Frédéric LAURENT'], sav: ['Loic BOUCHET'], commerciaux: ['Harold CHAIGNEAU', 'Francois DAVID'] }
+];
+
+/**
+ * Les sites complétés par la répartition de secours, champ par champ. Un site
+ * absent de la base est ajouté sans identifiant : il sert aux rapprochements,
+ * jamais à l'écriture.
+ */
+export function basesCompletees(bases) {
+  const parCle = new Map();
+  for (const b of bases || []) parCle.set(cleSite(b.nom), { ...b });
+  for (const r of REPARTITION_SECOURS) {
+    const cle = cleSite(r.site);
+    const b = parCle.get(cle);
+    if (!b) {
+      parCle.set(cle, {
+        id: null,
+        nom: r.site,
+        chefs_atelier: [...r.chefs],
+        responsables_sav: [...r.sav],
+        commerciaux: [...r.commerciaux]
+      });
+      continue;
+    }
+    if (!(b.chefs_atelier || []).length) b.chefs_atelier = [...r.chefs];
+    if (!(b.responsables_sav || []).length) b.responsables_sav = [...r.sav];
+    if (!(b.commerciaux || []).length) b.commerciaux = [...r.commerciaux];
+  }
+  return [...parCle.values()];
+}
+
 export const TYPE_RDV_ATELIER = 'RDV atelier hivernage';
 
 /**
@@ -139,8 +197,9 @@ export function routageRdv(bases, users, idsAtelier) {
   const siteParUser = {};
 
   // Le tableau de répartition nomme les référents de chaque site : c'est lui qui
-  // donne le SITE, par rapprochement des noms.
-  for (const b of bases || []) {
+  // donne le SITE, par rapprochement des noms. Complété par la répartition de
+  // secours tant que la base ne la porte pas.
+  for (const b of basesCompletees(bases)) {
     const noms = [...(b.chefs_atelier || []), ...(b.responsables_sav || [])];
     comptesDesChefs(noms, users || []).ids.forEach((id) => { siteParUser[id] = b.nom; });
   }

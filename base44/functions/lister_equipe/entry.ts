@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { perimetreResponsable, perimetreAtelier } from '../../shared/perimetre.ts';
-import { cleSite, cleNom, comptesDesChefs } from '../../shared/atelier.ts';
+import { cleSite, cleNom, comptesDesChefs, basesCompletees } from '../../shared/atelier.ts';
 
 // Effectif des chefs d'atelier d'une liste de sites. TOUS y figurent, qu'ils
 // aient déjà un compte ou non : l'équipe doit être complète, comme l'est la
@@ -64,12 +64,12 @@ export default async function(req) {
     const sitesDemandes = Array.isArray(body?.sites) ? body.sites.filter(Boolean) : [];
 
     if (isAdmin && sitesDemandes.length > 0) {
-      const bases = await sr.entities.base.list('nom', 500).catch(() => []);
+      const bases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
       const vises = new Set(sitesDemandes.map(cleSite));
       const mesBases = (bases || []).filter((b) => vises.has(cleSite(b.nom)));
       const allUsers = await sr.entities.User.list('-created_date', 500);
       teamMembers = effectifChefs(mesBases, allUsers);
-      teamBaseIds = mesBases.map((b) => b.id);
+      teamBaseIds = mesBases.map((b) => b.id).filter(Boolean);
       fiches = [];
     } else if (isAdmin) {
       const allBases = await sr.entities.base.list('-nom', 100);
@@ -81,12 +81,12 @@ export default async function(req) {
       // sont nommés site par site dans le tableau de répartition. L'équipe d'un
       // responsable SAV, ce sont donc les chefs des sites dont il répond.
       const perimetre = await perimetreAtelier(sr, user);
-      const bases = await sr.entities.base.list('nom', 500).catch(() => []);
+      const bases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
       const mesSites = new Set((perimetre?.sites || []).map(cleSite));
       const mesBases = (bases || []).filter((b) => mesSites.has(cleSite(b.nom)));
       const allUsers = await sr.entities.User.list('-created_date', 500);
       teamMembers = effectifChefs(mesBases, allUsers);
-      teamBaseIds = mesBases.map((b) => b.id);
+      teamBaseIds = mesBases.map((b) => b.id).filter(Boolean);
       // Aucune fiche commerciale à conserver : l'équipe est entièrement composée
       // de comptes sans secteur.
       fiches = [];
