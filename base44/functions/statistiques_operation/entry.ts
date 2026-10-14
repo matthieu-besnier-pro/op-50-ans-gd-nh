@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { avecReprise } from '../../shared/debit.ts';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre, filtreClientsPerimetre } from '../../shared/perimetre.ts';
 import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv } from '../../shared/atelier.ts';
 
@@ -12,11 +13,15 @@ import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv } from '../.
 const CHUNK = 5000;
 const MAX_PAGES = 20;
 
+// Chaque page est réessayée : à cinquante postes connectés, la plateforme refuse
+// régulièrement une lecture, et un balayage interrompu faisait basculer tous les
+// chiffres de l'opération à zéro. Une lecture refusée n'a rien coûté côté base :
+// patienter une seconde et recommencer vaut mieux que perdre tout le comptage.
 async function lireTout(fetchPage) {
   const out = [];
   const vus = new Set();
   for (let i = 0; i < MAX_PAGES; i++) {
-    const page = await fetchPage(i * CHUNK);
+    const page = await avecReprise(() => fetchPage(i * CHUNK));
     if (!Array.isArray(page) || page.length === 0) break;
     let nouveaux = 0;
     page.forEach((r) => { if (!vus.has(r.id)) { vus.add(r.id); out.push(r); nouveaux += 1; } });
