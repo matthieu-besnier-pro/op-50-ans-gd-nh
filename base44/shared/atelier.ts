@@ -21,6 +21,15 @@ export const jetons = (v) => new Set(norm(v).split(' ').filter(Boolean));
 const MOTS_VIDES = new Set(['LA', 'LE', 'LES', 'L', 'D', 'SUR', 'SOUS', 'EN', 'SAINT', 'ST', 'SAINTE', 'STE']);
 export const cleSite = (v) => norm(v).split(' ').filter((t) => t && !MOTS_VIDES.has(t)).join(' ');
 
+// Suivi atelier : statut unique posé d'un clic par le chef d'atelier dans la liste SAV.
+// C'est ce marquage qui compte les prises de contact atelier (un client = un clic) :
+// partagé par la mise à jour du statut (maj_statut_sav) et par les exports.
+export const STATUT_CONTACT_ATELIER = "Contacté par l'atelier OK pour un RDV";
+
+export const contactAtelierPose = (client) =>
+  (client?.statut || '') === STATUT_CONTACT_ATELIER ||
+  (Array.isArray(client?.rdv_obtenus) && client.rdv_obtenus.includes(STATUT_CONTACT_ATELIER));
+
 // Offres SAV de l'opération : ce sont les OP du fichier atelier.
 export const OFFRES_SAV = ['INSPECTION ANNUELLE', 'REVISION', 'CONTRAT DE SERVICE'];
 

@@ -42,7 +42,14 @@ const COLONNES_CLIENTS = [
   ['tel_mobile', 'Mobile'],
   ['parc_total', 'Machines'],
   ['usages', 'Usages'],
-  ['agri_precision', 'Agri. précision']
+  ['agri_precision', 'Agri. précision'],
+  // Partie SAV — OP 50 ans : ciblage atelier, offres à proposer et suivi du contact
+  // atelier (« Contact atelier » = OUI, ce sont ces marquages qui sont comptés).
+  ['cible_sav', 'Cible SAV'],
+  ['site_atelier', 'Site atelier'],
+  ['offres_sav', 'Offres SAV'],
+  ['suivis_obtenus', 'Suivis obtenus'],
+  ['contact_atelier', 'Contact atelier']
 ];
 
 // Échappement CSV : guillemets doublés, champ encadré dès qu'il contient un séparateur.

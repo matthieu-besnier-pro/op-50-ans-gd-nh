@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { perimetreResponsable, perimetreCommercial, estDansPerimetre } from '../../shared/perimetre.ts';
+import { contactAtelierPose, STATUT_CONTACT_ATELIER } from '../../shared/atelier.ts';
 
 // Export des clients TRAVAILLÉS : ceux qui ont quitté le statut « À contacter ».
 // C'est la trace de l'activité de l'opération — complément de l'export des RDV.
@@ -95,7 +96,11 @@ export default async function (req) {
     const voulus = Array.isArray(body.statuts) ? body.statuts.filter(Boolean) : [];
     if (voulus.length > 0) {
       const retenus = new Set(voulus);
-      liste = liste.filter((c) => retenus.has(c.statut || 'À contacter'));
+      // Le suivi atelier est un marquage, pas seulement un statut courant : un client
+      // dont le statut a évolué depuis reste une prise de contact atelier — il reste
+      // compté dans l'outil, et donc exporté ici avec la colonne « Contact atelier ».
+      const avecAtelier = retenus.has(STATUT_CONTACT_ATELIER);
+      liste = liste.filter((c) => retenus.has(c.statut || 'À contacter') || (avecAtelier && contactAtelierPose(c)));
     } else if (!body.tous) {
       liste = liste.filter((c) => (c.statut || 'À contacter') !== 'À contacter');
     }
@@ -124,7 +129,15 @@ export default async function (req) {
         tel_mobile: c.tel_mobile || '',
         parc_total: c.parc_total || 0,
         usages: (c.usages || []).join(' / '),
-        agri_precision: (c.sources_agri_precision || []).join(' / ')
+        agri_precision: (c.sources_agri_precision || []).join(' / '),
+        // Partie SAV — OP 50 ans : ciblage atelier, offres à proposer et suivi du
+        // contact atelier. « contact_atelier » = le clic du chef d'atelier, c'est lui
+        // qui compte les prises de contact atelier (un client marqué = un contact).
+        cible_sav: c.cible_atelier ? 'OUI' : '',
+        site_atelier: c.site_atelier || '',
+        offres_sav: (c.offres_sav || []).join(' / '),
+        suivis_obtenus: (c.rdv_obtenus || []).join(' / '),
+        contact_atelier: contactAtelierPose(c) ? 'OUI' : ''
       };
     });
 

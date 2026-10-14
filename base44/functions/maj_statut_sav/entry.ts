@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { clientDansPerimetre } from '../../shared/perimetre.ts';
+import { STATUT_CONTACT_ATELIER } from '../../shared/atelier.ts';
 
 // Changement de statut d'un client depuis la partie SAV, et prise de rendez-vous.
 // Le RLS réserve l'écriture au commercial affecté (ou à la Direction) ; les fiches ciblées par
@@ -15,7 +16,7 @@ const STATUTS_SUIVI = [
   'RDV Commercial obtenu',
   'RDV Atelier obtenu',
   'RDV Agri. précision obtenu',
-  "Contacté par l'atelier OK pour un RDV"
+  STATUT_CONTACT_ATELIER
 ];
 
 export default async function (req) {
