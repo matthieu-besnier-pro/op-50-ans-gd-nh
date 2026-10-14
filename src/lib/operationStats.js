@@ -12,7 +12,11 @@ import { base44 } from '@/api/base44Client';
  *        Portée « voir en tant que » (Direction uniquement) ; null = toute l'opération.
  * @returns {Promise<object|null>} les statistiques, ou null en cas d'échec.
  */
-const TTL = 60 * 1000;
+// Le calcul parcourt toute l'opération (clients, rendez-vous, ventes) : le garder
+// trois minutes divise d'autant la charge côté base, sans que personne ne voie de
+// chiffre périmé — toute écriture (rendez-vous, statut, vente) vide explicitement ce
+// cache juste après.
+const TTL = 3 * 60 * 1000;
 // Après un échec (limite de débit atteinte), on laisse passer ce délai avant de
 // rappeler : sans cela, un écran qui se rafraîchit toutes les 15 s relançait la
 // fonction à chaque relecture — puisqu'un échec n'est pas mis en cache — et

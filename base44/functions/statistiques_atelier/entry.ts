@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre } from '../../shared/perimetre.ts';
-import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_ATELIER } from '../../shared/atelier.ts';
+import { avecReprise } from '../../shared/debit.ts';
+import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre, normNom } from '../../shared/perimetre.ts';
+import { STATUT_CONTACT_ATELIER_REFUS, STATUTS_CONTACT_ATELIER, rdvAtelierObtenu, routageRdv, TYPE_RDV_ATELIER } from '../../shared/atelier.ts';
 
 // Comptage des contacts pris par les ateliers, pour la moitié « ateliers » du Grand Écran.
 //
@@ -11,11 +12,12 @@ import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_AT
 //
 // statistiques_operation balaie toutes les données de l'opération : sur un écran qui
 // se rafraîchit en continu, ce balayage finissait par dépasser la limite de lecture de
-// l'application, et la moitié ateliers restait vide. Ici, on ne lit QUE les clients
-// ciblés par l'atelier (un peu plus de 800) et seulement les champs nécessaires :
-// le même comptage, pour une charge négligeable.
+// l'application, et la moitié ateliers restait vide. Ici, on ne lit que les fiches
+// concernées par l'atelier — celles du fichier de ciblage, et celles qu'un référent a
+// marquées — avec les seuls champs nécessaires : le même comptage, pour une charge
+// négligeable.
 
-const CHAMPS = ['id', 'raison_sociale', 'site_atelier', 'statut', 'rdv_obtenus', 'updated_date', 'date_dernier_contact', 'chefs_atelier_ids'];
+const CHAMPS = ['id', 'raison_sociale', 'site_atelier', 'statut', 'rdv_obtenus', 'updated_date', 'date_dernier_contact', 'chefs_atelier_ids', 'cible_atelier', 'secteur', 'base_id'];
 const LOT = 2000;
 const MAX_LOTS = 10;
 
@@ -31,7 +33,19 @@ export default async function(req) {
     // Périmètre : mêmes règles que le reste de l'opération. Une cible atelier relève
     // aussi de son SITE (site_atelier), pas seulement des clients du commercial.
     const estDirection = user.role === 'admin' || user.app_role === 'direction';
-    let filtre = estDirection ? { cible_atelier: true } : null;
+
+    // Deux familles de fiches entrent dans le comptage : celles du fichier de
+    // ciblage, et celles que l'atelier a RÉELLEMENT travaillées — marque « OK pour
+    // un RDV » ou « REFUS » — même si elles n'étaient pas dans le fichier (client
+    // proposé par un commercial, ou ajouté à la main). Sans cette seconde famille,
+    // une prise de contact posée hors fichier ne remontait nulle part : ni au
+    // compteur, ni au classement des sites.
+    const TOUCHE_PAR_ATELIER = [
+      { statut: { $in: STATUTS_CONTACT_ATELIER } },
+      { rdv_obtenus: { $in: STATUTS_CONTACT_ATELIER } }
+    ];
+
+    let filtre = estDirection ? { $or: [{ cible_atelier: true }, ...TOUCHE_PAR_ATELIER] } : null;
     let idsPerimetre = null;
     let sitesPerimetre = null;
 
@@ -40,15 +54,26 @@ export default async function(req) {
       if (atelier) { idsPerimetre = atelier.ids || []; sitesPerimetre = atelier.sites || []; }
       if (atelier) {
         const branches = [];
-        if ((atelier.sites || []).length > 0) branches.push({ cible_atelier: true, site_atelier: { $in: atelier.sites } });
-        if ((atelier.ids || []).length > 0) branches.push({ cible_atelier: true, commerciaux_assignes: { $in: atelier.ids } });
-        if ((atelier.secteurs || []).length > 0) branches.push({ cible_atelier: true, secteur: { $in: atelier.secteurs } });
+        const portees = [
+          (atelier.sites || []).length > 0 ? { site_atelier: { $in: atelier.sites } } : null,
+          (atelier.ids || []).length > 0 ? { commerciaux_assignes: { $in: atelier.ids } } : null,
+          (atelier.secteurs || []).length > 0 ? { secteur: { $in: atelier.secteurs } } : null
+        ].filter(Boolean);
+        portees.forEach((p) => {
+          branches.push({ ...p, cible_atelier: true });
+          TOUCHE_PAR_ATELIER.forEach((m) => branches.push({ ...p, ...m }));
+        });
         if (branches.length > 0) filtre = { $or: branches };
       } else {
         const equipe = (await perimetreResponsable(sr, user)) || (await perimetreCommercial(sr, user));
         if (equipe) {
           const { $or } = filtreClientsPerimetre(equipe);
-          filtre = { $or: $or.map((b) => ({ ...b, cible_atelier: true })) };
+          filtre = {
+            $or: [
+              ...$or.map((b) => ({ ...b, cible_atelier: true })),
+              ...$or.flatMap((b) => TOUCHE_PAR_ATELIER.map((m) => ({ ...b, ...m })))
+            ]
+          };
         }
       }
     }
@@ -56,12 +81,15 @@ export default async function(req) {
     if (!filtre) return Response.json({ atelier: VIDE });
 
     // Lecture paginée, triée par identifiant : aucun doublon, aucun oubli.
+    // Une lecture refusée (limite de débit : la situation normale à cinquante postes)
+    // est réessayée ; si elle finit par échouer, la fonction le dit au lieu de la
+    // masquer — l'écran garde alors ses chiffres précédents plutôt que d'afficher un
+    // compteur à zéro, ce qui faisait croire à des contacts et des RDV disparus.
     const clients = [];
     let curseur;
     for (let i = 0; i < MAX_LOTS; i++) {
-      const page = await sr.entities.client
-        .filter(filtre, { sort: 'id', limit: LOT, fields: CHAMPS, cursor: curseur })
-        .catch(() => []);
+      const page = await avecReprise(() => sr.entities.client
+        .filter(filtre, { sort: 'id', limit: LOT, fields: CHAMPS, cursor: curseur }));
       const items = Array.isArray(page) ? page : (page?.items || []);
       clients.push(...items);
       if (Array.isArray(page) || !page?.has_more || !page?.next_cursor) break;
@@ -72,10 +100,33 @@ export default async function(req) {
     // le seul statut du client laissait de côté tout rendez-vous pris sur une fiche
     // absente du fichier de ciblage : un atelier pouvait en poser des dizaines sans
     // qu'aucun ne remonte.
+    // Référentiels : une lecture ratée reste sans gravité (le rapprochement retombe
+    // alors sur le type de rendez-vous), on ne bloque donc pas le comptage pour eux.
     const [bases, users] = await Promise.all([
-      sr.entities.base.list('nom', 200).catch(() => []),
-      sr.entities.User.list('-created_date', 500).catch(() => [])
+      avecReprise(() => sr.entities.base.list('nom', 200)).catch(() => []),
+      avecReprise(() => sr.entities.User.list('-created_date', 500)).catch(() => [])
     ]);
+
+    // Site d'une fiche travaillée hors fichier de ciblage. Le fichier atelier porte
+    // le site ; une fiche hors fichier n'en a pas : on le déduit du commercial du
+    // client (tableau de répartition), à défaut de sa base de rattachement. Sans
+    // cela, tous ces contacts tomberaient dans un « Sans site » qui écraserait le
+    // classement des ateliers.
+    const nomParBase = {};
+    const siteParCommercial = {};
+    (bases || []).forEach((b) => {
+      if (b.id && b.nom) nomParBase[b.id] = b.nom;
+      (b.commerciaux || []).forEach((n) => {
+        const k = normNom(n);
+        if (k && !siteParCommercial[k]) siteParCommercial[k] = b.nom;
+      });
+    });
+    const siteHorsFichier = (c) => {
+      const parCommercial = siteParCommercial[normNom(c.secteur || '')];
+      if (parCommercial) return parCommercial;
+      const parBase = nomParBase[c.base_id] || (bases || []).find((b) => normNom(b.nom) === normNom(c.base_id))?.nom;
+      return parBase || 'Sans site';
+    };
 
     // Les rendez-vous d'atelier sont ceux posés par les chefs d'atelier — c'est
     // l'auteur qui tranche, pas le type enregistré (voir routageRdv).
@@ -102,7 +153,11 @@ export default async function(req) {
     const filtreRdv = auteurs.length > 0
       ? { $or: [{ commercial_id: { $in: auteurs } }, { type: TYPE_RDV_ATELIER }] }
       : { type: TYPE_RDV_ATELIER };
-    const rdvsBruts = await sr.entities.rdv.filter(filtreRdv, '-date_heure', 3000).catch(() => []);
+    // Les rendez-vous d'atelier : lecture la plus critique de la moitié ateliers.
+    // Réessayée, et jamais masquée en liste vide — un « RDV posés » à zéro ferait
+    // croire que l'atelier n'a rien pris alors que les rendez-vous sont bien là.
+    const rdvsLus = await avecReprise(() => sr.entities.rdv.filter(filtreRdv, '-date_heure', 3000));
+    const rdvsBruts = Array.isArray(rdvsLus) ? rdvsLus : (rdvsLus?.items || []);
 
     // Portée : un référent ne voit que ses sites — les siens et ceux de ses
     // commerciaux. Le filtrage se fait ici, le filtre serveur ne sachant pas
@@ -128,11 +183,15 @@ export default async function(req) {
     const dejaComptes = new Set();
 
     clients.forEach((c) => {
-      const site = String(c.site_atelier || '').trim() || 'Sans site';
+      // Fiche du fichier de ciblage, ou fiche travaillée par l'atelier hors fichier.
+      const cible = c.cible_atelier === true;
+      const site = cible
+        ? (String(c.site_atelier || '').trim() || 'Sans site')
+        : siteHorsFichier(c);
       siteParClient[c.id] = site;
       nomParClient[c.id] = c.raison_sociale || '';
       const e = (parSite[site] = parSite[site] || { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv: 0 });
-      e.cibles += 1;
+      if (cible) e.cibles += 1;
 
       // Le suivi courant ET les suivis déjà obtenus : le statut n'en garde qu'un.
       const suivis = [c.statut || '', ...(Array.isArray(c.rdv_obtenus) ? c.rdv_obtenus : [])];
@@ -140,6 +199,10 @@ export default async function(req) {
       const gagne = rdvAtelierObtenu(suivis);
       const perdu = !gagne && suivis.includes(STATUT_CONTACT_ATELIER_REFUS);
       if (!gagne && !perdu) return;
+
+      // Contact posé sur une fiche hors fichier de ciblage : elle a bien été
+      // travaillée par l'atelier, elle entre donc au décompte comme les autres.
+      if (!cible) e.cibles += 1;
 
       e.contactes += 1;
       contactes += 1;

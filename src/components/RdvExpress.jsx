@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { base44 } from '@/api/base44Client';
 import { invalider } from '@/lib/donneesPartagees';
+import { invaliderStats } from '@/lib/operationStats';
+import { invaliderAtelierStats } from '@/lib/atelierStats';
 import confetti from 'canvas-confetti';
 import { Search, Tractor, Wrench, Sprout, ChevronLeft, Check, Loader2, CalendarDays, PartyPopper } from 'lucide-react';
 import RdvMentions from '@/components/RdvMentions';
@@ -148,6 +150,11 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
       await base44.entities.client.update(client.id, updates)
         .catch(() => base44.functions.invoke('maj_statut_sav', { client_id: client.id, updates }).catch(() => {}));
       invalider('rdv'); // le nouveau rendez-vous doit apparaître tout de suite
+      invalider('client'); // le statut du client bascule avec le rendez-vous
+      // Comptages mis en cache (Grand Écran, tableaux de bord) : ils doivent repartir
+      // du serveur pour que ce rendez-vous y apparaisse tout de suite.
+      invaliderStats();
+      invaliderAtelierStats();
       // Sans attendre : le résultat n'est pas utilisé ici, et faire patienter
       // le commercial sur un calcul de badges n'a aucun sens.
       base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }).catch(() => {});

@@ -139,6 +139,12 @@ export default async function (req) {
     const { estAtelier, referents } = routageRdv(bases, users, [...idsDesFiches]);
     const gardeCommerce = portee === 'atelier' ? () => true : (r) => !estAtelier(r);
 
+    // Rendez-vous d'atelier réellement posés dans l'agenda. La moitié « ateliers » du
+    // Grand Écran les affiche : ce repli doit porter le même chiffre que la fonction
+    // dédiée, sinon le compteur retombe à zéro dès que celle-ci est indisponible.
+    let atelierRdvPris = 0;
+    allRdvs.forEach((r) => { if (r.statut !== 'Annulé' && r.client_id && estAtelier(r)) atelierRdvPris += 1; });
+
     const clients = allClients.filter(gardeClients);
     const rdvs = allRdvs.filter((r) => gardeActivite(r) && gardeCommerce(r));
     const ventes = allVentes.filter(gardeActivite);
@@ -478,6 +484,7 @@ export default async function (req) {
         contactes: atelierContactes,
         ok: atelierOk,
         refus: atelierRefus,
+        rdv_pris: atelierRdvPris,
         restants: Math.max(atelierCibles - atelierContactes, 0),
         par_site: atelierParSite,
         // Les plus récents d'abord, pour le fil du Grand Écran.

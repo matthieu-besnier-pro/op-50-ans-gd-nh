@@ -17,11 +17,15 @@ import { base44 } from '@/api/base44Client';
  */
 
 // Durées de vie : courtes pour l'activité, longues pour le référentiel.
+// Une durée de vie est une borne haute, jamais une source de données périmées pour
+// celui qui vient d'agir : chaque écriture invalide explicitement sa clé. Allongées
+// pour la charge — cinquante postes qui naviguent relançaient la même grosse lecture
+// (le portefeuille) toutes les quinze secondes.
 const TTL = {
-  rdv: 15000,
-  vente: 15000,
-  client: 15000,
-  badge_obtenu: 15000,
+  rdv: 60000,
+  vente: 60000,
+  client: 120000,
+  badge_obtenu: 60000,
   structure_commerciale: 300000,
   parametres_operation: 300000,
   User: 300000,

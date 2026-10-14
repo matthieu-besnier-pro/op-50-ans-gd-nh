@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { base44 } from '@/api/base44Client';
 import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
 import SavOffres from '@/components/sav/SavOffres';
@@ -11,7 +10,7 @@ import { UserPlus } from 'lucide-react';
 import { categorieMeta } from '@/components/MaterielPicto';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import { useStatuts } from '@/lib/statuts';
-import { listerPartage } from '@/lib/donneesPartagees';
+import { listerPartage, fetchClients } from '@/lib/donneesPartagees';
 import { clientPasseFiltres, categoriesDuParc } from '@/lib/filtresClients';
 import { OFFRES_SAV } from '@/lib/offresSav';
 import { contactAtelierPose } from '@/lib/statutsAtelier';
@@ -48,11 +47,13 @@ export default function Sav() {
     setLoading(true);
     try {
       const [res, struct] = await Promise.all([
-        base44.functions.invoke('lister_clients', { limit: 20000 }),
+        // Lecture mutualisée avec les autres pages (Mes clients, Mon équipe, Mon espace) :
+        // la même liste n'est plus redemandée au serveur à chaque changement d'écran.
+        fetchClients(),
         // Noms des commerciaux (filtre « Commercial » et recherche), comme dans Mes clients.
         listerPartage('structure_commerciale', '-nom_commercial', 300).catch(() => [])
       ]);
-      setClients(res?.data?.clients || []);
+      setClients(res?.clients || []);
       setStructure(struct || []);
     } catch (e) {
       console.error(e);

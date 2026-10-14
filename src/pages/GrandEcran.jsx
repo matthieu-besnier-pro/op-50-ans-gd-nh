@@ -422,10 +422,20 @@ export default function GrandEcran() {
     }
   }, []);
 
+  // Écran projeté : il tourne en continu, mais un onglet laissé en arrière-plan par
+  // une équipe n'a pas à interroger la base toutes les 15 s — cinquante postes ouverts
+  // finissaient par saturer la limite de lecture de l'application. On suspend les
+  // relectures tant que l'onglet est caché, et on relit dès qu'il revient au premier
+  // plan (même règle que le Tableau de bord).
   useEffect(() => {
     load();
-    const interval = setInterval(() => load(), 15000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => { if (!document.hidden) load(); }, 15000);
+    const auRetour = () => { if (!document.hidden) load(); };
+    document.addEventListener('visibilitychange', auRetour);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', auRetour);
+    };
   }, [load]);
 
   // Realtime subscription

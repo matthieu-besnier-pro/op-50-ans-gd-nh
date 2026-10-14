@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { invalider } from '@/lib/donneesPartagees';
+import { invaliderAtelierStats } from '@/lib/atelierStats';
 import StatusBadge from '@/components/StatusBadge';
 import {
   STATUT_ATELIER, STATUT_ATELIER_REFUS, updatesApresStatutAtelier,
@@ -38,6 +39,9 @@ export default function StatutAtelier({ client, onSaved }) {
       .catch((e) => ({ data: { error: e?.response?.data?.error || 'Enregistrement impossible' } }));
     if (res?.data?.error) throw new Error(res.data.error);
     invalider('client'); // la liste partagée doit refléter le compteur de contacts
+    // Le comptage atelier est mis en cache : il doit repartir du serveur pour que la
+    // marque posée apparaisse tout de suite dans les compteurs.
+    invaliderAtelierStats();
     onSaved?.();
   };
 

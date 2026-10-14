@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/select';
 import { base44 } from '@/api/base44Client';
 import { invalider } from '@/lib/donneesPartagees';
+import { invaliderStats } from '@/lib/operationStats';
+import { invaliderAtelierStats } from '@/lib/atelierStats';
 import { AlertTriangle } from 'lucide-react';
 import RdvMentions from '@/components/RdvMentions';
 import { statutApresRdv, rdvObtenus } from '@/lib/rdvStatuts';
@@ -98,6 +100,12 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
 
       // Vérifier les badges
       invalider('rdv');
+      // Le rendez-vous bascule aussi le statut du client : la liste partagée suit.
+      invalider('client');
+      // Les comptages (Grand Écran, tableaux de bord) sont mis en cache : ils doivent
+      // repartir du serveur pour que ce rendez-vous y apparaisse tout de suite.
+      invaliderStats();
+      invaliderAtelierStats();
       // Sans attendre : le résultat n'est pas utilisé ici, et faire patienter
       // le commercial sur un calcul de badges n'a aucun sens.
       base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }).catch(() => {});

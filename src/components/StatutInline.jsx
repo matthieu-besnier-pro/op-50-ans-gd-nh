@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { invalider } from '@/lib/donneesPartagees';
+import { invaliderStats } from '@/lib/operationStats';
 import StatusBadge from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,9 @@ export default function StatutInline({ client, user, onSaved, align = 'start', v
         await base44.entities.client.update(client.id, updates);
       }
       invalider('client'); // la liste partagée doit refléter le nouveau statut
+      // Les comptages sont mis en cache : ils doivent repartir du serveur pour que ce
+      // changement de statut s'y voie tout de suite.
+      invaliderStats();
       // Badges : toujours pour le commercial affecté au client (la fiche fait foi).
       const assignes = client.commerciaux_assignes || [];
       const badgeUserId = assignes.includes(user?.id) ? user.id : (assignes[0] || user?.id);
