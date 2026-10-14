@@ -4,10 +4,8 @@ import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
 import SavOffres from '@/components/sav/SavOffres';
 import SavListe from '@/components/sav/SavListe';
-import RdvExpress from '@/components/RdvExpress';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import { categorieMeta } from '@/components/MaterielPicto';
-import { useAuth } from '@/lib/AuthContext';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import { useStatuts } from '@/lib/statuts';
 import { listerPartage } from '@/lib/donneesPartagees';
@@ -29,7 +27,6 @@ const FILTRES_INIT = {
 // Le périmètre est résolu côté serveur : cibles du fichier atelier du site
 // + clients des commerciaux du site.
 export default function Sav() {
-  const { user } = useAuth();
   // « Voir en tant que » : le périmètre du référent choisi s'applique aussi ici.
   const persona = useDemoPersona();
   // Liste des statuts administrée par la Direction (Administration → Statuts).
@@ -40,8 +37,6 @@ export default function Sav() {
   const [filtre, setFiltre] = useState('toutes'); // cartes « offres SAV »
   // Filtres fins de la liste : les mêmes que la partie commerciale.
   const [filters, setFilters] = useState(FILTRES_INIT);
-  // Client sur lequel on pose un rendez-vous atelier depuis la liste.
-  const [rdvClient, setRdvClient] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -197,18 +192,7 @@ export default function Sav() {
       <SavListe
         clients={liste}
         onSaved={load}
-        onPrendreRdv={setRdvClient}
         nomCommerciaux={commercialNames}
-      />
-
-      {/* Le rendez-vous appartient à celui qui le pose : l'agenda consulté est le sien. */}
-      <RdvExpress
-        open={!!rdvClient}
-        onOpenChange={(o) => { if (!o) setRdvClient(null); }}
-        client={rdvClient}
-        commercialId={user?.id}
-        defaultType="RDV atelier hivernage"
-        onSaved={load}
       />
     </Layout>
   );

@@ -1,21 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import StatutInline from '@/components/StatutInline';
+import MarquesAtelier from '@/components/sav/MarquesAtelier';
 import RdvMentions from '@/components/RdvMentions';
 import ParcPictos from '@/components/ParcPictos';
 import TelephoneClient from '@/components/TelephoneClient';
 import { UsagesClient, SourcesAgriPrecision } from '@/components/MaterielPicto';
 import { villeClientTexte } from '@/lib/localisationClient';
 import { metaOffre, labelOffre } from '@/lib/offresSav';
-import { useAuth } from '@/lib/AuthContext';
-import { ArrowRight, CalendarPlus } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 // Liste de travail SAV, présentée comme le portefeuille commercial (téléphone, parc,
 // prochain RDV, commercial) mais sans les scores d'appétence. Chaque client avec ses
-// offres SAV à proposer, son statut modifiable en direct et la prise de RDV atelier.
-export default function SavListe({ clients, onSaved, onPrendreRdv, nomCommerciaux }) {
+// offres SAV à proposer et le suivi du contact atelier (contacté, puis OK pour un RDV).
+export default function SavListe({ clients, onSaved, nomCommerciaux }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const commerciaux = nomCommerciaux || (() => '—');
 
   if (clients.length === 0) {
@@ -41,7 +39,7 @@ export default function SavListe({ clients, onSaved, onPrendreRdv, nomCommerciau
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
             <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">Prochain RDV</th>
             <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground xl:table-cell">Commercial</th>
-            <th className="w-56"></th>
+            <th className="w-32"></th>
           </tr>
         </thead>
         <tbody>
@@ -92,22 +90,14 @@ export default function SavListe({ clients, onSaved, onPrendreRdv, nomCommerciau
                 </td>
                 <td className="hidden px-4 py-3 xl:table-cell"><ParcPictos pictos={c.parc_pictos} /></td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                  <StatutInline client={c} user={user} onSaved={onSaved} viaServeur />
-                  {/* RDV déjà obtenus : un RDV commercial peut se cumuler avec un RDV atelier. */}
+                  <MarquesAtelier client={c} onSaved={onSaved} />
+                  {/* Suivis déjà obtenus : un RDV commercial reste mentionné à côté du suivi atelier. */}
                   <RdvMentions client={c} className="mt-1.5" />
                 </td>
                 <td className="hidden px-4 py-3 text-sm text-muted-foreground xl:table-cell">{c.date_prochain_rdv || '—'}</td>
                 <td className="hidden px-4 py-3 text-sm text-foreground xl:table-cell">{commerciaux(c)}</td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-2">
-                    {/* RDV atelier à poser en plus du RDV commercial : le statut commercial reste en place. */}
-                    <button
-                      type="button"
-                      onClick={() => onPrendreRdv?.(c)}
-                      className="inline-flex h-8 items-center gap-1 rounded-md border border-gd-orange/50 px-2 text-xs font-semibold text-gd-orange whitespace-nowrap transition hover:bg-gd-orange hover:text-gd-navy-dark"
-                    >
-                      <CalendarPlus className="h-3.5 w-3.5" /> RDV Atelier
-                    </button>
                     <button
                       type="button"
                       onClick={() => ouvrirFiche(c)}

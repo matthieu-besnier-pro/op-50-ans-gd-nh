@@ -8,7 +8,16 @@ import { clientDansPerimetre } from '../../shared/perimetre.ts';
 // body = { client_id, updates } — `updates.rdv_obtenus` liste les RDV déjà obtenus sur le client.
 
 const CHAMPS = ['statut', 'date_prochain_rdv', 'date_dernier_contact', 'date_rappel', 'motif_refus', 'nb_tentatives_contact'];
-const STATUTS_RDV = ['RDV Commercial obtenu', 'RDV Atelier obtenu', 'RDV Agri. précision obtenu'];
+// Suivis cumulables : les rendez-vous obtenus et le suivi du contact atelier
+// (le rendez-vous atelier ne se prend pas tout de suite : on marque d'abord le
+// contact, puis l'accord du client). Un suivi déjà acquis n'est jamais écrasé.
+const STATUTS_SUIVI = [
+  'RDV Commercial obtenu',
+  'RDV Atelier obtenu',
+  'RDV Agri. précision obtenu',
+  "Contacté par l'atelier",
+  'OK pour un RDV'
+];
 
 export default async function (req) {
   try {
@@ -22,9 +31,9 @@ export default async function (req) {
 
     const updates = {};
     CHAMPS.forEach((k) => { if (body.updates && body.updates[k] !== undefined) updates[k] = body.updates[k]; });
-    // RDV obtenus : on ne garde que les statuts de rendez-vous connus.
+    // Suivis obtenus : on ne garde que les statuts connus (rendez-vous et suivi atelier).
     if (body.updates && Array.isArray(body.updates.rdv_obtenus)) {
-      updates.rdv_obtenus = body.updates.rdv_obtenus.filter((s) => STATUTS_RDV.includes(s));
+      updates.rdv_obtenus = body.updates.rdv_obtenus.filter((s) => STATUTS_SUIVI.includes(s));
     }
     if (!updates.statut && !updates.rdv_obtenus) {
       return Response.json({ error: 'Statut manquant.' }, { status: 400 });

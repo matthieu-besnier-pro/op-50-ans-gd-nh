@@ -1,3 +1,5 @@
+import { NOMS_MARQUES_ATELIER } from '@/lib/statutsAtelier';
+
 // Statuts de rendez-vous : prendre le rendez-vous, c'est l'avoir obtenu.
 //
 // Un client peut cumuler les RDV : à un RDV commercial peut s'ajouter un RDV
@@ -11,8 +13,9 @@ export const STATUT_PAR_TYPE = {
   'RDV agri. précision': 'RDV Agri. précision obtenu'
 };
 
-// Les deux statuts de la partie atelier.
-export const STATUTS_ATELIER = ['RDV Atelier obtenu', 'RDV Agri. précision obtenu'];
+// Mentions de la partie atelier : rendez-vous atelier, agri. précision, et le
+// suivi du contact atelier (contacté par l'atelier, puis OK pour un RDV).
+export const STATUTS_ATELIER = ['RDV Atelier obtenu', 'RDV Agri. précision obtenu', ...NOMS_MARQUES_ATELIER];
 
 export const statutDuRdv = (type) => STATUT_PAR_TYPE[type] || 'RDV Commercial obtenu';
 
