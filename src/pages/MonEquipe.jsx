@@ -291,7 +291,11 @@ export default function MonEquipe() {
           <div className="space-y-2">
             {alertes.sansRdv.length > 0 && (
               <p className="text-sm text-orange-800">
-                <span className="font-semibold">{alertes.sansRdv.length}</span> commercial{alertes.sansRdv.length > 1 ? 'aux' : ''} sans RDV ce mois : {alertes.sansRdv.join(', ')}
+                <span className="font-semibold">{alertes.sansRdv.length}</span>{' '}
+                {estSav
+                  ? `chef${alertes.sansRdv.length > 1 ? 's' : ''} d'atelier sans RDV posé`
+                  : `commercial${alertes.sansRdv.length > 1 ? 'aux' : ''} sans RDV ce mois`}
+                {' : '}{alertes.sansRdv.join(', ')}
               </p>
             )}
             {alertes.injoignablesCount > 0 && (

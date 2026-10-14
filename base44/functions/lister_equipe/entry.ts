@@ -24,7 +24,10 @@ function effectifChefs(mesBases, comptes) {
       parCle.set(cle, {
         id: compte?.id || `chef:${cle}`,
         user_id: compte?.id || null,
-        full_name: compte?.full_name || nom,
+        // Le nom du tableau de répartition prime : les comptes ont souvent pour
+        // nom complet l'identifiant de leur adresse (« amandine-chauveau »),
+        // illisible dans un tableau d'équipe.
+        full_name: nom || compte?.full_name || '',
         email: compte?.email || '',
         sites: b.nom ? [b.nom] : []
       });
