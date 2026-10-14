@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { avecReprise } from '../../shared/debit.ts';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre, clientDansPerimetre } from '../../shared/perimetre.ts';
 
 // Renvoie les clients selon le rôle, en asServiceRole (contourne le RLS navigateur).
@@ -27,7 +28,7 @@ async function lireTout(fetchPage, max) {
   const out = [];
   const vus = new Set();
   for (let i = 0; i < 20 && out.length < max; i++) {
-    const page = await fetchPage(i * CHUNK);
+    const page = await avecReprise(() => fetchPage(i * CHUNK));
     if (!Array.isArray(page) || page.length === 0) break;
     let nouveaux = 0;
     page.forEach((r) => { if (!vus.has(r.id) && out.length < max) { vus.add(r.id); out.push(r); nouveaux += 1; } });

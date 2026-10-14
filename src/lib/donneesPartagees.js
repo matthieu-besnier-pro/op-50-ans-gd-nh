@@ -80,13 +80,19 @@ export function fetchClients() {
   const promesse = base44.functions.invoke('lister_clients', {})
     .then((res) => {
       const d = res?.data || {};
-      const resultat = { clients: d.clients || [], capped: Boolean(d.capped), scope: d.scope || null };
+      if (d.error) throw new Error(d.error);
+      const resultat = { clients: d.clients || [], capped: Boolean(d.capped), scope: d.scope || null, erreur: null };
       cache.set(k, { at: Date.now(), data: resultat });
       return resultat;
     })
-    .catch(() => {
+    .catch((e) => {
+      // Une lecture ratée ne doit PAS passer pour un portefeuille vide : on
+      // rend les derniers clients connus s'il y en a, et on signale l'échec
+      // pour que l'écran le dise au lieu de laisser croire qu'il n'y a rien.
       const precedent = cache.get(k);
-      return precedent ? precedent.data : { clients: [], capped: false, scope: null };
+      const message = e?.response?.data?.error || e?.message || 'Lecture impossible';
+      if (precedent) return { ...precedent.data, erreur: message };
+      return { clients: [], capped: false, scope: null, erreur: message };
     })
     .finally(() => enVol.delete(k));
 

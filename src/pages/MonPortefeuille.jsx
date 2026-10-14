@@ -13,7 +13,7 @@ import { useOperationStats } from '@/lib/useOperationStats';
 import StatCard from '@/components/StatCard';
 import ProgressBar from '@/components/ProgressBar';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, CalendarPlus, UserPlus, CalendarCheck, X, Loader2 } from 'lucide-react';
+import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, CalendarPlus, UserPlus, CalendarCheck, X, Loader2, AlertTriangle } from 'lucide-react';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import StatutInline from '@/components/StatutInline';
 import RdvMentions from '@/components/RdvMentions';
@@ -50,6 +50,7 @@ export default function MonPortefeuille() {
   // Liste des statuts administrée par la Direction (Administration → Statuts).
   const statuts = useStatuts();
   const [clients, setClients] = useState([]);
+  const [erreurChargement, setErreurChargement] = useState('');
   const [rdvs, setRdvs] = useState([]);
   const [ventes, setVentes] = useState([]);
   const [params, setParams] = useState(null);
@@ -88,6 +89,8 @@ export default function MonPortefeuille() {
       // (plus de plafond à 1000/2000/5000 qui tronquait la liste et les totaux).
       const res = await fetchClients();
       let clientList = res.clients;
+      // Une lecture ratée ne doit pas se lire comme « vous n'avez aucun client ».
+      setErreurChargement(res.erreur || '');
       setTronque(res.capped);
       const scopeFrais = persona.mode ? null : res.scope;
       setPerimetre(scopeFrais);
@@ -417,6 +420,17 @@ export default function MonPortefeuille() {
           >
             <Star className="h-4 w-4 mr-1.5" fill="currentColor" /> Mes cibles prioritaires ({nbPriorites})
           </Button>
+        </div>
+      )}
+
+      {erreurChargement && (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-gd-red/30 bg-red-50 p-3 text-sm text-red-700">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            <strong>Liste non chargée</strong> — vos clients n'ont pas pu être lus
+            {clients.length > 0 ? ' : voici les derniers connus.' : '.'} Actualisez dans quelques
+            secondes. <span className="opacity-70">({erreurChargement})</span>
+          </span>
         </div>
       )}
 
