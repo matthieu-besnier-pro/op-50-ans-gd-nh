@@ -106,7 +106,7 @@ const TAILLES_PODIUM = {
 // classement ne se recalcule pas à chaque rendu.
 const ATELIER_VIDE = { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv_pris: 0, restants: 0, par_site: {}, recents: [] };
 
-function Podium({ entrees, unite, taille = 'grand', details }) {
+function Podium({ entrees, unite, taille = 'grand' }) {
   const t = TAILLES_PODIUM[taille] || TAILLES_PODIUM.grand;
   return (
     <div className={`flex items-end justify-center gap-3 shrink-0 ${t.marge}`}>
@@ -128,14 +128,6 @@ function Podium({ entrees, unite, taille = 'grand', details }) {
             <p className={`mt-1.5 w-full truncate text-center font-bold text-white ${m.rang === 1 ? t.nom1 : t.nom}`}>
               {e.name}
             </p>
-            {/* Ce que l'agence a sous la main, à sa maille : ses clients ciblés et
-                ses contacts — les deux chiffres que l'anneau affiche en haut pour
-                tous les sites. */}
-            {details && (
-              <p className="mt-0.5 w-full truncate text-center text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                {details(e)}
-              </p>
-            )}
             <div className="flex items-baseline gap-1.5">
               <AnimatedCounter value={e.count} className={`font-extrabold tabular-nums ${m.rang === 1 ? `${t.chiffre1} text-gd-orange` : `${t.chiffre} text-white`}`} />
               <span className="text-[11px] uppercase tracking-widest text-white/40">{unite}</span>
@@ -174,7 +166,7 @@ function nomAbrege(nom) {
   return `${mots[0].charAt(0).toUpperCase()}. ${mots.slice(1).join(' ')}`;
 }
 
-function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, details, unite }) {
+function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege }) {
   // Un minimum de remplissage : même le dernier doit avoir une carte habitée.
   const pct = total > 0 ? Math.max((count / total) * 100, 8) : 0;
   const movedUp = prevRank !== null && prevRank > rank;
@@ -196,13 +188,8 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, d
       />
       <div className={`relative flex items-center ${d.gap} ${d.pad}`}>
         <span className={`${d.rang} shrink-0 text-center font-black tabular-nums text-white/35`}>{rank}</span>
-        <span className="min-w-0 flex-1">
-          <span className={`${d.nom} block truncate font-bold text-white`}>{abrege ? nomAbrege(name) : name}</span>
-          {/* Les ciblés et les contacts de l'agence, sous son nom : le classement se
-              lit alors sans quitter la ligne. */}
-          {details && (
-            <span className="block truncate text-[10px] font-semibold uppercase tracking-wide text-white/40">{details}</span>
-          )}
+        <span className={`${d.nom} min-w-0 flex-1 truncate font-bold text-white`}>
+          {abrege ? nomAbrege(name) : name}
         </span>
         {isAtelier && <Wrench className={`${d.icone} shrink-0 text-gd-orange`} />}
         {movedUp && (
@@ -210,14 +197,7 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, d
             <Flame className={d.icone} />
           </motion.span>
         )}
-        {/* Les rendez-vous posés, sous leur intitulé : c'est le chiffre que l'atelier
-            vient chercher, il doit se lire sans se demander de quoi il s'agit. */}
-        <span className="flex shrink-0 flex-col items-end leading-none">
-          <AnimatedCounter value={count} className={`${d.compteur} font-extrabold tabular-nums text-white`} />
-          {details && (
-            <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/35">{unite}</span>
-          )}
-        </span>
+        <AnimatedCounter value={count} className={`${d.compteur} shrink-0 font-extrabold tabular-nums text-white`} />
       </div>
     </motion.div>
   );
@@ -241,7 +221,7 @@ function Compteur({ Icone, valeur, libelle, couleur, fond }) {
 
 // Podium + grille. Commerce et ateliers s'affichent avec la MÊME brique : c'est
 // ce qui fait que les deux moitiés se lisent pareil.
-function BlocClassement({ liste, unite, abrege, prevRanks, vide, details }) {
+function BlocClassement({ liste, unite, abrege, prevRanks, vide }) {
   if (liste.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
@@ -259,7 +239,7 @@ function BlocClassement({ liste, unite, abrege, prevRanks, vide, details }) {
   const d = densiteClassement(lignes);
   return (
     <div className={`flex min-h-0 flex-1 flex-col ${reste.length === 0 ? 'justify-center' : ''}`}>
-      <Podium entrees={liste.slice(0, 3)} unite={unite} taille={lignes <= 3 ? 'grand' : lignes <= 6 ? 'moyen' : 'petit'} details={details} />
+      <Podium entrees={liste.slice(0, 3)} unite={unite} taille={lignes <= 3 ? 'grand' : lignes <= 6 ? 'moyen' : 'petit'} />
       {reste.length > 0 && (
         <div className={`grid ${colonnes === 2 ? 'grid-cols-2' : 'grid-cols-3'} content-start ${d.grille} min-h-0 flex-1 overflow-y-auto pr-1`}>
           <AnimatePresence>
@@ -273,9 +253,7 @@ function BlocClassement({ liste, unite, abrege, prevRanks, vide, details }) {
                 isAtelier={entree.isAtelier}
                 prevRank={prevRanks[entree.id] || null}
                 d={d}
-                unite={unite}
                 abrege={abrege && colonnes === 3}
-                details={details ? details(entree) : undefined}
               />
             ))}
           </AnimatePresence>
@@ -444,20 +422,10 @@ export default function GrandEcran() {
     }
   }, []);
 
-  // Écran projeté : il tourne en continu, mais un onglet laissé en arrière-plan par
-  // une équipe n'a pas à interroger la base toutes les 15 s — cinquante postes ouverts
-  // finissaient par saturer la limite de lecture de l'application. On suspend les
-  // relectures tant que l'onglet est caché, et on relit dès qu'il revient au premier
-  // plan (même règle que le Tableau de bord).
   useEffect(() => {
     load();
-    const interval = setInterval(() => { if (!document.hidden) load(); }, 15000);
-    const auRetour = () => { if (!document.hidden) load(); };
-    document.addEventListener('visibilitychange', auRetour);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', auRetour);
-    };
+    const interval = setInterval(() => load(), 15000);
+    return () => clearInterval(interval);
   }, [load]);
 
   // Realtime subscription
@@ -604,17 +572,12 @@ export default function GrandEcran() {
   // Les refus ne s'affichent plus : le fil atelier ne montre que les rendez-vous obtenus.
   const contactsAtelier = (atelier.recents || []).filter((c) => !c.refus);
 
-  // Classement des ateliers : chaque agence lit les chiffres de SON atelier, tels
-  // que le serveur les compte — ses clients ciblés, ses contacts, et les rendez-vous
-  // qu'il a posés (le rendez-vous compte pour l'atelier qui l'a posé). Aucune agence
-  // ne quitte le classement : celle qui n'a pas encore posé de rendez-vous dans
-  // l'agenda reste listée avec ses ciblés et ses contacts, au lieu de disparaître.
   const classementAteliers = useMemo(() => {
     const sites = atelier.par_site || {};
     return Object.entries(sites)
-      .map(([site, v]) => ({ id: site, name: site, count: v.rdv || 0, contacts: v.contactes || 0, cibles: v.cibles || 0 }))
-      .filter((e) => e.count > 0 || e.contacts > 0)
-      .sort((a, b) => b.count - a.count || b.contacts - a.contacts);
+      .map(([site, v]) => ({ id: site, name: site, count: v.contactes || 0 }))
+      .filter((e) => e.count > 0)
+      .sort((a, b) => b.count - a.count);
   }, [atelier]);
 
   const [prevRangsAtelier, setPrevRangsAtelier] = useState({});
@@ -843,8 +806,7 @@ export default function GrandEcran() {
 
           <BlocClassement
             liste={classementAteliers}
-            unite="RDV"
-            details={(e) => `${e.cibles} ciblés · ${e.contacts} contact${e.contacts > 1 ? 's' : ''}`}
+            unite="contacts"
             prevRanks={prevRangsAtelier}
             vide="En attente du premier contact atelier…"
           />
