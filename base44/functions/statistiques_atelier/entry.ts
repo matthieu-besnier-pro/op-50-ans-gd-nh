@@ -218,13 +218,17 @@ export default async function(req) {
       });
     });
 
-    // Chaque rendez-vous posé compte pour son atelier. Un client qui n'était pas
-    // dans le fichier de ciblage entre ici dans le décompte : il a bien été
-    // travaillé, c'est tout ce qui importe pour le tableau de marche.
+    // Chaque rendez-vous compte pour l'ATELIER QUI L'A POSÉ : c'est son travail, et
+    // c'est ce que le tableau de marche met en avant. Le site du client ne sert que
+    // de repli, pour les référents rattachés à aucun site. Sans cette règle, un
+    // rendez-vous pris par l'atelier d'Issoudun sur un client d'une autre agence
+    // était porté au crédit de cette autre agence, et Issoudun affichait un
+    // compteur de rendez-vous amputé d'autant. Un client hors fichier de ciblage
+    // entre ici dans le décompte : il a bien été travaillé, c'est ce qui compte.
     let cibles = clients.length;
     (rdvsAtelier || []).forEach((r) => {
       if (!r.client_id) return;
-      const site = siteParClient[r.client_id] || siteParUser[r.commercial_id] || 'Sans site';
+      const site = siteParUser[r.commercial_id] || siteParClient[r.client_id] || 'Sans site';
       const e = (parSite[site] = parSite[site] || { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv: 0 });
       e.rdv += 1;
       rdvPris += 1;

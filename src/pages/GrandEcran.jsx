@@ -582,10 +582,15 @@ export default function GrandEcran() {
   // Les refus ne s'affichent plus : le fil atelier ne montre que les rendez-vous obtenus.
   const contactsAtelier = (atelier.recents || []).filter((c) => !c.refus);
 
+  // Classement des ateliers : leurs RENDEZ-VOUS posés, pas leurs contacts. La ligne
+  // affichait le nombre de clients touchés — un atelier qui avait posé 26 rendez-vous
+  // pouvait n'en montrer que 21, parce que deux clients en avaient pris deux chacun
+  // et que le reste avait été posé sur des fiches hors du fichier de ciblage. Les
+  // contacts restent comptés par l'anneau du haut ; ici, c'est le rendez-vous qui classe.
   const classementAteliers = useMemo(() => {
     const sites = atelier.par_site || {};
     return Object.entries(sites)
-      .map(([site, v]) => ({ id: site, name: site, count: v.contactes || 0 }))
+      .map(([site, v]) => ({ id: site, name: site, count: v.rdv || 0 }))
       .filter((e) => e.count > 0)
       .sort((a, b) => b.count - a.count);
   }, [atelier]);
@@ -816,7 +821,7 @@ export default function GrandEcran() {
 
           <BlocClassement
             liste={classementAteliers}
-            unite="contacts"
+            unite="RDV"
             prevRanks={prevRangsAtelier}
             vide="En attente du premier contact atelier…"
           />
