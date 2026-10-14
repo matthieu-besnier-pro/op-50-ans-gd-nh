@@ -2,13 +2,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { perimetreAtelier, estDansPerimetre } from '../../shared/perimetre.ts';
 import { norm } from '../../shared/atelier.ts';
 
-// Changement de statut d'un client depuis la partie SAV.
+// Changement de statut d'un client depuis la partie SAV, et prise de rendez-vous.
 // Le RLS réserve l'écriture au commercial affecté (ou à la Direction) ; les fiches ciblées par
 // l'atelier ne sont assignées à personne. On passe donc par le rôle service, après vérification
 // du périmètre du demandeur : chef d'atelier de ce site, ou commercial du site.
-// body = { client_id, updates }
+// body = { client_id, updates } — `updates.rdv_obtenus` liste les RDV déjà obtenus sur le client.
 
-const CHAMPS = ['statut', 'date_dernier_contact', 'date_rappel', 'motif_refus', 'nb_tentatives_contact'];
+const CHAMPS = ['statut', 'date_prochain_rdv', 'date_dernier_contact', 'date_rappel', 'motif_refus', 'nb_tentatives_contact'];
+const STATUTS_RDV = ['RDV Commercial obtenu', 'RDV Atelier obtenu', 'RDV Agri. précision obtenu'];
 
 export default async function (req) {
   try {
@@ -22,7 +23,13 @@ export default async function (req) {
 
     const updates = {};
     CHAMPS.forEach((k) => { if (body.updates && body.updates[k] !== undefined) updates[k] = body.updates[k]; });
-    if (!updates.statut) return Response.json({ error: 'Statut manquant.' }, { status: 400 });
+    // RDV obtenus : on ne garde que les statuts de rendez-vous connus.
+    if (body.updates && Array.isArray(body.updates.rdv_obtenus)) {
+      updates.rdv_obtenus = body.updates.rdv_obtenus.filter((s) => STATUTS_RDV.includes(s));
+    }
+    if (!updates.statut && !updates.rdv_obtenus) {
+      return Response.json({ error: 'Statut manquant.' }, { status: 400 });
+    }
 
     const sr = base44.asServiceRole;
     const client = await sr.entities.client.get(id).catch(() => null);

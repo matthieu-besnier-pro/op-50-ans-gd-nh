@@ -4,6 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { invalider } from '@/lib/donneesPartagees';
 import confetti from 'canvas-confetti';
 import { Search, Tractor, Wrench, Sprout, ChevronLeft, Check, Loader2, CalendarDays, PartyPopper } from 'lucide-react';
+import RdvMentions from '@/components/RdvMentions';
+import { statutDuRdv, rdvObtenus } from '@/lib/rdvStatuts';
 
 // Créneaux de départ 07:00 → 23:00, par pas de 30 min : les visites du soir
 // sont courantes, on ne bride pas les horaires.
@@ -36,12 +38,6 @@ const creneauxCouverts = (debut, duree) => {
   const out = [];
   for (let t = d; t < d + (duree || 30); t += 30) out.push(enHeure(t));
   return out;
-};
-
-// Le statut client se coche tout seul : prendre le rendez-vous, c'est l'avoir obtenu.
-const STATUT_PAR_TYPE = {
-  'RDV atelier hivernage': 'RDV Atelier obtenu',
-  'RDV agri. précision': 'RDV Agri. précision obtenu'
 };
 
 const dayISO = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10); };
@@ -142,9 +138,15 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
       const updates = {
         date_prochain_rdv: day,
         date_dernier_contact: dayISO(0),
-        statut: STATUT_PAR_TYPE[type] || 'RDV Commercial obtenu'
+        statut: statutDuRdv(type),
+        // Un client peut cumuler les RDV : chaque RDV pris reste mentionné.
+        rdv_obtenus: rdvObtenus(client, type)
       };
-      await base44.entities.client.update(client.id, updates).catch(() => {});
+      // Si le client n'est pas dans le périmètre d'écriture de l'utilisateur (chef
+      // d'atelier sur une fiche commerciale), le serveur prend le relais après
+      // vérification de son périmètre.
+      await base44.entities.client.update(client.id, updates)
+        .catch(() => base44.functions.invoke('maj_statut_sav', { client_id: client.id, updates }).catch(() => {}));
       invalider('rdv'); // le nouveau rendez-vous doit apparaître tout de suite
       try { await base44.functions.invoke('verifier_badges', { utilisateur_id: effectiveCommercialId }); } catch (e) { /* ignore */ }
 
@@ -233,6 +235,8 @@ export default function RdvExpress({ open, onOpenChange, client: clientProp, cli
                     <span className="text-sm font-bold text-gd-navy-dark">RDV Agri. précision</span>
                     <span className="text-[11px] text-muted-foreground">Agriculture de précision</span>
                   </button>
+                  {/* Ce qui est déjà obtenu : le client peut cumuler un RDV commercial ET un RDV atelier. */}
+                  <RdvMentions client={client} className="col-span-2" />
                 </div>
               )}
 

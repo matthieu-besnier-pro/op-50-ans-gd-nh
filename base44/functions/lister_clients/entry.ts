@@ -9,7 +9,7 @@ import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClie
 // body.client_id → renvoie UN client complet (repli fiche client).
 
 const LIGHT = [
-  'id', 'raison_sociale', 'siren', 'type_structure', 'statut',
+  'id', 'raison_sociale', 'siren', 'type_structure', 'statut', 'rdv_obtenus',
   'niveau_appetence', 'score_appetence', 'date_dernier_contact',
   'date_prochain_rdv', 'date_rappel', 'montant_devis',
   'commerciaux_assignes', 'base_responsable_id', 'base_id',

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatutInline from '@/components/StatutInline';
+import RdvMentions from '@/components/RdvMentions';
 import { metaOffre, labelOffre } from '@/lib/offresSav';
 import { useAuth } from '@/lib/AuthContext';
 import { ArrowRight } from 'lucide-react';
@@ -54,6 +55,8 @@ export default function SavListe({ clients, onSaved }) {
               </td>
               <td className="px-4 py-3">
                 <StatutInline client={c} user={user} onSaved={onSaved} viaServeur />
+                {/* RDV déjà obtenus : un RDV commercial peut se cumuler avec un RDV atelier ou agri. précision. */}
+                <RdvMentions client={c} className="mt-1.5" />
               </td>
               <td className="px-4 py-3 text-right">
                 <button

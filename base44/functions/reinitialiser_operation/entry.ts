@@ -69,6 +69,8 @@ export default async function(req) {
       const batch = clientIds.slice(i, i + 500).map((id) => ({
         id,
         statut: 'À contacter',
+        // Les RDV obtenus sont remis à zéro avec le statut : nouvelle opération, nouvelle chasse.
+        rdv_obtenus: [],
         nb_tentatives_contact: 0,
         date_rappel: null,
         motif_refus: null,

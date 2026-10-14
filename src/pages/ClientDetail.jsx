@@ -13,6 +13,7 @@ import ScriptAppel from '@/components/ScriptAppel';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { canSeePac, getAppRole } from '@/lib/permissions';
+import RdvMentions from '@/components/RdvMentions';
 import ParcMaterielTable from '@/components/ParcMaterielTable';
 import { UsagesClient } from '@/components/MaterielPicto';
 import CoachCommercial from '@/components/CoachCommercial';
@@ -160,6 +161,8 @@ export default function ClientDetail() {
                 }}
               />
               <p className="mt-1 text-[10px] text-muted-foreground">Cliquez pour le changer</p>
+              {/* RDV déjà obtenus : un RDV commercial peut se cumuler avec un RDV atelier ou agri. précision. */}
+              <RdvMentions client={client} className="mt-2" />
             </div>
           </div>
         </div>

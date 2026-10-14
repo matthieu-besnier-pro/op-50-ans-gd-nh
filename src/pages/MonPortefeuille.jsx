@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, TrendingUp, Percent, PhoneCall, Target, ChevronRight, Star, CalendarPlus, UserPlus, CalendarCheck, X, Loader2 } from 'lucide-react';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
 import StatutInline from '@/components/StatutInline';
+import RdvMentions from '@/components/RdvMentions';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import RdvExpress from '@/components/RdvExpress';
 import TelephoneClient from '@/components/TelephoneClient';
@@ -538,6 +539,8 @@ export default function MonPortefeuille() {
                   <td className="hidden px-4 py-3 xl:table-cell"><ParcPictos pictos={c.parc_pictos} /></td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <StatutInline client={c} user={user} onSaved={majClient} />
+                    {/* RDV déjà obtenus : un RDV commercial peut se cumuler avec un RDV atelier ou agri. précision. */}
+                    <RdvMentions client={c} className="mt-1.5" />
                   </td>
                   <td className="hidden px-4 py-3 xl:table-cell"><AppetenceGauge niveau={c.niveau_appetence} score={c.score_appetence} /></td>
                   <td className="hidden px-4 py-3 text-sm text-muted-foreground xl:table-cell">{c.date_prochain_rdv || '—'}</td>

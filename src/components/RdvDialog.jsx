@@ -12,12 +12,8 @@ import {
 import { base44 } from '@/api/base44Client';
 import { invalider } from '@/lib/donneesPartagees';
 import { AlertTriangle } from 'lucide-react';
-
-// Le statut client se coche tout seul : prendre le rendez-vous, c'est l'avoir obtenu.
-const STATUT_PAR_TYPE = {
-  'RDV atelier hivernage': 'RDV Atelier obtenu',
-  'RDV agri. précision': 'RDV Agri. précision obtenu'
-};
+import RdvMentions from '@/components/RdvMentions';
+import { statutDuRdv, rdvObtenus } from '@/lib/rdvStatuts';
 
 export default function RdvDialog({ open, onOpenChange, client, commercialId, onSaved }) {
   // Le rendez-vous appartient à CELUI QUI LE POSE : c'est son agenda qu'on
@@ -90,9 +86,15 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
       const updates = {
         date_prochain_rdv: new Date(form.date_heure).toISOString().slice(0, 10),
         date_dernier_contact: new Date().toISOString().slice(0, 10),
-        statut: STATUT_PAR_TYPE[form.type] || 'RDV Commercial obtenu'
+        statut: statutDuRdv(form.type),
+        // Un client peut cumuler les RDV : chaque RDV pris reste mentionné.
+        rdv_obtenus: rdvObtenus(client, form.type)
       };
-      await base44.entities.client.update(client.id, updates);
+      // Si le client n'est pas dans le périmètre d'écriture de l'utilisateur (chef
+      // d'atelier sur une fiche commerciale), le serveur prend le relais après
+      // vérification de son périmètre.
+      await base44.entities.client.update(client.id, updates)
+        .catch(() => base44.functions.invoke('maj_statut_sav', { client_id: client.id, updates }).catch(() => {}));
 
       // Vérifier les badges
       invalider('rdv');
@@ -115,6 +117,8 @@ export default function RdvDialog({ open, onOpenChange, client, commercialId, on
           <DialogDescription>{client?.raison_sociale}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {/* RDV déjà obtenus : le client peut cumuler un RDV commercial ET un RDV atelier. */}
+          <RdvMentions client={client} />
           <div className="space-y-1.5">
             <Label>Date et heure</Label>
             <Input

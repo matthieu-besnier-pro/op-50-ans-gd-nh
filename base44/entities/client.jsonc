@@ -230,6 +230,13 @@
       "default": "\u00c0 contacter",
       "description": "Statut du client dans l'op\u00e9ration \u2014 liste administr\u00e9e dans Administration \u2192 Statuts"
     },
+    "rdv_obtenus": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Rendez-vous d\u00e9j\u00e0 obtenus sur ce client (RDV Commercial obtenu, RDV Atelier obtenu, RDV Agri. pr\u00e9cision obtenu) \u2014 un client peut cumuler un RDV commercial ET un RDV atelier ou agri. pr\u00e9cision, chaque RDV pris reste mentionn\u00e9"
+    },
     "nb_tentatives_contact": {
       "type": "number",
       "default": 0,
