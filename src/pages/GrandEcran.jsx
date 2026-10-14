@@ -365,15 +365,21 @@ export default function GrandEcran() {
       lancerConfettis();
     };
     try {
-      const [p, r, v, u, st, statsRes, atelierRes] = await Promise.all([
+      // Deux vitesses. Les listes partagées arrivent en quelques centaines de
+      // millisecondes et suffisent à peindre l'écran. Les comptages exacts, eux,
+      // parcourent toute l'opération : plusieurs secondes. Les attendre avant
+      // d'afficher quoi que ce soit laissait l'écran noir tout ce temps.
+      const rapides = Promise.all([
         listerPartage('parametres_operation', '-created_date', 1),
         listerPartage('rdv', '-date_heure', 500),
         listerPartage('vente', '-date_vente', 500),
         listerPartage('User', '-created_date', 300).catch(() => []),
-        listerPartage('structure_commerciale', '-nom_commercial', 200),
-        fetchOperationStats(),
-        fetchAtelierStats()
+        listerPartage('structure_commerciale', '-nom_commercial', 200)
       ]);
+      const comptagesP = fetchOperationStats();
+      const atelierP = fetchAtelierStats();
+
+      const [p, r, v, u, st] = await rapides;
 
       // Le rendez-vous vient d'être créé : s'il n'est pas encore remonté dans la
       // liste relue, on l'ajoute, pour que le feed et la salve restent d'accord.
@@ -389,32 +395,51 @@ export default function GrandEcran() {
       // Noms des clients du feed, lus côté serveur : les droits du navigateur
       // varient selon le compte qui projette, et l'écran doit toujours afficher
       // « RDV chez X ». Charge minimale : identifiant et raison sociale.
-      const clientIds = [...new Set(liste.map(rd => rd.client_id).filter(Boolean))].slice(0, 100);
-      let noms = null;
-      if (clientIds.length > 0) {
-        const res = await base44.functions
+      const clientIds = [...new Set(liste.map((rd) => rd.client_id).filter(Boolean))].slice(0, 100);
+      const nomsP = clientIds.length === 0
+        ? Promise.resolve(null)
+        : base44.functions
           .invoke('lister_clients', { noms_client_ids: clientIds })
+          .then((res) => {
+            if (!res?.data?.noms) return null;
+            const m = {};
+            res.data.noms.forEach((c) => { m[c.id] = c; });
+            return m;
+          })
           .catch(() => null);
-        if (res?.data?.noms) {
-          noms = {};
-          res.data.noms.forEach((c) => { noms[c.id] = c; });
-        }
+
+      const poserListes = () => {
+        setParams(p[0] || null);
+        setRdvs(liste);
+        setVentes(v);
+        setUsers(u);
+        setStructure(st);
+      };
+      // Un comptage raté (limite de débit) ne doit pas vider ce qui est déjà à
+      // l'écran : mieux vaut des chiffres d'une minute que deux moitiés vides.
+      const poserComptages = (c) => setExacts((precedent) => c || precedent);
+      const poserAtelier = (a) => setAtelierExact((precedent) => a || precedent);
+      // Une lecture de noms ratée laisse les précédents plutôt que de vider le feed.
+      const poserNoms = (m) => { if (m) setClients(m); };
+
+      if (celebration) {
+        // Là, et là seulement, tout doit tomber d'un bloc : confettis, ligne du
+        // feed, compteurs et podium au même instant.
+        const [comptages, atelier, noms] = await Promise.all([comptagesP, atelierP, nomsP]);
+        poserComptages(comptages);
+        poserAtelier(atelier);
+        poserListes();
+        poserNoms(noms);
+        feter(celebration.data);
+        return;
       }
 
-      // Un comptage raté (limite de débit) ne doit pas vider ce qui est déjà à
-      // l'écran : sur un écran projeté, mieux vaut des chiffres d'une minute que
-      // deux moitiés vides le temps que le serveur respire.
-      setExacts((precedent) => statsRes || precedent);
-      setAtelierExact((precedent) => atelierRes || precedent);
-      setParams(p[0] || null);
-      setRdvs(liste);
-      setVentes(v);
-      setUsers(u);
-      setStructure(st);
-      // Une lecture de noms ratée laisse les précédents en place plutôt que de
-      // vider les raisons sociales du feed.
-      if (noms) setClients(noms);
-      if (celebration) feter(celebration.data);
+      // Chargement ordinaire : on affiche dès que les listes sont là, le reste
+      // vient compléter l'écran à mesure.
+      poserListes();
+      nomsP.then(poserNoms);
+      comptagesP.then(poserComptages);
+      atelierP.then(poserAtelier);
     } catch (e) {
       console.error(e);
       // L'écran ne doit jamais rater une célébration à cause d'une lecture ratée.
