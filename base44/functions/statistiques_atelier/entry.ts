@@ -129,6 +129,10 @@ export default async function(req) {
     let ok = 0;
     let refus = 0;
     let rdvPris = 0;
+    // Rendez-vous posés PAR CHACUN. C'est la seule activité atelier réellement
+    // attribuable à une personne : le marquage d'un contact, lui, n'enregistre
+    // pas qui l'a posé — il reste donc une donnée de site.
+    const parAuteur = {};
     const parSite = {};
     const recents = [];
     const siteParClient = {};
@@ -173,6 +177,7 @@ export default async function(req) {
       const e = (parSite[site] = parSite[site] || { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv: 0 });
       e.rdv += 1;
       rdvPris += 1;
+      if (r.commercial_id) parAuteur[r.commercial_id] = (parAuteur[r.commercial_id] || 0) + 1;
 
       if (!dejaComptes.has(r.client_id)) {
         dejaComptes.add(r.client_id);
@@ -204,6 +209,7 @@ export default async function(req) {
         ok,
         refus,
         rdv_pris: rdvPris,
+        rdv_par_auteur: parAuteur,
         restants: Math.max(cibles - contactes, 0),
         par_site: parSite,
         // Les plus récents d'abord, pour le fil du Grand Écran.

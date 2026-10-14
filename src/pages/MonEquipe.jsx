@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { listerPartage, invalider, fetchClients } from '@/lib/donneesPartagees';
+import { fetchAtelierStats } from '@/lib/atelierStats';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
@@ -29,6 +30,17 @@ export default function MonEquipe() {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('rdv');
   const [prevRanks, setPrevRanks] = useState({});
+  // Chiffres de l'atelier : ils ne concernent que l'équipe d'un responsable SAV.
+  const [atelier, setAtelier] = useState(null);
+
+  // Les sites s'écrivent « Issoudun » dans le tableau de répartition et parfois
+  // « ISSOUDUN » sur les fiches : on compare sur une forme normalisée.
+  const cleSite = (v) => String(v || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]+/g, ' ')
+    .split(' ')
+    .filter((t) => t && !['LA', 'LE', 'LES', 'SUR', 'SOUS', 'DE', 'DU', 'DES', 'L', 'D', 'SAINT', 'ST'].includes(t))
+    .join(' ');
 
   const load = async () => {
     try {
@@ -120,6 +132,11 @@ export default function MonEquipe() {
 
   useEffect(() => { load(); }, [persona.mode, persona.ids.join(',')]);
 
+  useEffect(() => {
+    if (!estSav) return;
+    fetchAtelierStats().then((a) => a && setAtelier(a));
+  }, [estSav]);
+
   const todayStr = new Date().toISOString().slice(0, 10);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
@@ -148,8 +165,24 @@ export default function MonEquipe() {
       const repartition = exact
         ? statuts.map((s) => exact.par_statut[s.nom] || 0)
         : statuts.map((s) => myClients.filter((cl) => cl.statut === s.nom).length);
+      // Côté atelier : les rendez-vous posés sont attribuables à leur AUTEUR ;
+      // le marquage d'un contact, lui, n'enregistre pas qui l'a posé — il reste
+      // donc un chiffre de site, partagé entre les chefs d'un même atelier.
+      const sesSites = Array.isArray(c.sites) ? c.sites : [];
+      const agregatSites = sesSites.reduce((acc, nom) => {
+        const cle = cleSite(nom);
+        const trouve = Object.entries(atelier?.par_site || {}).find(([k]) => cleSite(k) === cle);
+        const v = trouve ? trouve[1] : null;
+        if (v) { acc.ok += v.ok || 0; acc.contactes += v.contactes || 0; acc.cibles += v.cibles || 0; }
+        return acc;
+      }, { ok: 0, contactes: 0, cibles: 0 });
+
       return {
         id: c.id, nom: c.full_name || c.email,
+        rdvAtelier: atelier?.rdv_par_auteur?.[c.user_id] || 0,
+        okSite: agregatSites.ok,
+        contactsSite: agregatSites.contactes,
+        ciblesSite: agregatSites.cibles,
         // Les chefs d'atelier portent leur(s) site(s) ; les commerciaux, rien.
         site: Array.isArray(c.sites) ? c.sites.join(' · ') : '',
         sansCompte: !c.user_id || String(c.user_id).startsWith('chef:'),
@@ -158,10 +191,14 @@ export default function MonEquipe() {
         ventes: ventesValidees, tauxTransfo
       };
     });
-  }, [commerciaux, clients, rdvs, ventes, stats, statuts, todayStr, monthStart]);
+  }, [commerciaux, clients, rdvs, ventes, stats, statuts, todayStr, monthStart, atelier]);
 
   const sorted = useMemo(() => {
-    const arr = [...rows].sort((a, b) => sortBy === 'rdv' ? b.rdvMonth - a.rdvMonth : b.ventes - a.ventes);
+    // Côté atelier, le classement se fait sur les rendez-vous posés, puis sur les
+    // accords obtenus : les ventes n'ont pas cours ici.
+    const arr = [...rows].sort((a, b) => (estSav
+      ? (b.rdvAtelier - a.rdvAtelier) || (b.okSite - a.okSite)
+      : (sortBy === 'rdv' ? b.rdvMonth - a.rdvMonth : b.ventes - a.ventes)));
     return arr.map((r, i) => ({ ...r, rank: i, prevRank: prevRanks[r.id] }));
   }, [rows, sortBy, prevRanks]);
 
@@ -179,9 +216,26 @@ export default function MonEquipe() {
     return { totalRdv, totalVentes, avgTransfo };
   }, [rows]);
 
+  // Totaux de l'atelier. Les contacts se comptent sur les SITES DISTINCTS de
+  // l'équipe, jamais en additionnant les lignes : deux chefs d'un même atelier
+  // compteraient deux fois le même travail.
+  const kpisAtelier = useMemo(() => {
+    const vus = new Set();
+    let ok = 0, contacts = 0, cibles = 0;
+    commerciaux.forEach((c) => (c.sites || []).forEach((nom) => {
+      const cle = cleSite(nom);
+      if (vus.has(cle)) return;
+      vus.add(cle);
+      const trouve = Object.entries(atelier?.par_site || {}).find(([k]) => cleSite(k) === cle);
+      const v = trouve ? trouve[1] : null;
+      if (v) { ok += v.ok || 0; contacts += v.contactes || 0; cibles += v.cibles || 0; }
+    }));
+    return { rdv: rows.reduce((s, r) => s + (r.rdvAtelier || 0), 0), ok, contacts, cibles };
+  }, [rows, commerciaux, atelier]);
+
   // Alertes
   const alertes = useMemo(() => {
-    const sansRdv = rows.filter((r) => r.rdvMonth === 0).map((r) => r.nom);
+    const sansRdv = rows.filter((r) => (estSav ? r.rdvAtelier : r.rdvMonth) === 0).map((r) => r.nom);
     const injoignables = clients.filter((c) => (c.nb_tentatives_contact || 0) >= 3);
     return { sansRdv, injoignablesCount: injoignables.length };
   }, [rows, clients]);
@@ -198,20 +252,34 @@ export default function MonEquipe() {
               : `commercial${commerciaux.length > 1 ? 'aux' : ''}`} · {(stats?.clients?.total ?? clients.length).toLocaleString('fr-FR')} clients suivis
           </p>
         </div>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="rdv">Trier par RDV pris</SelectItem>
-            <SelectItem value="ventes">Trier par ventes validées</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Côté atelier, le classement est toujours celui des rendez-vous posés :
+            proposer un tri par ventes n'aurait aucun sens. */}
+        {!estSav && (
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rdv">Trier par RDV pris</SelectItem>
+              <SelectItem value="ventes">Trier par ventes validées</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* KPIs agrégés */}
       <div className="mb-6 grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard label="RDV équipe" value={teamKpis.totalRdv} icon={Calendar} />
-        <StatCard label="Ventes validées" value={teamKpis.totalVentes} icon={TrendingUp} />
-        <StatCard label="Tx transfo moyen" value={`${teamKpis.avgTransfo}%`} icon={Percent} />
+        {estSav ? (
+          <>
+            <StatCard label="RDV atelier posés" value={kpisAtelier.rdv} icon={Calendar} />
+            <StatCard label="OK pour un RDV" value={kpisAtelier.ok} icon={TrendingUp} />
+            <StatCard label="Contacts pris" value={`${kpisAtelier.contacts} / ${kpisAtelier.cibles}`} icon={Percent} />
+          </>
+        ) : (
+          <>
+            <StatCard label="RDV équipe" value={teamKpis.totalRdv} icon={Calendar} />
+            <StatCard label="Ventes validées" value={teamKpis.totalVentes} icon={TrendingUp} />
+            <StatCard label="Tx transfo moyen" value={`${teamKpis.avgTransfo}%`} icon={Percent} />
+          </>
+        )}
       </div>
 
       {/* Alertes */}
@@ -242,10 +310,21 @@ export default function MonEquipe() {
             <tr className="border-b border-border bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">#</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">{estSav ? "Chef d'atelier" : 'Commercial'}</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Répartition clients</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">RDV (auj / mois)</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tx transfo</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ventes validées</th>
+              {estSav ? (
+                <>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">RDV atelier posés</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">OK pour un RDV</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contacts pris</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ciblés</th>
+                </>
+              ) : (
+                <>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Répartition clients</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">RDV (auj / mois)</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tx transfo</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ventes validées</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -277,21 +356,36 @@ export default function MonEquipe() {
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3">
-                  {r.totalClients > 0 ? (
-                    <>
-                      <div className="flex h-2 w-32 overflow-hidden rounded-full bg-muted">
-                        {r.repartition.map((count, i) => count > 0 && (
-                          <div key={i} className={tonaliteDe(statuts[i]?.tonalite).point} style={{ width: `${(count / r.totalClients) * 100}%` }} title={`${statuts[i]?.nom}: ${count}`} />
-                        ))}
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{r.totalClients} clients</p>
-                    </>
-                  ) : <span className="text-xs text-muted-foreground">—</span>}
-                </td>
-                <td className="px-4 py-3 text-sm"><span className="font-semibold text-foreground">{r.rdvToday}</span> / <span className="text-muted-foreground">{r.rdvMonth}</span></td>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">{r.tauxTransfo}%</td>
-                <td className="px-4 py-3 text-sm font-bold text-gd-navy">{r.ventes}</td>
+                {estSav ? (
+                  <>
+                    {/* Posés par lui : le seul chiffre atelier vraiment nominatif. */}
+                    <td className="px-4 py-3 text-lg font-bold text-gd-navy">{r.rdvAtelier}</td>
+                    {/* Les suivants relèvent de l'ATELIER : le marquage d'un contact
+                        n'enregistre pas qui l'a posé. Deux chefs d'un même site
+                        partagent donc ces chiffres — ils ne s'additionnent pas. */}
+                    <td className="px-4 py-3 text-sm font-semibold text-foreground">{r.okSite}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{r.contactsSite}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{r.ciblesSite}</td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-3">
+                      {r.totalClients > 0 ? (
+                        <>
+                          <div className="flex h-2 w-32 overflow-hidden rounded-full bg-muted">
+                            {r.repartition.map((count, i) => count > 0 && (
+                              <div key={i} className={tonaliteDe(statuts[i]?.tonalite).point} style={{ width: `${(count / r.totalClients) * 100}%` }} title={`${statuts[i]?.nom}: ${count}`} />
+                            ))}
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">{r.totalClients} clients</p>
+                        </>
+                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-sm"><span className="font-semibold text-foreground">{r.rdvToday}</span> / <span className="text-muted-foreground">{r.rdvMonth}</span></td>
+                    <td className="px-4 py-3 text-sm font-semibold text-foreground">{r.tauxTransfo}%</td>
+                    <td className="px-4 py-3 text-sm font-bold text-gd-navy">{r.ventes}</td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>
