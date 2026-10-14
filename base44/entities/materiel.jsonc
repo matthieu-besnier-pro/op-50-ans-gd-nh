@@ -175,6 +175,10 @@
       "type": "boolean",
       "default": false,
       "description": "Mat\u00e9riel envoy\u00e9 pour l'agriculture de pr\u00e9cision (fichiers AGP : tracteurs immatricul\u00e9s 2014-2020, moissonneuses CX 5 et CX 6) \u2014 affiche la d\u00e9marcation Agriculture de pr\u00e9cision"
+    },
+    "offre_sav": {
+      "type": "string",
+      "description": "Offre SAV \u00e0 proposer sur cette machine (fichier atelier de l'op\u00e9ration 50 ans) : inspection annuelle, r\u00e9vision, contrat de service"
     }
   },
   "required": [

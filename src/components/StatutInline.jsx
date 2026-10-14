@@ -32,7 +32,7 @@ const aujourdhui = () => new Date().toISOString().slice(0, 10);
  * Applique les mêmes règles que la fiche : date de rappel obligatoire,
  * motif de refus obligatoire, incrément des tentatives sur « Injoignable ».
  */
-export default function StatutInline({ client, user, onSaved, align = 'start' }) {
+export default function StatutInline({ client, user, onSaved, align = 'start', viaServeur = false }) {
   const [saving, setSaving] = useState(false);
   const [ok, setOk] = useState(false);
   const [demande, setDemande] = useState(null); // { statut, type }
@@ -49,7 +49,15 @@ export default function StatutInline({ client, user, onSaved, align = 'start' })
       if (statut === 'Injoignable') {
         updates.nb_tentatives_contact = (client.nb_tentatives_contact || 0) + 1;
       }
-      await base44.entities.client.update(client.id, updates);
+      if (viaServeur) {
+        // Partie SAV : le chef d'atelier ne porte pas la fiche (elle n'est assignée à
+        // personne). L'enregistrement passe par le serveur, qui vérifie son périmètre.
+        const res = await base44.functions.invoke('maj_statut_sav', { client_id: client.id, updates })
+          .catch((e) => ({ data: { error: e?.response?.data?.error || 'Enregistrement impossible' } }));
+        if (res?.data?.error) throw new Error(res.data.error);
+      } else {
+        await base44.entities.client.update(client.id, updates);
+      }
       invalider('client'); // la liste partagée doit refléter le nouveau statut
       // Badges : toujours pour le commercial affecté au client (la fiche fait foi).
       const assignes = client.commerciaux_assignes || [];

@@ -15,7 +15,8 @@ const LIGHT = [
   'commerciaux_assignes', 'base_responsable_id', 'base_id',
   'tel_mobile', 'adresse_complete', 'type_client_mistra',
   'usages', 'secteur', 'departement', 'parc_total', 'parc_pictos',
-  'priorite_commercial', 'sources_agri_precision'
+  'priorite_commercial', 'sources_agri_precision',
+  'cible_atelier', 'site_atelier', 'offres_sav'
 ];
 const pick = (c) => { const o = {}; for (const k of LIGHT) o[k] = c[k]; return o; };
 
@@ -100,6 +101,12 @@ export default async function(req) {
       raw = await lireTout((skip) => sr.entities.client.filter(filtre, 'id', CHUNK, skip), limit);
     } else if (perimetre) {
       const filtre = filtreClientsPerimetre(perimetre);
+      // Chef d'atelier : il voit en plus les cibles de la partie SAV de son site (fichier
+      // atelier de l'opération 50 ans). Ces fiches ne sont dans aucun portefeuille
+      // commercial ; celles qui y sont déjà restent visibles par le commercial, donc par les deux.
+      if (user.app_role === 'chef_atelier' && (perimetre.sites || []).length > 0) {
+        filtre.$or.push({ cible_atelier: true, site_atelier: { $in: perimetre.sites } });
+      }
       raw = await lireTout((skip) => sr.entities.client.filter(filtre, 'id', CHUNK, skip), limit);
     } else {
       // Ses clients : ceux qui lui sont assignés, et ceux de son secteur — au cas

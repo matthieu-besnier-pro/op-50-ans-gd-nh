@@ -23,6 +23,7 @@ const ALL_FIELDS = [
   { key: 'temps_moyen_entre_deux_achats', label: 'Délai entre achats (ans)' },
   { key: 'prochain_achat', label: 'Prochain achat' },
   { key: 'date_fin_vie', label: 'Fin de vie estimée' },
+  { key: 'offre_sav', label: 'Offre SAV' },
 ];
 
 function formatValue(field, val) {
@@ -146,6 +147,12 @@ export default function ParcMaterielTable({ materiels }) {
                             {/* Démarcation Agriculture de précision sur les machines envoyées pour l'agri précision */}
                             {m.agri_precision && m.usage !== 'agri_precision' && <UsageChip usage="agri_precision" />}
                             {m.usage && <UsageChip usage={m.usage} />}
+                            {/* Offre SAV à proposer sur cette machine (partie SAV OP 50 ans) */}
+                            {m.offre_sav && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-fuchsia-300 bg-fuchsia-50 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-700">
+                                <span role="img" aria-hidden="true">🔧</span> Offre SAV : {m.offre_sav}
+                              </span>
+                            )}
                           </p>
                           <p className="text-xs text-muted-foreground">{m.categorie_2 || m.categorie_1 || m.famille_materiel || categorieMeta(m.categorie_op).label}</p>
                         </div>
