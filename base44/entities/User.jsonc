@@ -16,7 +16,10 @@
       "enum": [
         "commercial",
         "commercial_chef_atelier",
+        "agri_precision",
         "responsable",
+        "chef_atelier",
+        "responsable_sav",
         "direction",
         "collaborateur"
       ],
@@ -24,7 +27,10 @@
       "enumNames": [
         "Commercial",
         "Chef d'atelier + Commercial",
+        "Agriculture de pr\u00e9cision",
         "Responsable commercial",
+        "Chef d'atelier",
+        "Responsable SAV",
         "Direction / Marketing",
         "Collaborateur"
       ],
@@ -33,13 +39,6 @@
     "base_id": {
       "type": "string",
       "description": "Base de rattachement (r\u00f4le Commercial)"
-    },
-    "codes_communes": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Codes communes g\u00e9r\u00e9s par le commercial (affectation g\u00e9ographique)"
     }
   },
   "required": []
