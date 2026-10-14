@@ -19,7 +19,11 @@ export default function MonEquipe() {
   const persona = useDemoPersona();
   // Le responsable SAV encadre des chefs d'atelier : le vocabulaire doit suivre,
   // qu'on soit connecté comme lui ou qu'on le visionne en « Voir en tant que ».
-  const estSav = (user?.app_role || '') === 'responsable_sav' || persona.mode === 'atelier';
+  // La Direction demande explicitement la vue SAV par l'adresse (?sav=1) : on
+  // ne peut pas la déduire de son rôle, qui voit tout.
+  const savDemande = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('sav') === '1';
+  const estSav = (user?.app_role || '') === 'responsable_sav' || persona.mode === 'atelier' || savDemande;
   const stats = useOperationStats();
   // Liste des statuts administrée par la Direction (Administration → Statuts).
   const statuts = useStatuts();
@@ -63,6 +67,27 @@ export default function MonEquipe() {
           listerPartage('vente', '-date_vente', 1000)
         ]);
         setClients(allClients.filter(persona.matchClient));
+        setRdvs(allRdvs.filter((r) => ids.includes(r.commercial_id)));
+        setVentes(allVentes.filter((v) => ids.includes(v.commercial_id)));
+        return;
+      }
+
+      // Direction : l'équipe SAV complète, sans persona.
+      if (savDemande && !persona.mode) {
+        const res = await base44.functions.invoke('lister_equipe', { sav: true });
+        const membres = (res.data?.members || []).map((m) => ({
+          id: m.id, user_id: m.user_id || m.id, nom: null,
+          full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '',
+          sites: m.sites || null
+        }));
+        setCommerciaux(membres);
+        const ids = membres.map((m) => m.id);
+        const [allClients, allRdvs, allVentes] = await Promise.all([
+          fetchClients().then((r) => r.clients),
+          listerPartage('rdv', '-date_heure', 1000),
+          listerPartage('vente', '-date_vente', 1000)
+        ]);
+        setClients(allClients);
         setRdvs(allRdvs.filter((r) => ids.includes(r.commercial_id)));
         setVentes(allVentes.filter((v) => ids.includes(v.commercial_id)));
         return;
@@ -130,7 +155,7 @@ export default function MonEquipe() {
     }
   };
 
-  useEffect(() => { load(); }, [persona.mode, persona.ids.join(',')]);
+  useEffect(() => { load(); }, [persona.mode, persona.ids.join(','), savDemande]);
 
   useEffect(() => {
     if (!estSav) return;
@@ -244,7 +269,9 @@ export default function MonEquipe() {
     <Layout>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-gd-navy-dark">{estSav ? 'Mon équipe SAV' : 'Mon équipe'}</h1>
+          <h1 className="text-2xl font-extrabold text-gd-navy-dark">
+            {savDemande && !persona.mode ? 'Équipe SAV' : estSav ? 'Mon équipe SAV' : 'Mon équipe'}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {/* Un responsable SAV encadre des chefs d'atelier, pas des commerciaux. */}
             {commerciaux.length} {estSav

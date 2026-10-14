@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import {
   Briefcase, Users, Calendar, LayoutDashboard,
@@ -43,6 +43,9 @@ const navItems = [
   // des chefs d'atelier, il la cherche dans le bloc Atelier, pas dans l'activité
   // commerciale. Les deux entrées ne coexistent jamais : chacune a son rôle.
   { to: '/equipe', label: 'Mon équipe SAV', icon: Users, roles: ['responsable_sav'], section: 'atelier' },
+  // La Direction y accède sans se mettre à la place d'un responsable : tous les
+  // chefs d'atelier, tous ateliers confondus.
+  { to: '/equipe?sav=1', label: 'Équipe SAV', icon: Users, roles: ['direction'], section: 'atelier' },
   { to: '/lancement', label: 'Lancement', icon: Rocket, roles: ['direction'], section: 'admin' },
   { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'], section: 'admin' },
   { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'], section: 'admin' },
@@ -52,6 +55,9 @@ const navItems = [
 export default function Layout({ children }) {
   const { user, logout, viewAsRole, setViewAsRole, viewAsCommercial, setViewAsCommercial, viewAsManager, setViewAsManager, viewAsReferent, setViewAsReferent } = useAuth();
   const navigate = useNavigate();
+  // Paramètres de l'adresse : deux entrées de menu partagent la route /equipe et
+  // ne se distinguent que par eux.
+  const recherche = useLocation().search || '';
   const [mobileOpen, setMobileOpen] = useState(false);
   // Panneau replié : mémorisé sur le poste, pour retrouver sa mise en page.
   const [replie, setReplie] = useState(() => {
@@ -154,10 +160,13 @@ export default function Layout({ children }) {
                     onClick={() => setMobileOpen(false)}
                     title={replie ? item.label : undefined}
                     className={({ isActive }) =>
+                      // Deux entrées partagent la route /equipe et ne se
+                      // distinguent que par leur paramètre : sans ce contrôle,
+                      // la Direction verrait les deux surlignées à la fois.
                       `group flex items-center rounded-lg py-2.5 text-sm font-medium transition-all ${
                         replie ? 'justify-center px-2' : 'gap-3 px-3'
                       } ${
-                        isActive
+                        isActive && (item.to.split('?')[1] || '') === recherche.replace('?', '')
                           ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
                           : 'text-sidebar-foreground/80 hover:bg-white/5 hover:text-white'
                       }`

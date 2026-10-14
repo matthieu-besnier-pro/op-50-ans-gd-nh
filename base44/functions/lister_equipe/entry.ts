@@ -66,7 +66,15 @@ export default async function(req) {
     // connecté — et affichait une équipe vide.
     const sitesDemandes = Array.isArray(body?.sites) ? body.sites.filter(Boolean) : [];
 
-    if (isAdmin && sitesDemandes.length > 0) {
+    // La Direction veut voir l'équipe SAV complète, sans se mettre à la place de
+    // personne : tous les chefs d'atelier, de tous les ateliers.
+    if (isAdmin && body?.sav === true && sitesDemandes.length === 0) {
+      const bases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
+      const allUsers = await sr.entities.User.list('-created_date', 500);
+      teamMembers = effectifChefs(bases, allUsers);
+      teamBaseIds = bases.map((b) => b.id).filter(Boolean);
+      fiches = [];
+    } else if (isAdmin && sitesDemandes.length > 0) {
       const bases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
       const vises = new Set(sitesDemandes.map(cleSite));
       const mesBases = (bases || []).filter((b) => vises.has(cleSite(b.nom)));
