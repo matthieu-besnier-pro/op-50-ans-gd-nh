@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre } from '../../shared/perimetre.ts';
+import { STATUT_CONTACT_ATELIER, STATUT_CONTACT_ATELIER_REFUS } from '../../shared/atelier.ts';
 
 // Comptages EXACTS de l'opération, calculés côté serveur en parcourant l'intégralité
 // des données : les pages n'affichent plus de totaux issus de listes tronquées
@@ -119,6 +120,14 @@ export default async function (req) {
     let prioTotal = 0, prioAContacter = 0, prioRdv = 0, prioVente = 0;
     const prioParCommercial = {};
 
+    // Partie SAV : les contacts pris par les ateliers, pour le Grand Écran.
+    // Le marquage n'enregistre pas QUI l'a posé, seulement le client et son
+    // site : le comptage se fait donc par atelier, ce qui est aussi la maille
+    // demandée (« les contacts pris par les ateliers »).
+    let atelierCibles = 0, atelierContactes = 0, atelierOk = 0, atelierRefus = 0;
+    const atelierParSite = {};
+    const atelierRecents = [];
+
     clients.forEach((c) => {
       const st = c.statut || '(non renseigné)';
       parStatut[st] = (parStatut[st] || 0) + 1;
@@ -134,6 +143,29 @@ export default async function (req) {
           if (st !== 'À contacter') e.traites += 1;
         });
       }
+      if (c.cible_atelier) {
+        atelierCibles += 1;
+        const site = String(c.site_atelier || '').trim() || 'Sans site';
+        const e = (atelierParSite[site] = atelierParSite[site] || { cibles: 0, contactes: 0, ok: 0, refus: 0 });
+        e.cibles += 1;
+        // Le suivi courant ET les suivis déjà obtenus : le statut n'en garde qu'un.
+        const suivis = [st, ...(Array.isArray(c.rdv_obtenus) ? c.rdv_obtenus : [])];
+        const ok = suivis.includes(STATUT_CONTACT_ATELIER);
+        const refus = !ok && suivis.includes(STATUT_CONTACT_ATELIER_REFUS);
+        if (ok || refus) {
+          e.contactes += 1;
+          atelierContactes += 1;
+          if (ok) { e.ok += 1; atelierOk += 1; } else { e.refus += 1; atelierRefus += 1; }
+          atelierRecents.push({
+            id: c.id,
+            nom: c.raison_sociale || '',
+            site,
+            refus,
+            date: c.updated_date || c.date_dernier_contact || ''
+          });
+        }
+      }
+
       const ap = c.niveau_appetence || 'Non évalué';
       parAppetence[ap] = (parAppetence[ap] || 0) + 1;
 
@@ -399,6 +431,18 @@ export default async function (req) {
         par_secteur: parSecteur
       },
       parc: { total: parcTotal, par_categorie: parCategorie },
+      atelier: {
+        cibles: atelierCibles,
+        contactes: atelierContactes,
+        ok: atelierOk,
+        refus: atelierRefus,
+        restants: Math.max(atelierCibles - atelierContactes, 0),
+        par_site: atelierParSite,
+        // Les plus récents d'abord, pour le fil du Grand Écran.
+        recents: atelierRecents
+          .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+          .slice(0, 12)
+      },
       rdv: {
         total: rdvs.length - rdvAnnules, // les annulés sont soustraits
         annules: rdvAnnules,

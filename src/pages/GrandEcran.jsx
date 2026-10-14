@@ -8,8 +8,8 @@ import confetti from 'canvas-confetti';
 import { jouerAcclamation, debloquerSon, sonDebloque, sourceSon, enSourdine, basculerSourdine } from '@/lib/acclamation';
 import OpLogo from '@/components/OpLogo';
 import {
-  Zap, Trophy, Wrench, Flame, Award, Clock, Target,
-  Users, Star, CalendarCheck, TrendingUp, Sparkles, X, Satellite, Volume2, VolumeX
+  Zap, Trophy, Wrench, Flame, Target,
+  CalendarCheck, Sparkles, X, Satellite, Volume2, VolumeX
 } from 'lucide-react';
 
 /* ---------- Célébration ---------- */
@@ -73,11 +73,11 @@ function ProgressRing({ value, max, size = 220, stroke = 18, color = 'hsl(45 100
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <AnimatedCounter value={value} className="text-6xl font-extrabold text-white tabular-nums" />
-          {sublabel && <span className="text-sm font-medium text-white/50 mt-0.5">/ {max} {sublabel}</span>}
+          <AnimatedCounter value={value} className={`font-extrabold text-white tabular-nums ${size >= 160 ? 'text-6xl' : 'text-3xl'}`} />
+          {sublabel && <span className={`font-medium text-white/50 ${size >= 160 ? 'text-sm mt-0.5' : 'text-[10px]'}`}>/ {max} {sublabel}</span>}
         </div>
       </div>
-      {label && <span className="mt-3 text-sm font-bold uppercase tracking-widest text-white/70">{label}</span>}
+      {label && <span className={`font-bold uppercase tracking-widest text-white/70 ${size >= 160 ? 'mt-3 text-sm' : 'mt-1.5 text-[10px]'}`}>{label}</span>}
     </div>
   );
 }
@@ -92,10 +92,16 @@ const MARCHES = [
   { rang: 3, medaille: '🥉', hauteur: 56, socle: 'from-amber-600/30 to-amber-800/5', bord: 'border-amber-500/40' }
 ];
 
-function Podium({ entrees, unite, compact }) {
-  const t = compact
-    ? { medaille1: 'text-3xl', medaille: 'text-2xl', nom1: 'text-base', nom: 'text-sm', chiffre1: 'text-4xl', chiffre: 'text-2xl', marche: 0.7, marge: 'mb-3' }
-    : { medaille1: 'text-4xl', medaille: 'text-3xl', nom1: 'text-lg', nom: 'text-base', chiffre1: 'text-5xl', chiffre: 'text-3xl', marche: 1, marge: 'mb-5' };
+// Trois tailles : l'écran porte maintenant deux classements, le podium doit
+// savoir se faire petit pour laisser la grille tenir sans défilement.
+const TAILLES_PODIUM = {
+  grand: { medaille1: 'text-4xl', medaille: 'text-3xl', nom1: 'text-lg', nom: 'text-base', chiffre1: 'text-5xl', chiffre: 'text-3xl', rang: 'text-2xl', marche: 1, marge: 'mb-5' },
+  moyen: { medaille1: 'text-3xl', medaille: 'text-2xl', nom1: 'text-base', nom: 'text-sm', chiffre1: 'text-4xl', chiffre: 'text-2xl', rang: 'text-lg', marche: 0.7, marge: 'mb-3' },
+  petit: { medaille1: 'text-2xl', medaille: 'text-xl', nom1: 'text-sm', nom: 'text-xs', chiffre1: 'text-3xl', chiffre: 'text-xl', rang: 'text-sm', marche: 0.45, marge: 'mb-2' }
+};
+
+function Podium({ entrees, unite, taille = 'grand' }) {
+  const t = TAILLES_PODIUM[taille] || TAILLES_PODIUM.grand;
   return (
     <div className={`flex items-end justify-center gap-3 shrink-0 ${t.marge}`}>
       {MARCHES.map((m) => {
@@ -126,7 +132,7 @@ function Podium({ entrees, unite, compact }) {
             >
               {/* Chiffre décoratif : la marche la plus basse est courte, il doit
                   y tenir sans déborder. */}
-              <span className={`font-black leading-none text-white/25 ${compact ? 'text-lg' : 'text-2xl'}`}>{m.rang}</span>
+              <span className={`font-black leading-none text-white/25 ${t.rang}`}>{m.rang}</span>
             </div>
           </motion.div>
         );
@@ -139,9 +145,9 @@ function Podium({ entrees, unite, compact }) {
 // Densité des places 4 et suivantes. L'argument est le nombre de LIGNES de la
 // grille, pas le nombre de commerciaux : trois colonnes en logent trois.
 function densiteClassement(n) {
-  if (n <= 4) return { pad: 'px-4 py-4', gap: 'gap-3', rang: 'text-2xl w-9', nom: 'text-2xl', compteur: 'text-4xl', icone: 'h-6 w-6', grille: 'gap-3' };
-  if (n <= 7) return { pad: 'px-4 py-3', gap: 'gap-3', rang: 'text-xl w-8', nom: 'text-xl', compteur: 'text-3xl', icone: 'h-5 w-5', grille: 'gap-3' };
-  if (n <= 10) return { pad: 'px-3 py-2', gap: 'gap-2', rang: 'text-base w-6', nom: 'text-base', compteur: 'text-2xl', icone: 'h-4 w-4', grille: 'gap-2' };
+  if (n <= 3) return { pad: 'px-4 py-4', gap: 'gap-3', rang: 'text-2xl w-9', nom: 'text-2xl', compteur: 'text-4xl', icone: 'h-6 w-6', grille: 'gap-3' };
+  if (n <= 5) return { pad: 'px-4 py-3', gap: 'gap-3', rang: 'text-xl w-8', nom: 'text-xl', compteur: 'text-3xl', icone: 'h-5 w-5', grille: 'gap-3' };
+  if (n <= 8) return { pad: 'px-3 py-2', gap: 'gap-2', rang: 'text-base w-6', nom: 'text-base', compteur: 'text-2xl', icone: 'h-4 w-4', grille: 'gap-2' };
   return { pad: 'px-2.5 py-1.5', gap: 'gap-2', rang: 'text-sm w-5', nom: 'text-sm', compteur: 'text-xl', icone: 'h-3.5 w-3.5', grille: 'gap-1.5' };
 }
 
@@ -191,6 +197,88 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege })
   );
 }
 
+/* ---------- Briques partagées par les deux moitiés ---------- */
+
+// Compteur compact : l'écran accueille deux univers, les gros pavés verticaux
+// d'origine ne tiennent plus.
+function Compteur({ Icone, valeur, libelle, couleur, fond }) {
+  return (
+    <div className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl ${fond} px-3 py-2`}>
+      <Icone className={`h-5 w-5 shrink-0 ${couleur}`} />
+      <div className="min-w-0">
+        <p className={`text-2xl font-extrabold leading-none ${couleur}`}><AnimatedCounter value={valeur} /></p>
+        <p className="mt-0.5 truncate text-[10px] uppercase tracking-wide text-white/40">{libelle}</p>
+      </div>
+    </div>
+  );
+}
+
+// Podium + grille. Commerce et ateliers s'affichent avec la MÊME brique : c'est
+// ce qui fait que les deux moitiés se lisent pareil.
+function BlocClassement({ liste, unite, abrege, prevRanks, vide }) {
+  if (liste.length === 0) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
+        <Flame className="mb-3 h-10 w-10 text-gd-orange/40" />
+        <p className="text-base font-semibold text-white/60">{vide}</p>
+      </div>
+    );
+  }
+  const reste = liste.slice(3);
+  // Trois colonnes dès qu'il y a du monde : trois fois moins de lignes qu'une
+  // liste, donc des cartes plus grosses. En dessous de sept, deux colonnes
+  // rendent mieux que trois cartes esseulées sur la dernière ligne.
+  const colonnes = reste.length <= 6 ? 2 : 3;
+  const lignes = Math.ceil(reste.length / colonnes);
+  const d = densiteClassement(lignes);
+  return (
+    <div className={`flex min-h-0 flex-1 flex-col ${reste.length === 0 ? 'justify-center' : ''}`}>
+      <Podium entrees={liste.slice(0, 3)} unite={unite} taille={lignes <= 3 ? 'grand' : lignes <= 6 ? 'moyen' : 'petit'} />
+      {reste.length > 0 && (
+        <div className={`grid ${colonnes === 2 ? 'grid-cols-2' : 'grid-cols-3'} content-start ${d.grille} min-h-0 flex-1 overflow-y-auto pr-1`}>
+          <AnimatePresence>
+            {reste.map((entree, i) => (
+              <LeaderRow
+                key={entree.id}
+                rank={i + 4}
+                name={entree.name}
+                count={entree.count}
+                total={liste[0]?.count || 1}
+                isAtelier={entree.isAtelier}
+                prevRank={prevRanks[entree.id] || null}
+                d={d}
+                abrege={abrege && colonnes === 3}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Contact pris par un atelier : le client, son site, et l'issue de l'appel.
+function LigneContactAtelier({ contact }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+    >
+      <Wrench className={`h-4 w-4 shrink-0 ${contact.refus ? 'text-white/30' : 'text-gd-orange'}`} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold text-white">{contact.nom || 'Client'}</p>
+        <p className="truncate text-[10px] uppercase tracking-wide text-white/40">{contact.site}</p>
+      </div>
+      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+        contact.refus ? 'bg-white/10 text-white/50' : 'bg-gd-orange/20 text-gd-orange'
+      }`}>
+        {contact.refus ? 'Refus' : 'OK RDV'}
+      </span>
+    </motion.div>
+  );
+}
+
 /* ---------- Live feed item ---------- */
 function FeedItem({ rdv, clientName, userName, isNew }) {
   const isAtelier = rdv.type === 'RDV atelier hivernage';
@@ -199,19 +287,18 @@ function FeedItem({ rdv, clientName, userName, isNew }) {
       initial={{ opacity: 0, y: -15, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className={`flex items-center gap-3 rounded-xl px-4 py-3 ${isNew ? 'bg-gd-orange/20 border border-gd-orange/40' : 'bg-white/5 border border-white/5'}`}
+      className={`flex items-center gap-2.5 rounded-xl px-3 py-2 ${isNew ? 'bg-gd-orange/20 border border-gd-orange/40' : 'bg-white/5 border border-white/5'}`}
     >
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isAtelier ? 'bg-gd-orange/20 text-gd-orange' : 'bg-gd-navy/40 text-white'}`}>
-        {isAtelier ? <Wrench className="h-5 w-5" /> : <CalendarCheck className="h-5 w-5" />}
+      <div className={`flex h-4 w-4 shrink-0 items-center justify-center ${isAtelier ? 'text-gd-orange' : 'text-white/60'}`}>
+        {isAtelier ? <Wrench className="h-4 w-4" /> : <CalendarCheck className="h-4 w-4" />}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-white truncate">{clientName || 'Client'}</p>
-        <p className="text-xs text-white/50 truncate">{userName || 'Commercial'} · {rdv.type}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold text-white">{clientName || 'Client'}</p>
+        <p className="truncate text-[10px] uppercase tracking-wide text-white/40">{userName || 'Commercial'}</p>
       </div>
-      <div className="text-right shrink-0">
-        <p className="text-xs text-white/40">{rdv.date_heure ? new Date(rdv.date_heure).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''}</p>
-        <p className="text-xs text-white/40">{rdv.date_heure ? new Date(rdv.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
-      </div>
+      <p className="shrink-0 text-xs tabular-nums text-white/40">
+        {rdv.date_heure ? new Date(rdv.date_heure).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''}
+      </p>
     </motion.div>
   );
 }
@@ -224,8 +311,6 @@ export default function GrandEcran() {
   const [users, setUsers] = useState([]);
   const [structure, setStructure] = useState([]);
   const [clients, setClients] = useState({});
-  const [badgeObtenus, setBadgeObtenus] = useState([]);
-  const [badges, setBadges] = useState([]);
   const [now, setNow] = useState(new Date());
   const [prevRanks, setPrevRanks] = useState({});
   const [recentEvent, setRecentEvent] = useState(null);
@@ -264,14 +349,12 @@ export default function GrandEcran() {
       lancerConfettis();
     };
     try {
-      const [p, r, v, u, bo, st, bdg, statsRes] = await Promise.all([
+      const [p, r, v, u, st, statsRes] = await Promise.all([
         listerPartage('parametres_operation', '-created_date', 1),
         listerPartage('rdv', '-date_heure', 500),
         listerPartage('vente', '-date_vente', 500),
         listerPartage('User', '-created_date', 300).catch(() => []),
-        listerPartage('badge_obtenu', '-created_date', 100),
         listerPartage('structure_commerciale', '-nom_commercial', 200),
-        listerPartage('badge', '-created_date', 50).catch(() => []),
         fetchOperationStats()
       ]);
 
@@ -307,8 +390,6 @@ export default function GrandEcran() {
       setVentes(v);
       setUsers(u);
       setStructure(st);
-      setBadgeObtenus(bo);
-      setBadges(bdg);
       // Une lecture de noms ratée laisse les précédents en place plutôt que de
       // vider les raisons sociales du feed.
       if (noms) setClients(noms);
@@ -394,24 +475,6 @@ export default function GrandEcran() {
     return m;
   }, [users, structure]);
 
-  // Catalogue des badges : id → { nom, icone }
-  const badgeMap = useMemo(() => {
-    const m = {};
-    badges.forEach(b => { m[b.id] = b; });
-    return m;
-  }, [badges]);
-
-  // Seuls les badges encore au catalogue sont affichés : les attributions d'anciens
-  // badges supprimés (reliquats) ne doivent plus apparaître sur le mur.
-  // Mur validé par le serveur : seuls les badges ENCORE mérités y figurent.
-  // L'écran se corrige donc tout seul si un RDV est annulé ou des données purgées,
-  // sans attendre qu'on lance un recalcul depuis l'administration.
-  const badgesAffiches = useMemo(
-    () => (exacts?.badges?.mur
-      ? exacts.badges.mur.filter((bo) => badgeMap[bo.badge_id])
-      : badgeObtenus.filter((bo) => badgeMap[bo.badge_id])),
-    [exacts, badgeObtenus, badgeMap]
-  );
 
   // Phase detection
   const phase = useMemo(() => {
@@ -471,6 +534,27 @@ export default function GrandEcran() {
     entries.sort((a, b) => b.count - a.count);
     return entries;
   }, [exacts, sprintRdvs, nameMap]);
+
+  // Les contacts pris par les ateliers. Le marquage n'enregistre pas QUI l'a
+  // posé, seulement le client et son site : le classement se fait donc par
+  // atelier, ce qui est aussi la maille demandée.
+  const atelier = exacts?.atelier || { cibles: 0, contactes: 0, ok: 0, refus: 0, restants: 0, par_site: {}, recents: [] };
+
+  const classementAteliers = useMemo(() => {
+    const sites = exacts?.atelier?.par_site || {};
+    return Object.entries(sites)
+      .map(([site, v]) => ({ id: site, name: site, count: v.contactes || 0 }))
+      .filter((e) => e.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }, [exacts]);
+
+  const [prevRangsAtelier, setPrevRangsAtelier] = useState({});
+  useEffect(() => {
+    const nouveaux = {};
+    classementAteliers.forEach((e, i) => { nouveaux[e.id] = i + 1; });
+    const t = setTimeout(() => setPrevRangsAtelier(nouveaux), 3000);
+    return () => clearTimeout(t);
+  }, [classementAteliers]);
 
   // Track rank changes
   useEffect(() => {
@@ -597,169 +681,117 @@ export default function GrandEcran() {
         </div>
       </header>
 
-      {/* Sprint / Ventes phase */}
-      <div className="relative z-10 grid grid-cols-12 gap-6 px-8 py-6" style={{ minHeight: 'calc(100vh - 88px)' }}>
-          {/* Left column - Rings & stats */}
-          <div className="col-span-3 flex flex-col gap-6">
-            <div className="flex flex-col items-center rounded-3xl bg-white/5 border border-white/10 p-6">
-              {phase === 'sprint' ? (
-                <>
-                  <ProgressRing value={sprintRdvCount} max={objRdv} label="RDV Sprint" sublabel={`objectif`} />
-                  <div className="mt-6 grid grid-cols-3 gap-3 w-full">
-                    <div className="rounded-2xl bg-gd-navy/40 p-3 text-center">
-                      <CalendarCheck className="h-5 w-5 mx-auto text-white/60 mb-1" />
-                      <p className="text-2xl font-extrabold text-white"><AnimatedCounter value={sprintCommercialCount} /></p>
-                      <p className="text-xs text-white/40 uppercase tracking-wide">Matériel</p>
-                    </div>
-                    <div className="rounded-2xl bg-gd-orange/15 p-3 text-center">
-                      <Wrench className="h-5 w-5 mx-auto text-gd-orange mb-1" />
-                      <p className="text-2xl font-extrabold text-gd-orange"><AnimatedCounter value={sprintAtelierCount} /></p>
-                      <p className="text-xs text-white/40 uppercase tracking-wide">Atelier</p>
-                    </div>
-                    <div className="rounded-2xl bg-emerald-500/15 p-3 text-center">
-                      <Satellite className="h-5 w-5 mx-auto text-emerald-400 mb-1" />
-                      <p className="text-2xl font-extrabold text-emerald-400"><AnimatedCounter value={sprintAgriCount} /></p>
-                      <p className="text-xs text-white/40 uppercase tracking-wide">Agri. précision</p>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <ProgressRing value={exacts?.ventes?.validees ?? ventesValidees.length} max={params?.objectif_ventes || 50} label="Ventes validées" sublabel="objectif" />
-                  <div className="mt-6 grid grid-cols-2 gap-3 w-full">
-                    <div className="rounded-2xl bg-gd-navy/40 p-3 text-center">
-                      <Trophy className="h-5 w-5 mx-auto text-white/60 mb-1" />
-                      <p className="text-2xl font-extrabold text-white"><AnimatedCounter value={ventesValidees.length} /></p>
-                      <p className="text-xs text-white/40 uppercase tracking-wide">Validées</p>
-                    </div>
-                    <div className="rounded-2xl bg-gd-orange/15 p-3 text-center">
-                      <Target className="h-5 w-5 mx-auto text-gd-orange mb-1" />
-                      <p className="text-2xl font-extrabold text-gd-orange"><AnimatedCounter value={ventes.filter(v => v.statut_validation === 'À valider').length} /></p>
-                      <p className="text-xs text-white/40 uppercase tracking-wide">À valider</p>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+      {/* Deux univers côte à côte, lus exactement de la même façon : compteurs,
+          podium, classement, fil en direct. Le commerce à gauche — inchangé dans
+          son fonctionnement — et les contacts des ateliers à droite. */}
+      <div
+        className="relative z-10 grid grid-cols-12 gap-5 px-6 pb-5 pt-1"
+        style={{ height: 'calc(100vh - 88px)' }}
+      >
+        {/* ---------- Moitié COMMERCE ---------- */}
+        <section className="col-span-6 flex min-h-0 flex-col gap-3 rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="flex shrink-0 items-center justify-between">
+            <h2 className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-wider text-white">
+              <Trophy className="h-6 w-6 text-gd-orange" />
+              {phase === 'sprint' ? 'Commerce — RDV pris' : 'Commerce — ventes'}
+            </h2>
+            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-gd-orange">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-gd-orange" /> Temps réel
+            </span>
+          </div>
 
-            {/* Badges unlocked */}
-            <div className="rounded-3xl bg-white/5 border border-white/10 p-5 flex-1">
-              <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/70 mb-3">
-                <Award className="h-4 w-4 text-gd-orange" /> Badges débloqués
-              </h3>
-              {/* Deux colonnes : deux fois plus de badges visibles. */}
-              <div className="grid grid-cols-2 gap-2">
-                {badgesAffiches.length === 0 ? (
-                  <p className="col-span-2 text-sm text-white/40 py-4 text-center">Aucun badge encore — que le sprint commence !</p>
+          <div className="flex shrink-0 items-center gap-3">
+            {phase === 'sprint' ? (
+              <>
+                <ProgressRing value={sprintRdvCount} max={objRdv} size={96} stroke={9} label="RDV Sprint" sublabel="obj." />
+                <Compteur Icone={CalendarCheck} valeur={sprintCommercialCount} libelle="Matériel" couleur="text-white" fond="bg-gd-navy/40" />
+                <Compteur Icone={Wrench} valeur={sprintAtelierCount} libelle="Atelier" couleur="text-gd-orange" fond="bg-gd-orange/15" />
+                <Compteur Icone={Satellite} valeur={sprintAgriCount} libelle="Agri. précision" couleur="text-emerald-400" fond="bg-emerald-500/15" />
+              </>
+            ) : (
+              <>
+                <ProgressRing value={exacts?.ventes?.validees ?? ventesValidees.length} max={params?.objectif_ventes || 50} size={96} stroke={9} label="Ventes" sublabel="obj." />
+                <Compteur Icone={Trophy} valeur={ventesValidees.length} libelle="Validées" couleur="text-white" fond="bg-gd-navy/40" />
+                <Compteur Icone={Target} valeur={ventes.filter((v) => v.statut_validation === 'À valider').length} libelle="À valider" couleur="text-gd-orange" fond="bg-gd-orange/15" />
+              </>
+            )}
+          </div>
+
+          <BlocClassement
+            liste={phase === 'sprint' ? leaderboard : ventesLeaderboard}
+            unite={phase === 'sprint' ? 'RDV' : 'ventes'}
+            abrege
+            prevRanks={prevRanks}
+            vide="En attente du premier RDV…"
+          />
+
+          <div className="shrink-0">
+            <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/50">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> Derniers RDV
+            </h3>
+            <div className="space-y-2">
+              <AnimatePresence initial={false}>
+                {liveFeed.length === 0 ? (
+                  <p className="py-3 text-center text-sm text-white/40">Pas encore de RDV enregistré.</p>
                 ) : (
-                  badgesAffiches.slice(0, 12).map((bo, i) => {
-                    const b = badgeMap[bo.badge_id];
-                    return (
-                      <motion.div key={bo.id || i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                        className="flex items-center gap-2 rounded-xl bg-gd-orange/10 border border-gd-orange/20 px-2.5 py-2">
-                        <span className="text-xl shrink-0">{b?.icone || '🏆'}</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-white truncate">{b?.nom || 'Badge'}</p>
-                          <p className="text-[11px] text-white/60 truncate">{nameMap[bo.utilisateur_id] || 'Commercial'}</p>
-                        </div>
-                      </motion.div>
-                    );
-                  })
+                  liveFeed.slice(0, 3).map((rdv) => (
+                    <FeedItem
+                      key={rdv.id}
+                      rdv={rdv}
+                      clientName={clients[rdv.client_id]?.raison_sociale}
+                      userName={nameMap[rdv.commercial_id]}
+                      isNew={recentEvent?.data?.id === rdv.id}
+                    />
+                  ))
                 )}
-              </div>
+              </AnimatePresence>
             </div>
+          </div>
+        </section>
+
+        {/* ---------- Moitié ATELIERS ---------- */}
+        <section className="col-span-6 flex min-h-0 flex-col gap-3 rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="flex shrink-0 items-center justify-between">
+            <h2 className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-wider text-white">
+              <Wrench className="h-6 w-6 text-gd-orange" /> Ateliers — contacts pris
+            </h2>
+            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-gd-orange">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-gd-orange" /> Temps réel
+            </span>
           </div>
 
-          {/* Center column - Leaderboard */}
-          <div className="col-span-6 flex flex-col">
-            <div className="rounded-3xl bg-white/5 border border-white/10 p-6 flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-wider text-white">
-                  <Trophy className="h-6 w-6 text-gd-orange" /> Classement Live
-                </h2>
-                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-gd-orange">
-                  <span className="h-2 w-2 rounded-full bg-gd-orange animate-pulse" /> Temps réel
-                </span>
-              </div>
-              {/* Podium pour les trois premiers, puis les suivants en grille :
-                  plus lisible de loin qu'une longue liste, et tout le monde
-                  tient à l'écran sans défilement. */}
-              {(() => {
-                const liste = phase === 'sprint' ? leaderboard : ventesLeaderboard;
-                const unite = phase === 'sprint' ? 'RDV' : 'ventes';
-                if (liste.length === 0) {
-                  return (
-                    <div className="flex flex-1 flex-col items-center justify-center text-center">
-                      <Flame className="h-12 w-12 text-gd-orange/50 mb-3" />
-                      <p className="text-lg font-semibold text-white/60">En attente du premier RDV…</p>
-                      <p className="text-sm text-white/40 mt-1">Que la meilleure équipe gagne !</p>
-                    </div>
-                  );
-                }
-                const reste = liste.slice(3);
-                // Trois colonnes dès qu'il y a du monde : trois fois moins de
-                // lignes qu'une liste, donc des cartes bien plus grosses et
-                // aucun défilement. En dessous de sept, deux colonnes rendent
-                // mieux que trois cartes esseulées sur la dernière ligne.
-                const colonnes = reste.length <= 6 ? 2 : 3;
-                const lignes = Math.ceil(reste.length / colonnes);
-                const d = densiteClassement(lignes);
-                return (
-                  // Tant qu'il n'y a que trois commerciaux classés, le podium
-                  // se cale au centre plutôt que de flotter en haut du cadre.
-                  <div className={`flex flex-1 flex-col min-h-0 ${reste.length === 0 ? 'justify-center' : ''}`}>
-                    <Podium entrees={liste.slice(0, 3)} unite={unite} compact={lignes > 8} />
-                    {reste.length > 0 && (
-                      <div className={`grid ${colonnes === 2 ? 'grid-cols-2' : 'grid-cols-3'} content-start ${d.grille} flex-1 overflow-y-auto pr-1`}>
-                        <AnimatePresence>
-                          {reste.map((entry, i) => (
-                            <LeaderRow
-                              key={entry.id}
-                              rank={i + 4}
-                              name={entry.name}
-                              count={entry.count}
-                              total={liste[0]?.count || 1}
-                              isAtelier={entry.isAtelier}
-                              prevRank={prevRanks[entry.id] || null}
-                              d={d}
-                              abrege={colonnes === 3}
-                            />
-                          ))}
-                        </AnimatePresence>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <ProgressRing value={atelier.contactes} max={atelier.cibles || 1} size={96} stroke={9} label="Contacts" sublabel="ciblés" />
+            <Compteur Icone={CalendarCheck} valeur={atelier.ok} libelle="OK pour un RDV" couleur="text-gd-orange" fond="bg-gd-orange/15" />
+            <Compteur Icone={X} valeur={atelier.refus} libelle="Refus" couleur="text-white/70" fond="bg-white/5" />
+            <Compteur Icone={Target} valeur={atelier.restants} libelle="À contacter" couleur="text-white" fond="bg-gd-navy/40" />
           </div>
 
-          {/* Right column - Live feed */}
-          <div className="col-span-3 flex flex-col">
-            <div className="rounded-3xl bg-white/5 border border-white/10 p-5 flex-1 flex flex-col">
-              <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/70 mb-4">
-                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /> Feed en direct
-              </h3>
-              <div className="space-y-2.5 overflow-hidden flex-1">
-                <AnimatePresence initial={false}>
-                  {liveFeed.length === 0 ? (
-                    <p className="text-sm text-white/40 py-8 text-center">Pas encore de RDV enregistré.</p>
-                  ) : (
-                    liveFeed.map((rdv) => (
-                      <FeedItem
-                        key={rdv.id}
-                        rdv={rdv}
-                        clientName={clients[rdv.client_id]?.raison_sociale}
-                        userName={nameMap[rdv.commercial_id]}
-                        isNew={recentEvent?.data?.id === rdv.id}
-                      />
-                    ))
-                  )}
-                </AnimatePresence>
-              </div>
+          <BlocClassement
+            liste={classementAteliers}
+            unite="contacts"
+            prevRanks={prevRangsAtelier}
+            vide="En attente du premier contact atelier…"
+          />
+
+          <div className="shrink-0">
+            <h3 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/50">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> Derniers contacts
+            </h3>
+            <div className="space-y-2">
+              <AnimatePresence initial={false}>
+                {(atelier.recents || []).length === 0 ? (
+                  <p className="py-3 text-center text-sm text-white/40">Pas encore de contact atelier.</p>
+                ) : (
+                  atelier.recents.slice(0, 3).map((contact) => (
+                    <LigneContactAtelier key={contact.id} contact={contact} />
+                  ))
+                )}
+              </AnimatePresence>
             </div>
           </div>
-        </div>
+        </section>
+      </div>
 
       {/* New RDV celebration banner */}
       <AnimatePresence>
