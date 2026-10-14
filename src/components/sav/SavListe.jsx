@@ -38,7 +38,15 @@ export default function SavListe({ clients, onSaved, onPrendreRdv }) {
           {clients.map((c) => (
             <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
               <td className="px-4 py-3">
-                <p className="text-sm font-semibold text-foreground">{c.raison_sociale}</p>
+                {/* Le nom ouvre la fiche client complète. */}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/client/${c.id}`)}
+                  title="Ouvrir la fiche client"
+                  className="text-left text-sm font-semibold text-gd-navy transition-colors hover:text-gd-orange hover:underline"
+                >
+                  {c.raison_sociale}
+                </button>
                 <p className="text-xs text-muted-foreground">{c.tel_mobile || c.adresse_complete || '—'}</p>
               </td>
               <td className="px-4 py-3 text-xs text-muted-foreground">{c.site_atelier || c.secteur || '—'}</td>
