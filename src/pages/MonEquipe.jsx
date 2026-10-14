@@ -15,9 +15,10 @@ import { useStatuts, tonaliteDe } from '@/lib/statuts';
 
 export default function MonEquipe() {
   const { user } = useAuth();
-  // Le responsable SAV encadre des chefs d'atelier : le vocabulaire doit suivre.
-  const estSav = (user?.app_role || '') === 'responsable_sav';
   const persona = useDemoPersona();
+  // Le responsable SAV encadre des chefs d'atelier : le vocabulaire doit suivre,
+  // qu'on soit connecté comme lui ou qu'on le visionne en « Voir en tant que ».
+  const estSav = (user?.app_role || '') === 'responsable_sav' || persona.mode === 'atelier';
   const stats = useOperationStats();
   // Liste des statuts administrée par la Direction (Administration → Statuts).
   const statuts = useStatuts();
@@ -31,6 +32,29 @@ export default function MonEquipe() {
 
   const load = async () => {
     try {
+      // Persona « atelier » : l'équipe d'un responsable SAV, ce sont les CHEFS
+      // D'ATELIER de ses sites. Ils ne figurent pas dans la structure
+      // commerciale — on les demande au serveur, site par site. Sans cette
+      // branche, la page retombait sur le compte réellement connecté.
+      if (persona.mode === 'atelier') {
+        const res = await base44.functions.invoke('lister_equipe', { sites: persona.sites || [] });
+        const membres = (res.data?.members || []).map((m) => ({
+          id: m.id, user_id: m.id, nom: null,
+          full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || ''
+        }));
+        setCommerciaux(membres);
+        const ids = membres.map((m) => m.id);
+        const [allClients, allRdvs, allVentes] = await Promise.all([
+          fetchClients().then((r) => r.clients),
+          listerPartage('rdv', '-date_heure', 1000),
+          listerPartage('vente', '-date_vente', 1000)
+        ]);
+        setClients(allClients.filter(persona.matchClient));
+        setRdvs(allRdvs.filter((r) => ids.includes(r.commercial_id)));
+        setVentes(allVentes.filter((v) => ids.includes(v.commercial_id)));
+        return;
+      }
+
       // Demo mode (manager persona): use structure_commerciale instead of real users
       if (persona.mode === 'manager') {
         const teamRows = persona.structure.filter((s) => s.manager === persona.label?.replace('Équipe de ', ''));
@@ -213,7 +237,7 @@ export default function MonEquipe() {
           <thead>
             <tr className="border-b border-border bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">#</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Commercial</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">{estSav ? "Chef d'atelier" : 'Commercial'}</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Répartition clients</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">RDV (auj / mois)</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tx transfo</th>
@@ -224,7 +248,9 @@ export default function MonEquipe() {
             {loading ? (
               <tr><td colSpan={6}><Loader compact /></td></tr>
             ) : sorted.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">Aucun commercial dans l'équipe.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                {estSav ? "Aucun chef d'atelier rattaché à vos sites." : "Aucun commercial dans l'équipe."}
+              </td></tr>
             ) : sorted.map((r) => (
               <tr key={r.id} className="border-b border-border last:border-0 transition-all duration-500 hover:bg-muted/30">
                 <td className="px-4 py-3">

@@ -11,6 +11,7 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 });
 
     const sr = base44.asServiceRole;
+    const body = await req.json().catch(() => ({}));
     const appRole = user.app_role || 'collaborateur';
     const isAdmin = user.role === 'admin' || appRole === 'direction';
 
@@ -26,7 +27,22 @@ export default async function(req) {
     // fiches concernées. null = aucune restriction (Direction).
     let fiches = null;
 
-    if (isAdmin) {
+    // « Voir en tant que » un référent d'atelier : la Direction demande l'équipe
+    // de sites précis. Sans cela la page retombait sur le compte réellement
+    // connecté — et affichait une équipe vide.
+    const sitesDemandes = Array.isArray(body?.sites) ? body.sites.filter(Boolean) : [];
+
+    if (isAdmin && sitesDemandes.length > 0) {
+      const bases = await sr.entities.base.list('nom', 500).catch(() => []);
+      const vises = new Set(sitesDemandes.map(cleSite));
+      const mesBases = (bases || []).filter((b) => vises.has(cleSite(b.nom)));
+      const noms = [...new Set(mesBases.flatMap((b) => (b.chefs_atelier || []).filter(Boolean)))];
+      const allUsers = await sr.entities.User.list('-created_date', 500);
+      const ids = new Set(comptesDesChefs(noms, allUsers).ids);
+      teamMembers = allUsers.filter((u) => ids.has(u.id));
+      teamBaseIds = mesBases.map((b) => b.id);
+      fiches = [];
+    } else if (isAdmin) {
       const allBases = await sr.entities.base.list('-nom', 100);
       teamBaseIds = allBases.map((b) => b.id);
       const allUsers = await sr.entities.User.list('-created_date', 200);
