@@ -5,6 +5,9 @@ import Loader from '@/components/Loader';
 import SavOffres from '@/components/sav/SavOffres';
 import SavListe from '@/components/sav/SavListe';
 import PortefeuilleFiltres from '@/components/PortefeuilleFiltres';
+import AjouterClientSavDialog from '@/components/sav/AjouterClientSavDialog';
+import { Button } from '@/components/ui/button';
+import { UserPlus } from 'lucide-react';
 import { categorieMeta } from '@/components/MaterielPicto';
 import { useDemoPersona } from '@/lib/useDemoPersona';
 import { useStatuts } from '@/lib/statuts';
@@ -38,6 +41,8 @@ export default function Sav() {
   const [filtre, setFiltre] = useState('toutes'); // cartes « offres SAV »
   // Filtres fins de la liste : les mêmes que la partie commerciale.
   const [filters, setFilters] = useState(FILTRES_INIT);
+  // Ajout manuel d'un client à cibler (avec l'offre SAV à lui proposer).
+  const [ajoutOpen, setAjoutOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -197,10 +202,29 @@ export default function Sav() {
         total={travail.length}
       />
 
+      {/* Ajout manuel d'un client absent de la liste, avec son offre SAV. */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Liste de travail SAV
+        </p>
+        <Button
+          onClick={() => setAjoutOpen(true)}
+          className="bg-gd-navy text-white hover:bg-gd-navy/90 font-semibold"
+        >
+          <UserPlus className="h-4 w-4 mr-1.5" /> Ajouter un client
+        </Button>
+      </div>
+
       <SavListe
         clients={liste}
         onSaved={load}
         nomCommerciaux={commercialNames}
+      />
+
+      <AjouterClientSavDialog
+        open={ajoutOpen}
+        onOpenChange={setAjoutOpen}
+        onCreated={() => load()}
       />
     </Layout>
   );
