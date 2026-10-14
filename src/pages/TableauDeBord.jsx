@@ -125,11 +125,18 @@ export default function TableauDeBord() {
   const rdvMoisPris = scopedRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart);
   // Chiffres exacts (comptages serveur) ; repli sur les listes chargées en attendant.
   const rdvMaterielMonth = exacts?.rdv?.operation?.commercial ?? exacts?.rdv?.commercial_pris_du_mois ?? rdvMoisPris.filter((r) => r.type !== 'RDV atelier hivernage' && r.type !== 'RDV agri. précision').length;
-  // RDV Atelier : les deux façons d'obtenir un rendez-vous se cumulent — celui posé
-  // dans l'agenda (« RDV Atelier obtenu ») et la marque du référent d'atelier
-  // (« Contacté par l'atelier OK pour un RDV »). Un client qui porte les deux
-  // mentions n'est compté qu'une fois.
-  const rdvAtelierObtenus = exacts?.atelier?.ok ?? exacts?.rdv?.operation?.atelier ?? rdvMoisPris.filter((r) => r.type === 'RDV atelier hivernage').length;
+  // RDV Atelier : exactement la règle du Grand Écran — les rendez-vous POSÉS
+  // dans l'agenda, PLUS les accords donnés au téléphone. Les deux comptent et
+  // s'additionnent. Les deux écrans doivent annoncer le même chiffre : il n'y a
+  // rien de pire qu'un tableau de bord qui contredit l'écran de la salle.
+  const rdvAtelierObtenus = exacts?.atelier
+    ? (exacts.atelier.rdv_pris || 0) + (exacts.atelier.ok || 0)
+    : (exacts?.rdv?.operation?.atelier ?? rdvMoisPris.filter((r) => r.type === 'RDV atelier hivernage').length);
+  // Sous le total « RDV », la ventilation doit s'ADDITIONNER pour faire ce
+  // total : on y met donc les rendez-vous d'atelier compris dans ce total, et
+  // non le score SAV ci-dessus, qui mêle rendez-vous et accords et déborde du
+  // périmètre commercial.
+  const rdvAtelierDansTotal = exacts?.rdv?.operation?.atelier ?? rdvMoisPris.filter((r) => r.type === 'RDV atelier hivernage').length;
   const rdvAgriMonth = exacts?.rdv?.operation?.agri ?? exacts?.rdv?.agri_pris_du_mois ?? rdvMoisPris.filter((r) => r.type === 'RDV agri. précision').length;
   const rdvTotalMonth = exacts?.rdv?.operation?.pris ?? exacts?.rdv?.pris_du_mois ?? rdvMoisPris.length;
 
@@ -190,7 +197,7 @@ export default function TableauDeBord() {
           <StatCard label="Fin prise de RDV" value={`${countdownRdv} j`} sublabel={params?.date_fin_prise_rdv} icon={Timer} accent />
         )}
         <StatCard label="RDV Matériel" value={rdvMaterielMonth} icon={CheckCircle2} />
-        <StatCard label="RDV Atelier" value={rdvAtelierObtenus} icon={Timer} />
+        <StatCard label="Atelier — RDV + accords" value={rdvAtelierObtenus} icon={Timer} />
         <StatCard label="RDV Agri. précision" value={rdvAgriMonth} icon={Satellite} />
       </div>
 
@@ -226,7 +233,7 @@ export default function TableauDeBord() {
           <ProgressBar value={rdvTotalMonth} max={objRdv} className="mt-3" />
           <div className="mt-3 flex gap-4 text-xs">
             <span className="text-muted-foreground">🚜 Matériel : <span className="font-bold text-gd-navy-dark">{rdvMaterielMonth}</span></span>
-            <span className="text-muted-foreground">🔧 Atelier : <span className="font-bold text-gd-navy-dark">{rdvAtelierObtenus}</span></span>
+            <span className="text-muted-foreground">🔧 Atelier : <span className="font-bold text-gd-navy-dark">{rdvAtelierDansTotal}</span></span>
             <span className="text-muted-foreground">🛰️ Agri. précision : <span className="font-bold text-gd-navy-dark">{rdvAgriMonth}</span></span>
           </div>
         </div>

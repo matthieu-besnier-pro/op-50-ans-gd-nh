@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { avecReprise } from '../../shared/debit.ts';
 import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre, filtreClientsPerimetre } from '../../shared/perimetre.ts';
-import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv } from '../../shared/atelier.ts';
+import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_ATELIER } from '../../shared/atelier.ts';
 
 // Comptages EXACTS de l'opération, calculés côté serveur en parcourant l'intégralité
 // des données : les pages n'affichent plus de totaux issus de listes tronquées
@@ -156,7 +156,15 @@ export default async function (req) {
     // Grand Écran les affiche : ce repli doit porter le même chiffre que la fonction
     // dédiée, sinon le compteur retombe à zéro dès que celle-ci est indisponible.
     let atelierRdvPris = 0;
-    allRdvs.forEach((r) => { if (r.statut !== 'Annulé' && r.client_id && estAtelier(r)) atelierRdvPris += 1; });
+    // Même règle que la moitié ateliers du Grand Écran : un rendez-vous compte
+    // s'il est de type atelier, quel que soit celui qui l'a posé, OU s'il a été
+    // posé par un référent d'atelier, quel que soit son type. Sans la première
+    // porte, un hivernage vendu par un commercial manquait au tableau de bord
+    // alors qu'il figurait au Grand Écran.
+    allRdvs.forEach((r) => {
+      if (r.statut === 'Annulé' || !r.client_id) return;
+      if (estAtelier(r) || r.type === TYPE_RDV_ATELIER) atelierRdvPris += 1;
+    });
 
     const clients = allClients.filter(gardeClients);
     const rdvs = allRdvs.filter((r) => gardeActivite(r) && gardeCommerce(r));
