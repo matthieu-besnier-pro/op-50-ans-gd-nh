@@ -1,6 +1,37 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { perimetreResponsable, perimetreAtelier } from '../../shared/perimetre.ts';
-import { cleSite, comptesDesChefs } from '../../shared/atelier.ts';
+import { cleSite, cleNom, comptesDesChefs } from '../../shared/atelier.ts';
+
+// Effectif des chefs d'atelier d'une liste de sites. TOUS y figurent, qu'ils
+// aient déjà un compte ou non : l'équipe doit être complète, comme l'est la
+// liste des commerciaux côté commerce, qui vient du fichier d'import. Un chef
+// sans compte apparaît simplement sans activité — et son absence se voit, au
+// lieu de passer inaperçue.
+function effectifChefs(mesBases, comptes) {
+  const parCle = new Map();
+  for (const b of mesBases) {
+    for (const nom of (b.chefs_atelier || [])) {
+      if (!nom) continue;
+      const cle = cleNom(nom);
+      const deja = parCle.get(cle);
+      // Un même chef peut couvrir plusieurs sites : une seule ligne, tous ses sites.
+      if (deja) {
+        if (b.nom && !deja.sites.includes(b.nom)) deja.sites.push(b.nom);
+        continue;
+      }
+      const { ids } = comptesDesChefs([nom], comptes);
+      const compte = ids.length === 1 ? comptes.find((u) => u.id === ids[0]) : null;
+      parCle.set(cle, {
+        id: compte?.id || `chef:${cle}`,
+        user_id: compte?.id || null,
+        full_name: compte?.full_name || nom,
+        email: compte?.email || '',
+        sites: b.nom ? [b.nom] : []
+      });
+    }
+  }
+  return [...parCle.values()];
+}
 
 // Renvoie les membres de l'équipe du responsable connecté (ou toute l'équipe pour la Direction).
 // Les non-admins ne peuvent pas lister les utilisateurs via le SDK client — d'où cette fonction en service role.
@@ -36,10 +67,8 @@ export default async function(req) {
       const bases = await sr.entities.base.list('nom', 500).catch(() => []);
       const vises = new Set(sitesDemandes.map(cleSite));
       const mesBases = (bases || []).filter((b) => vises.has(cleSite(b.nom)));
-      const noms = [...new Set(mesBases.flatMap((b) => (b.chefs_atelier || []).filter(Boolean)))];
       const allUsers = await sr.entities.User.list('-created_date', 500);
-      const ids = new Set(comptesDesChefs(noms, allUsers).ids);
-      teamMembers = allUsers.filter((u) => ids.has(u.id));
+      teamMembers = effectifChefs(mesBases, allUsers);
       teamBaseIds = mesBases.map((b) => b.id);
       fiches = [];
     } else if (isAdmin) {
@@ -55,11 +84,8 @@ export default async function(req) {
       const bases = await sr.entities.base.list('nom', 500).catch(() => []);
       const mesSites = new Set((perimetre?.sites || []).map(cleSite));
       const mesBases = (bases || []).filter((b) => mesSites.has(cleSite(b.nom)));
-      const noms = [...new Set(mesBases.flatMap((b) => (b.chefs_atelier || []).filter(Boolean)))];
-
       const allUsers = await sr.entities.User.list('-created_date', 500);
-      const ids = new Set(comptesDesChefs(noms, allUsers).ids);
-      teamMembers = allUsers.filter((u) => ids.has(u.id));
+      teamMembers = effectifChefs(mesBases, allUsers);
       teamBaseIds = mesBases.map((b) => b.id);
       // Aucune fiche commerciale à conserver : l'équipe est entièrement composée
       // de comptes sans secteur.
@@ -76,7 +102,16 @@ export default async function(req) {
 
     return Response.json({
       fiches,
-      members: teamMembers.map((m) => ({ id: m.id, full_name: m.full_name, email: m.email, base_id: m.base_id })),
+      // `sites` n'existe que pour les chefs d'atelier ; la page s'en sert pour
+      // afficher à quel atelier chacun est rattaché.
+      members: teamMembers.map((m) => ({
+        id: m.id,
+        full_name: m.full_name,
+        email: m.email,
+        base_id: m.base_id,
+        user_id: m.user_id ?? m.id,
+        sites: m.sites || null
+      })),
       base_ids: teamBaseIds
     });
   } catch (error) {

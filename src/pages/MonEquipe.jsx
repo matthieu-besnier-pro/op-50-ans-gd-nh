@@ -39,8 +39,9 @@ export default function MonEquipe() {
       if (persona.mode === 'atelier') {
         const res = await base44.functions.invoke('lister_equipe', { sites: persona.sites || [] });
         const membres = (res.data?.members || []).map((m) => ({
-          id: m.id, user_id: m.id, nom: null,
-          full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || ''
+          id: m.id, user_id: m.user_id || m.id, nom: null,
+          full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '',
+          sites: m.sites || null
         }));
         setCommerciaux(membres);
         const ids = membres.map((m) => m.id);
@@ -97,7 +98,7 @@ export default function MonEquipe() {
       }));
       const rosterIds = new Set(members.map((m) => m.id));
       equipeMembers.forEach((m) => {
-        if (!rosterIds.has(m.id)) members.push({ id: m.id, user_id: m.id, nom: null, full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '' });
+        if (!rosterIds.has(m.id)) members.push({ id: m.id, user_id: m.user_id || m.id, nom: null, full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '', sites: m.sites || null });
       });
       setCommerciaux(members);
       const memberIds = members.map((m) => m.id);
@@ -149,6 +150,9 @@ export default function MonEquipe() {
         : statuts.map((s) => myClients.filter((cl) => cl.statut === s.nom).length);
       return {
         id: c.id, nom: c.full_name || c.email,
+        // Les chefs d'atelier portent leur(s) site(s) ; les commerciaux, rien.
+        site: Array.isArray(c.sites) ? c.sites.join(' · ') : '',
+        sansCompte: !c.user_id || String(c.user_id).startsWith('chef:'),
         repartition, totalClients: exact ? exact.total : myClients.length,
         rdvToday: rdvPrisToday, rdvMonth: rdvPrisMonth,
         ventes: ventesValidees, tauxTransfo
@@ -261,7 +265,18 @@ export default function MonEquipe() {
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 font-semibold text-sm text-foreground">{r.nom}</td>
+                <td className="px-4 py-3 text-sm text-foreground">
+                  <span className="font-semibold">{r.nom}</span>
+                  {(r.site || r.sansCompte) && (
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {r.site}
+                      {r.sansCompte && (r.site ? ' · ' : '')}
+                      {/* Un compte jamais connecté n'a aucune activité à afficher :
+                          autant le dire, plutôt que de laisser croire à zéro RDV. */}
+                      {r.sansCompte && <span className="text-gd-orange">compte non créé</span>}
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   {r.totalClients > 0 ? (
                     <>
