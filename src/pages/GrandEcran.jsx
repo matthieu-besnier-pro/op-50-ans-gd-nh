@@ -106,7 +106,7 @@ const TAILLES_PODIUM = {
 // classement ne se recalcule pas à chaque rendu.
 const ATELIER_VIDE = { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv_pris: 0, restants: 0, par_site: {}, recents: [] };
 
-function Podium({ entrees, unite, taille = 'grand' }) {
+function Podium({ entrees, unite, taille = 'grand', sous }) {
   const t = TAILLES_PODIUM[taille] || TAILLES_PODIUM.grand;
   return (
     <div className={`flex items-end justify-center gap-3 shrink-0 ${t.marge}`}>
@@ -132,6 +132,12 @@ function Podium({ entrees, unite, taille = 'grand' }) {
               <AnimatedCounter value={e.count} className={`font-extrabold tabular-nums ${m.rang === 1 ? `${t.chiffre1} text-gd-orange` : `${t.chiffre} text-white`}`} />
               <span className="text-[11px] uppercase tracking-widest text-white/40">{unite}</span>
             </div>
+            {/* Le second chiffre de la même agence : ses contacts. */}
+            {sous && (
+              <p className="mt-0.5 w-full truncate text-center text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                {sous(e)}
+              </p>
+            )}
             <div
               className={`mt-2 w-full overflow-hidden rounded-t-2xl border border-b-0 bg-gradient-to-b ${m.socle} ${m.bord} flex items-start justify-center pt-1`}
               style={{ height: Math.round(m.hauteur * t.marche) }}
@@ -166,7 +172,7 @@ function nomAbrege(nom) {
   return `${mots[0].charAt(0).toUpperCase()}. ${mots.slice(1).join(' ')}`;
 }
 
-function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege }) {
+function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege, sous }) {
   // Un minimum de remplissage : même le dernier doit avoir une carte habitée.
   const pct = total > 0 ? Math.max((count / total) * 100, 8) : 0;
   const movedUp = prevRank !== null && prevRank > rank;
@@ -197,6 +203,11 @@ function LeaderRow({ rank, name, count, total, isAtelier, prevRank, d, abrege })
             <Flame className={d.icone} />
           </motion.span>
         )}
+        {sous && (
+          <span className="shrink-0 whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-white/40">
+            {sous}
+          </span>
+        )}
         <AnimatedCounter value={count} className={`${d.compteur} shrink-0 font-extrabold tabular-nums text-white`} />
       </div>
     </motion.div>
@@ -221,7 +232,7 @@ function Compteur({ Icone, valeur, libelle, couleur, fond }) {
 
 // Podium + grille. Commerce et ateliers s'affichent avec la MÊME brique : c'est
 // ce qui fait que les deux moitiés se lisent pareil.
-function BlocClassement({ liste, unite, abrege, prevRanks, vide }) {
+function BlocClassement({ liste, unite, abrege, prevRanks, vide, sous }) {
   if (liste.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
@@ -239,7 +250,7 @@ function BlocClassement({ liste, unite, abrege, prevRanks, vide }) {
   const d = densiteClassement(lignes);
   return (
     <div className={`flex min-h-0 flex-1 flex-col ${reste.length === 0 ? 'justify-center' : ''}`}>
-      <Podium entrees={liste.slice(0, 3)} unite={unite} taille={lignes <= 3 ? 'grand' : lignes <= 6 ? 'moyen' : 'petit'} />
+      <Podium entrees={liste.slice(0, 3)} unite={unite} taille={lignes <= 3 ? 'grand' : lignes <= 6 ? 'moyen' : 'petit'} sous={sous} />
       {reste.length > 0 && (
         <div className={`grid ${colonnes === 2 ? 'grid-cols-2' : 'grid-cols-3'} content-start ${d.grille} min-h-0 flex-1 overflow-y-auto pr-1`}>
           <AnimatePresence>
@@ -254,6 +265,7 @@ function BlocClassement({ liste, unite, abrege, prevRanks, vide }) {
                 prevRank={prevRanks[entree.id] || null}
                 d={d}
                 abrege={abrege && colonnes === 3}
+                sous={sous ? sous(entree) : undefined}
               />
             ))}
           </AnimatePresence>
@@ -582,17 +594,19 @@ export default function GrandEcran() {
   // Les refus ne s'affichent plus : le fil atelier ne montre que les rendez-vous obtenus.
   const contactsAtelier = (atelier.recents || []).filter((c) => !c.refus);
 
-  // Classement des ateliers : leurs RENDEZ-VOUS posés, pas leurs contacts. La ligne
-  // affichait le nombre de clients touchés — un atelier qui avait posé 26 rendez-vous
-  // pouvait n'en montrer que 21, parce que deux clients en avaient pris deux chacun
-  // et que le reste avait été posé sur des fiches hors du fichier de ciblage. Les
-  // contacts restent comptés par l'anneau du haut ; ici, c'est le rendez-vous qui classe.
+  // Classement des ateliers : DEUX chiffres par agence, ceux de son atelier.
+  // Le premier est le nombre de rendez-vous qu'il a posés — un atelier qui en a
+  // posé 26 doit lire 26, et non le nombre de clients touchés, qui en masquait une
+  // partie. Le second, écrit à côté, est son nombre de contacts : chaque agence
+  // garde ainsi ses deux chiffres. Aucune agence ne quitte le classement : celle
+  // qui n'a pas encore posé de rendez-vous dans l'agenda reste listée avec ses
+  // contacts, au lieu de disparaître de l'écran.
   const classementAteliers = useMemo(() => {
     const sites = atelier.par_site || {};
     return Object.entries(sites)
-      .map(([site, v]) => ({ id: site, name: site, count: v.rdv || 0 }))
-      .filter((e) => e.count > 0)
-      .sort((a, b) => b.count - a.count);
+      .map(([site, v]) => ({ id: site, name: site, count: v.rdv || 0, contacts: v.contactes || 0 }))
+      .filter((e) => e.count > 0 || e.contacts > 0)
+      .sort((a, b) => b.count - a.count || b.contacts - a.contacts);
   }, [atelier]);
 
   const [prevRangsAtelier, setPrevRangsAtelier] = useState({});
@@ -822,6 +836,7 @@ export default function GrandEcran() {
           <BlocClassement
             liste={classementAteliers}
             unite="RDV"
+            sous={(e) => `${e.contacts} contact${e.contacts > 1 ? 's' : ''}`}
             prevRanks={prevRangsAtelier}
             vide="En attente du premier contact atelier…"
           />
