@@ -45,7 +45,8 @@ export function isTerrain(user, viewAsRole = null) {
 // de la bascule « Voir en tant que »).
 export function accueilRole(role) {
   if (role === 'commercial' || role === 'agri_precision') return '/portefeuille';
-  if (role === 'chef_atelier' || role === 'responsable_sav') return '/atelier';
+  // Atelier : la partie SAV « OP 50 ans » est l'écran de travail des référents.
+  if (role === 'chef_atelier' || role === 'responsable_sav') return '/sav';
   return '/tableau-de-bord';
 }
 

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { base44 } from '@/api/base44Client';
 import {
-  Briefcase, Users, Calendar, LayoutDashboard, Wrench,
+  Briefcase, Users, Calendar, LayoutDashboard,
   Store, Settings, LogOut, Menu, X, Eye, Monitor, Bot, UserCircle, Rocket, Megaphone, Presentation,
   ChevronLeft, ChevronRight, ClipboardCheck
 } from 'lucide-react';
 import { getAppRole, isDirection, accueilRole } from '@/lib/permissions';
+import { listerPartage, invalider } from '@/lib/donneesPartagees';
 import OpLogo from '@/components/OpLogo';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -37,8 +37,7 @@ const navItems = [
   { to: '/portefeuille', label: 'Mes clients', icon: Briefcase, roles: ['commercial', 'agri_precision', 'responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'activite' },
   { to: '/equipe', label: 'Mon équipe', icon: Users, roles: ['responsable', 'direction'], section: 'activite' },
   { to: '/magasin', label: 'Magasin', icon: Store, roles: ['responsable', 'direction'], section: 'activite' },
-  { to: '/atelier', label: 'Atelier', icon: Wrench, roles: ['responsable', 'chef_atelier', 'responsable_sav', 'direction'], section: 'atelier' },
-  { to: '/sav', label: 'SAV — OP 50 ans', icon: ClipboardCheck, roles: ['chef_atelier', 'direction'], section: 'atelier' },
+  { to: '/sav', label: 'SAV — OP 50 ans', icon: ClipboardCheck, roles: ['chef_atelier', 'responsable_sav', 'direction'], section: 'atelier' },
   { to: '/lancement', label: 'Lancement', icon: Rocket, roles: ['direction'], section: 'admin' },
   { to: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['direction'], section: 'admin' },
   { to: '/administration', label: 'Administration', icon: Settings, roles: ['direction'], section: 'admin' },
@@ -65,21 +64,41 @@ export default function Layout({ children }) {
   const role = getAppRole(user, viewAsRole);
   const canViewAs = isDirection(user);
 
+  // Référentiel du « Voir en tant que » : le tableau de répartition (sites, chefs
+  // d'atelier, responsables SAV) et les commerciaux. Lu via le cache partagé, avec
+  // reprise si la première lecture ne remonte rien (session qui vient de s'ouvrir).
   useEffect(() => {
-    if (canViewAs) {
-      base44.entities.structure_commerciale.list('-nom_commercial', 200)
-        .then(setStructure)
-        .catch(() => {});
-      base44.entities.base.list('-nom', 100)
-        .then(setBases)
-        .catch(() => {});
-    }
+    if (!canViewAs) return undefined;
+    let annule = false;
+    const charger = async () => {
+      for (let essai = 0; essai < 3 && !annule; essai += 1) {
+        const [rows, sites] = await Promise.all([
+          listerPartage('structure_commerciale', '-nom_commercial', 200),
+          listerPartage('base', '-nom', 100)
+        ]);
+        if (annule) return;
+        setStructure(rows || []);
+        setBases(sites || []);
+        if ((sites || []).length > 0) return;
+        invalider();
+        await new Promise((r) => setTimeout(r, 700));
+      }
+    };
+    charger();
+    return () => { annule = true; };
   }, [canViewAs]);
 
   const commercials = structure;
   // Référents d'atelier simulables (démo) : chefs d'atelier et responsables SAV des sites.
   const chefs = useMemo(() => [...new Set(bases.flatMap((b) => b.chefs_atelier || []))].sort(), [bases]);
   const responsablesSav = useMemo(() => [...new Set(bases.flatMap((b) => b.responsables_sav || []))].sort(), [bases]);
+
+  // Dès que le tableau de répartition est connu, la simulation prend le premier
+  // référent : le périmètre s'applique sans avoir à rouvrir la liste.
+  useEffect(() => {
+    if (viewAsRole === 'chef_atelier' && !viewAsReferent && chefs.length > 0) setViewAsReferent(chefs[0]);
+    else if (viewAsRole === 'responsable_sav' && !viewAsReferent && responsablesSav.length > 0) setViewAsReferent(responsablesSav[0]);
+  }, [viewAsRole, viewAsReferent, chefs, responsablesSav]);
   const managers = useMemo(() => {
     const set = new Set();
     structure.forEach((s) => { if (s.manager) set.add(s.manager); });
