@@ -23,22 +23,10 @@ import TelephoneClient from '@/components/TelephoneClient';
 import AjouterClientDialog from '@/components/AjouterClientDialog';
 import { villeClientTexte } from '@/lib/localisationClient';
 import { useStatuts } from '@/lib/statuts';
+import { FILTRES_CLIENT_INIT, categoriesDuParc, clientPasseFiltres } from '@/lib/filtresClients';
 
-const FILTRES_INIT = {
-  search: '',
-  statut: 'all',
-  appetence: 'all',
-  commercial: 'all',
-  suivi: 'all',
-  parc: 'all',
-  agri: 'all'
-};
-
-// Catégories de machines présentes dans le parc d'un client (« TRACTEURS:3 »).
-const categoriesDuParc = (client) =>
-  (client.parc_pictos || [])
-    .map((p) => { const [cat, n] = String(p).split(':'); return (Number(n) || 0) > 0 ? cat : null; })
-    .filter(Boolean);
+// Filtres partagés avec la liste de travail SAV (voir src/lib/filtresClients.js).
+const FILTRES_INIT = FILTRES_CLIENT_INIT;
 
 // Dates de rendez-vous : court pour le bouton, long pour la confirmation d'annulation.
 const formatRdvCourt = (iso) => {
@@ -53,16 +41,6 @@ const formatRdvLong = (iso) => {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
     + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 };
-
-// Niveau d'appétence du client (mêmes seuils que la jauge AppetenceGauge).
-export function niveauAppetence(client) {
-  if (client.niveau_appetence) return client.niveau_appetence;
-  const s = client.score_appetence;
-  if (s == null) return null;
-  if (s >= 66) return 'Fort';
-  if (s >= 36) return 'Moyen';
-  return 'Faible';
-}
 
 export default function MonPortefeuille() {
   const { user } = useAuth();
@@ -256,42 +234,9 @@ export default function MonPortefeuille() {
 
     let list = clients.filter((c) => {
       if (prioriteOnly && !c.priorite_commercial) return false;
-
-      // Parc cible : ne garder que les clients possédant ce type de machine.
-      if (filters.parc !== 'all' && !categoriesDuParc(c).includes(filters.parc)) return false;
-
-      // Agriculture de précision : d'où vient le ciblage (CX, tracteurs AGP, Trimble).
-      if (filters.agri !== 'all' && !(c.sources_agri_precision || []).includes(filters.agri)) return false;
-      if (filters.statut !== 'all' && c.statut !== filters.statut) return false;
-
-      if (filters.appetence !== 'all' && niveauAppetence(c) !== filters.appetence) return false;
-
-      if (filters.commercial !== 'all') {
-        const assigned = c.commerciaux_assignes || [];
-        if (filters.commercial.startsWith('secteur:')) {
-          if (assigned.length > 0 || c.secteur !== filters.commercial.slice(8)) return false;
-        } else if (!assigned.includes(filters.commercial)) return false;
-      }
-
-      if (filters.suivi !== 'all') {
-        if (filters.suivi === 'rdv') {
-          const next = c.date_prochain_rdv ? new Date(c.date_prochain_rdv) : null;
-          if (!next || next < today) return false;
-        }
-        if (filters.suivi === 'rappel') {
-          const rappel = c.date_rappel ? new Date(c.date_rappel) : null;
-          if (c.statut !== 'À rappeler' || !rappel || rappel > today) return false;
-        }
-      }
-
-      if (filters.search) {
-        const s = filters.search.toLowerCase();
-        const hay = [c.raison_sociale, c.siren, c.code_commune, c.adresse_complete, c.secteur, commercialNames(c)]
-          .filter(Boolean).join(' ').toLowerCase();
-        if (!hay.includes(s)) return false;
-      }
-
-      return true;
+      // Critères partagés avec la liste SAV : recherche, statut, appétence,
+      // parc cible, agri. précision, commercial, suivi.
+      return clientPasseFiltres(c, filters, { nomsCommerciaux: commercialNames(c) });
     });
     // Nombre de machines d'une catégorie donnée (pour trier par parc cible).
     const nbDansCategorie = (c, cat) => {

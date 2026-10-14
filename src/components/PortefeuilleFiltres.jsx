@@ -7,7 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   Search, RotateCcw, SlidersHorizontal, Gauge, Flag, User,
-  CalendarClock, ArrowDownWideNarrow, Tractor, Satellite
+  CalendarClock, ArrowDownWideNarrow, Tractor, Satellite, MapPin
 } from 'lucide-react';
 
 const APPETENCES = ['Fort', 'Moyen', 'Faible'];
@@ -46,7 +46,9 @@ function Champ({ label, icone: Icone, actif = false, className, children }) {
 const triggerClass = (actif) =>
   cn('w-full font-medium', actif && 'border-gd-orange/60 bg-gd-orange/10 text-gd-navy-dark');
 
-// Barre de filtres du portefeuille : statut, appétence, commercial et suivi (RDV / rappels).
+// Barre de filtres des listes clients : portefeuille commercial (« Mes clients »)
+// et liste de travail SAV. Chaque écran n'affiche que les filtres qu'il alimente
+// (le champ « Site » n'apparaît que si `sites` est fourni, le tri que si `onToggleSort` l'est).
 export default function PortefeuilleFiltres({
   filters,
   onChange,
@@ -55,6 +57,7 @@ export default function PortefeuilleFiltres({
   commercials = [],
   parcOptions = [],
   agriOptions = [],
+  sites = [],
   showCommercial = false,
   sortByAppetence,
   onToggleSort,
@@ -181,6 +184,22 @@ export default function PortefeuilleFiltres({
           </Champ>
         )}
 
+        {/* Site de rattachement : utile pour les cibles atelier (liste SAV). */}
+        {sites.length > 0 && (
+          <Champ label="Site" icone={MapPin} actif={actif('site')}>
+            <Select value={filters.site || 'all'} onValueChange={(v) => onChange('site', v)}>
+              <SelectTrigger className={triggerClass(actif('site'))}><SelectValue /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="all">Tous les sites</SelectItem>
+                {sites.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label} ({o.nb})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Champ>
+        )}
+
+        {onToggleSort && (
         <Champ label="Tri de la liste" icone={ArrowDownWideNarrow}>
           <Button
             variant={sortByAppetence ? 'default' : 'outline'}
@@ -195,6 +214,7 @@ export default function PortefeuilleFiltres({
             {sortByAppetence ? 'Meilleure appétence' : 'Ordre d\'ajout'}
           </Button>
         </Champ>
+        )}
       </div>
     </div>
   );
