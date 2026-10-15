@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { routageRdv } from '../../shared/atelier.ts';
 
 // Export des rendez-vous pour sauvegarde : renvoie TOUS les RDV du périmètre
 // de l'utilisateur, enrichis du client et du commercial (le navigateur n'a plus
@@ -58,10 +59,14 @@ export default async function (req) {
     // qu'en rafale, pour rester sous la limite de débit de la plateforme.
     const rdvs = await lireTout((skip) => sr.entities.rdv.list('id', CHUNK, skip));
     const clients = await lireTout((skip) => sr.entities.client.list('id', CHUNK, skip));
-    const [users, structure] = await Promise.all([
+    const [users, structure, bases] = await Promise.all([
       avecReprise(() => sr.entities.User.list('-created_date', 500)).catch(() => []),
-      avecReprise(() => sr.entities.structure_commerciale.list('-nom_commercial', 500)).catch(() => [])
+      avecReprise(() => sr.entities.structure_commerciale.list('-nom_commercial', 500)).catch(() => []),
+      avecReprise(() => sr.entities.base.list('nom', 200)).catch(() => [])
     ]);
+
+    // Qui relève de l'atelier, et de quel site : la même règle que les écrans.
+    const { siteParUser, estAtelier } = routageRdv(bases, users);
 
     // Nom affichable d'un commercial : compte utilisateur, sinon fiche structure.
     const nom = {};
@@ -98,6 +103,12 @@ export default async function (req) {
         statut_client: c.statut || '',
         cible_prioritaire: c.priorite_commercial ? 'OUI' : '',
         commercial: nom[r.commercial_id] || r.commercial_id || '',
+        // Côté atelier, c'est l'auteur qui EST le chef d'atelier. Sinon on donne
+        // ceux qui suivent la fiche, pour savoir à qui s'adresser.
+        chef_atelier: estAtelier(r)
+          ? (nom[r.commercial_id] || '')
+          : (c.chefs_atelier || []).filter(Boolean).join(', '),
+        site_atelier: c.site_atelier || siteParUser[r.commercial_id] || '',
         secteur: c.secteur || '',
         notes: (r.notes || '').replace(/[\r\n]+/g, ' ')
       };

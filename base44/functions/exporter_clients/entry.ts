@@ -135,6 +135,9 @@ export default async function (req) {
         // qui compte les prises de contact atelier (un client marqué = un contact).
         cible_sav: c.cible_atelier ? 'OUI' : '',
         site_atelier: c.site_atelier || '',
+        // Qui suit la fiche côté atelier : le tableau de répartition nomme les
+        // chefs de chaque site, l'import des cibles les recopie sur la fiche.
+        chef_atelier: (c.chefs_atelier || []).filter(Boolean).join(', '),
         offres_sav: (c.offres_sav || []).join(' / '),
         suivis_obtenus: (c.rdv_obtenus || []).join(' / '),
         contact_atelier: contactAtelierPose(c) ? 'OUI' : ''

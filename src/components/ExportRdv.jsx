@@ -19,6 +19,8 @@ const COLONNES = [
   ['statut_client', 'Statut client'],
   ['cible_prioritaire', 'Cible prioritaire'],
   ['commercial', 'Commercial'],
+  ['chef_atelier', "Chef d'atelier"],
+  ['site_atelier', 'Site atelier'],
   ['secteur', 'Secteur'],
   ['notes', 'Notes']
 ];
@@ -47,6 +49,7 @@ const COLONNES_CLIENTS = [
   // atelier (« Contact atelier » = OUI, ce sont ces marquages qui sont comptés).
   ['cible_sav', 'Cible SAV'],
   ['site_atelier', 'Site atelier'],
+  ['chef_atelier', "Chef d'atelier"],
   ['offres_sav', 'Offres SAV'],
   ['suivis_obtenus', 'Suivis obtenus'],
   ['contact_atelier', 'Contact atelier']
