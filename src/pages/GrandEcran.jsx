@@ -835,7 +835,6 @@ export default function GrandEcran() {
             <ProgressRing value={atelier.contactes} max={atelier.cibles || 1} size={96} stroke={9} label="Contacts" sublabel="ciblés" />
             <Compteur Icone={Clock} valeur={atelier.rdv_pris || 0} libelle="RDV posés" couleur="text-gd-orange" fond="bg-gd-orange/15" />
             <Compteur Icone={CalendarCheck} valeur={atelier.ok} libelle="OK pour un RDV" couleur="text-white" fond="bg-gd-navy/40" />
-            <Compteur Icone={Target} valeur={atelier.restants} libelle="À contacter" couleur="text-white" fond="bg-gd-navy/40" />
           </div>
 
           <BlocClassement
