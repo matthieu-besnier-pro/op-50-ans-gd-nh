@@ -173,6 +173,11 @@ export default async function(req) {
     // attribuable à une personne : le marquage d'un contact, lui, n'enregistre
     // pas qui l'a posé — il reste donc une donnée de site.
     const parAuteur = {};
+    // Combien de CLIENTS derrière les rendez-vous posés. Ces clients-là sont
+    // aussi comptés dans les accords — poser un créneau bascule la fiche en
+    // « RDV Atelier obtenu » — donc additionner les deux colonnes les compte
+    // deux fois. Ce chiffre dit exactement de combien.
+    const clientsAvecRdv = new Set();
     const parSite = {};
     const recents = [];
     const dejaComptes = new Set();
@@ -213,6 +218,7 @@ export default async function(req) {
       const e = (parSite[site] = parSite[site] || { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv: 0 });
       e.rdv += 1;
       rdvPris += 1;
+      clientsAvecRdv.add(r.client_id);
       if (r.commercial_id) parAuteur[r.commercial_id] = (parAuteur[r.commercial_id] || 0) + 1;
 
       if (!dejaComptes.has(r.client_id)) {
@@ -245,6 +251,7 @@ export default async function(req) {
         ok,
         refus,
         rdv_pris: rdvPris,
+        rdv_clients: clientsAvecRdv.size,
         rdv_par_auteur: parAuteur,
         restants: Math.max(cibles - contactes, 0),
         par_site: parSite,
