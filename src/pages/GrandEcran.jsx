@@ -833,8 +833,13 @@ export default function GrandEcran() {
 
           <div className="flex shrink-0 items-center gap-3">
             <ProgressRing value={atelier.contactes} max={atelier.cibles || 1} size={96} stroke={9} label="Contacts" sublabel="ciblés" />
-            {/* Le nombre de clients derrière ces rendez-vous : ce sont les mêmes
-                qui figurent dans les accords, poser un créneau valant accord. */}
+            {/* L'ordre porte le sens : les accords sont une PART des contacts —
+                d'où « dont », juste après eux. Sans ce mot et cette place, on
+                cherche à additionner les trois chiffres du bandeau. */}
+            <Compteur Icone={CalendarCheck} valeur={atelier.ok} libelle="dont OK pour un RDV" couleur="text-white" fond="bg-gd-navy/40" />
+            {/* Les créneaux, eux, se comptent à part : plusieurs machines chez un
+                même client font plusieurs rendez-vous. D'où le nombre de clients
+                en sous-titre, qui dit ce que ce chiffre recouvre. */}
             <Compteur
               Icone={Clock}
               valeur={atelier.rdv_pris || 0}
@@ -842,7 +847,6 @@ export default function GrandEcran() {
               couleur="text-gd-orange"
               fond="bg-gd-orange/15"
             />
-            <Compteur Icone={CalendarCheck} valeur={atelier.ok} libelle="OK pour un RDV" couleur="text-white" fond="bg-gd-navy/40" />
           </div>
 
           <BlocClassement
