@@ -55,6 +55,9 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
   };
 
   const nbInclus = (rows || []).filter((r) => r.inclure).length;
+  // Le bouton annonce des VENTES, pas des messages : « 2 x T6.180 » en fait deux.
+  const nbVentes = (rows || []).filter((r) => r.inclure)
+    .reduce((s, r) => s + Math.max(1, Number(r.quantite) || 1), 0);
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -82,7 +85,7 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
         {rows && rows.length > 0 && (
           <Button onClick={creer} disabled={busy || nbInclus === 0}
             className="bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark">
-            {busy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Création…</> : <>Créer {nbInclus} vente(s) « À valider »</>}
+            {busy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Création…</> : <>Créer {nbVentes} vente(s) « À valider »</>}
           </Button>
         )}
       </div>
@@ -110,8 +113,10 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
               <tr className="text-left text-muted-foreground">
                 <th className="p-1.5"><input type="checkbox" checked={nbInclus === rows.length} onChange={(e) => setRows(rows.map((r) => ({ ...r, inclure: e.target.checked })))} /></th>
                 <th className="p-1.5">Message</th>
-                <th className="p-1.5">Commercial</th>
+                <th className="p-1.5">Vendeur</th>
+                <th className="p-1.5">Client</th>
                 <th className="p-1.5">Machine</th>
+                <th className="p-1.5">Qté</th>
                 <th className="p-1.5">Type</th>
                 <th className="p-1.5">Reprise</th>
                 <th className="p-1.5"></th>
@@ -125,7 +130,7 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                     <div className="text-foreground">{r.texte_source || <span className="text-muted-foreground">—</span>}</div>
                     <div className="mt-0.5 flex gap-1">
                       {r.confiance && <span className={`rounded px-1 ${r.confiance === 'basse' ? 'bg-red-100 text-red-700' : r.confiance === 'moyenne' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{r.confiance}</span>}
-                      {r.client_nom && <span className="rounded bg-slate-100 px-1 text-slate-600">{r.client_nom}</span>}
+
                     </div>
                   </td>
                   <td className="p-1.5">
@@ -134,10 +139,32 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                       {commList.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
                     </select>
                   </td>
+                  {/* Le client détecté est corrigeable : c'est lui qu'on relit en
+                      premier avant de valider, et l'IA le rate plus souvent que
+                      le reste — nom abrégé, orthographe libre. */}
+                  <td className="p-1.5">
+                    <input
+                      className={`${selCls} min-w-[130px]`}
+                      value={r.client_nom || ''}
+                      placeholder="— non détecté —"
+                      onChange={(e) => setRow(i, { client_nom: e.target.value })}
+                    />
+                  </td>
                   <td className="p-1.5">
                     <select className={selCls} value={r.type_machine} onChange={(e) => setRow(i, { type_machine: e.target.value })}>
                       {MACHINES.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
+                  </td>
+                  {/* « Vendu 2 x T6.180 » : deux machines, donc deux ventes. */}
+                  <td className="p-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      className={`${selCls} w-14`}
+                      value={r.quantite || 1}
+                      onChange={(e) => setRow(i, { quantite: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })}
+                    />
                   </td>
                   <td className="p-1.5">
                     <select className={selCls} value={r.type_vente} onChange={(e) => setRow(i, { type_vente: e.target.value })}>

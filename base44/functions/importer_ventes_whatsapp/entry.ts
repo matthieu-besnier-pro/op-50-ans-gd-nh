@@ -45,6 +45,7 @@ export default async function(req) {
                 reprise: { type: 'string', enum: REPRISES },
                 marque_reprise: { type: 'string', description: 'Marque reprise si reprise autre marque' },
                 date_vente: { type: 'string', description: 'Date au format AAAA-MM-JJ si mentionnée, sinon vide' },
+                quantite: { type: 'number', description: 'Nombre de machines vendues dans ce message (« 2 x T6.180 » = 2). 1 par défaut.' },
                 confiance: { type: 'string', enum: ['haute', 'moyenne', 'basse'] }
               }
             }
@@ -61,6 +62,8 @@ Pour chaque vente :
 - commercial_nom : le vendeur si identifiable (auteur du message ou nom cité).
 - client_nom : l'exploitation/client si mentionné, sinon vide.
 - confiance : ton niveau de certitude sur l'extraction.
+- quantite : le nombre de machines du message. « Vendu 2 x T6.180 » = 2, « vendu T7 » = 1.
+  Un chargeur, un kit ou un équipement vendu AVEC une machine ne compte pas en plus.
 Exemple de message : « T5.100 EC n°97507 avec chargeur Q4L n°98145 Reprise Valtra 6250 de 2000 » → Tracteur, Nouvelle commande, Reprise autre marque, marque_reprise Valtra.
 
 Messages à analyser :
@@ -107,6 +110,7 @@ Messages à analyser :
         const m = matchComm(v.commercial_nom);
         return {
           texte_source: v.texte_source || '',
+        quantite: Math.max(1, Math.min(20, Math.round(Number(v.quantite) || 1))),
           commercial_nom: v.commercial_nom || '',
           commercial_id: m?.commercial_id || null,
           commercial_matched: m?.nom || null,
@@ -128,17 +132,24 @@ Messages à analyser :
       const sales = Array.isArray(body.sales) ? body.sales : [];
       if (sales.length === 0) return Response.json({ error: 'Aucune vente à créer' }, { status: 400 });
 
-      const aCreer = sales.map((v) => ({
-        client_id: v.client_id || null,
-        commercial_id: v.commercial_id || null,
-        date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente : today,
-        type_machine: MACHINES.includes(v.type_machine) ? v.type_machine : 'Tracteur',
-        type_vente: TYPES_VENTE.includes(v.type_vente) ? v.type_vente : 'Nouvelle commande',
-        reprise: REPRISES.includes(v.reprise) ? v.reprise : 'Sans reprise',
-        marque_reprise: v.reprise === 'Reprise autre marque' ? (v.marque_reprise || null) : null,
-        source_declaration: 'Import WhatsApp',
-        statut_validation: 'À valider'
-      }));
+      // « Vendu 2 x T6.180 » : deux machines, donc deux ventes. Le suivi compte
+      // des machines, pas des messages.
+      const aCreer = [];
+      sales.forEach((v) => {
+        const combien = Math.max(1, Math.min(20, Math.round(Number(v.quantite) || 1)));
+        const ligne = {
+          client_id: v.client_id || null,
+          commercial_id: v.commercial_id || null,
+          date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente : today,
+          type_machine: MACHINES.includes(v.type_machine) ? v.type_machine : 'Tracteur',
+          type_vente: TYPES_VENTE.includes(v.type_vente) ? v.type_vente : 'Nouvelle commande',
+          reprise: REPRISES.includes(v.reprise) ? v.reprise : 'Sans reprise',
+          marque_reprise: v.reprise === 'Reprise autre marque' ? (v.marque_reprise || null) : null,
+          source_declaration: 'Import WhatsApp',
+          statut_validation: 'À valider'
+        };
+        for (let i = 0; i < combien; i++) aCreer.push({ ...ligne });
+      });
 
       let crees = 0;
       for (let i = 0; i < aCreer.length; i += 100) {
