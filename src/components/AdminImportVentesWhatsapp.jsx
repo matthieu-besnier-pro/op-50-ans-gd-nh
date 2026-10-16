@@ -56,9 +56,18 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
     }
   };
 
+  // Une ligne ne peut être créée que complète : rien n'est deviné à sa place.
+  const manquants = (r) => [
+    !r.commercial_id && 'vendeur',
+    !r.type_machine && 'machine',
+    !r.type_vente && 'type',
+    !r.reprise && 'reprise'
+  ].filter(Boolean);
+  const nbIncompletes = (rows || []).filter((r) => r.inclure && manquants(r).length > 0).length;
+
   const nbInclus = (rows || []).filter((r) => r.inclure).length;
   // Le bouton annonce des VENTES, pas des messages : « 2 x T6.180 » en fait deux.
-  const nbVentes = (rows || []).filter((r) => r.inclure)
+  const nbVentes = (rows || []).filter((r) => r.inclure && manquants(r).length === 0)
     .reduce((s, r) => s + Math.max(1, Number(r.quantite) || 1), 0);
 
   return (
@@ -89,6 +98,11 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
             className="bg-gd-orange hover:bg-gd-orange/90 text-gd-navy-dark">
             {busy ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Création…</> : <>Créer {nbVentes} vente(s) « À valider »</>}
           </Button>
+        )}
+        {nbIncompletes > 0 && (
+          <span className="text-xs font-semibold text-gd-navy-dark">
+            {nbIncompletes} ligne{nbIncompletes > 1 ? 's' : ''} à compléter — elles ne seront pas créées tant qu'il manque un champ.
+          </span>
         )}
       </div>
 
@@ -135,6 +149,11 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                       {/* Matériel étranger à l'opération New Holland : la ligne
                           reste visible, décochée, pour qu'on puisse la rattraper. */}
                       {r.hors_operation && <span className="rounded bg-slate-200 px-1 font-semibold text-slate-700">hors opération</span>}
+                      {r.inclure && manquants(r).length > 0 && (
+                        <span className="rounded bg-gd-orange/20 px-1 font-semibold text-gd-navy-dark">
+                          à compléter : {manquants(r).join(', ')}
+                        </span>
+                      )}
 
                     </div>
                   </td>
@@ -156,7 +175,12 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                     />
                   </td>
                   <td className="p-1.5">
-                    <select className={selCls} value={r.type_machine} onChange={(e) => setRow(i, { type_machine: e.target.value })}>
+                    <select
+                      className={`${selCls} ${r.type_machine ? '' : 'border-gd-orange bg-gd-orange/5'}`}
+                      value={r.type_machine || ''}
+                      onChange={(e) => setRow(i, { type_machine: e.target.value })}
+                    >
+                      <option value="">— à préciser —</option>
                       {MACHINES.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </td>
@@ -172,12 +196,22 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                     />
                   </td>
                   <td className="p-1.5">
-                    <select className={selCls} value={r.type_vente} onChange={(e) => setRow(i, { type_vente: e.target.value })}>
+                    <select
+                      className={`${selCls} ${r.type_vente ? '' : 'border-gd-orange bg-gd-orange/5'}`}
+                      value={r.type_vente || ''}
+                      onChange={(e) => setRow(i, { type_vente: e.target.value })}
+                    >
+                      <option value="">— à préciser —</option>
                       {TYPES_VENTE.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </td>
                   <td className="p-1.5">
-                    <select className={selCls} value={r.reprise} onChange={(e) => setRow(i, { reprise: e.target.value })}>
+                    <select
+                      className={`${selCls} ${r.reprise ? '' : 'border-gd-orange bg-gd-orange/5'}`}
+                      value={r.reprise || ''}
+                      onChange={(e) => setRow(i, { reprise: e.target.value })}
+                    >
+                      <option value="">— à préciser —</option>
                       {REPRISES.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
                     {r.reprise === 'Reprise autre marque' && (

@@ -64,8 +64,12 @@ Pour chaque vente :
   New Holland — un outil de travail du sol (vibroculteur, déchaumeur, charrue),
   ou du matériel d'une autre marque vendu seul. Ces ventes sont remontées mais
   décochées : elles ne comptent pas dans l'opération.
-- type_vente : ${TYPES_VENTE.join(', ')} (par défaut « Nouvelle commande » si non précisé).
-- reprise : ${REPRISES.join(', ')} (par défaut « Sans reprise »). Si une marque concurrente est reprise, mets « Reprise autre marque » et renseigne marque_reprise.
+- type_vente : ${TYPES_VENTE.join(', ')}. LAISSE VIDE si le message ne le dit pas.
+- reprise : ${REPRISES.join(', ')}. LAISSE VIDE si le message ne dit rien de la reprise.
+  « Sans reprise » ne se met QUE si le message l'indique explicitement. Si une marque
+  concurrente est reprise, mets « Reprise autre marque » et renseigne marque_reprise.
+- N'invente jamais une valeur pour combler un trou : un champ vide sera complété à la
+  main, une valeur fausse passerait inaperçue.
 - commercial_nom : le vendeur si identifiable (auteur du message ou nom cité).
 - client_nom : l'exploitation/client si mentionné, sinon vide.
 - confiance : ton niveau de certitude sur l'extraction.
@@ -126,9 +130,13 @@ Messages à analyser :
           commercial_id: m?.commercial_id || null,
           commercial_matched: m?.nom || null,
           client_nom: v.client_nom || '',
-          type_machine: MACHINES.includes(v.type_machine) ? v.type_machine : 'Tracteur',
-          type_vente: TYPES_VENTE.includes(v.type_vente) ? v.type_vente : 'Nouvelle commande',
-          reprise: REPRISES.includes(v.reprise) ? v.reprise : 'Sans reprise',
+          // Rien n'est deviné : ce que le message ne dit pas reste VIDE, et
+          // c'est l'opérateur qui tranche à l'écran. Un défaut silencieux —
+          // « Tracteur », « Nouvelle commande » — se serait glissé dans les
+          // comptages sans que personne ne puisse le rattraper.
+          type_machine: MACHINES.includes(v.type_machine) ? v.type_machine : '',
+          type_vente: TYPES_VENTE.includes(v.type_vente) ? v.type_vente : '',
+          reprise: REPRISES.includes(v.reprise) ? v.reprise : '',
           marque_reprise: v.marque_reprise || '',
           date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente : today,
           confiance: v.confiance || 'moyenne'
@@ -146,15 +154,23 @@ Messages à analyser :
       // « Vendu 2 x T6.180 » : deux machines, donc deux ventes. Le suivi compte
       // des machines, pas des messages.
       const aCreer = [];
+      let incompletes = 0;
       sales.forEach((v) => {
         const combien = Math.max(1, Math.min(20, Math.round(Number(v.quantite) || 1)));
+        // Une ligne incomplète n'est pas créée avec des valeurs de secours :
+        // elle est écartée et signalée, pour être complétée à l'écran.
+        if (!MACHINES.includes(v.type_machine) || !TYPES_VENTE.includes(v.type_vente)
+          || !REPRISES.includes(v.reprise) || !v.commercial_id) {
+          incompletes += 1;
+          return;
+        }
         const ligne = {
           client_id: v.client_id || null,
-          commercial_id: v.commercial_id || null,
+          commercial_id: v.commercial_id,
           date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente : today,
-          type_machine: MACHINES.includes(v.type_machine) ? v.type_machine : 'Tracteur',
-          type_vente: TYPES_VENTE.includes(v.type_vente) ? v.type_vente : 'Nouvelle commande',
-          reprise: REPRISES.includes(v.reprise) ? v.reprise : 'Sans reprise',
+          type_machine: v.type_machine,
+          type_vente: v.type_vente,
+          reprise: v.reprise,
           marque_reprise: v.reprise === 'Reprise autre marque' ? (v.marque_reprise || null) : null,
           source_declaration: 'Import WhatsApp',
           statut_validation: 'À valider'
@@ -168,7 +184,7 @@ Messages à analyser :
         const res = await sr.entities.vente.bulkCreate(batch);
         crees += (res?.length || batch.length);
       }
-      return Response.json({ ok: true, ventes_creees: crees });
+      return Response.json({ ok: true, ventes_creees: crees, incompletes });
     }
 
     return Response.json({ error: 'action inconnue' }, { status: 400 });
