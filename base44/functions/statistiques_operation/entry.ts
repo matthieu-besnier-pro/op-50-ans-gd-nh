@@ -457,12 +457,32 @@ export default async function (req) {
     const ventesParReprise = {};
     const ventesParCommercial = {};
     const ventesOpParCommercial = {};
+    // Suivi des ventes : le croisement vendeur × type de machine. Il porte sur
+    // TOUTES les ventes déclarées, validées ou non — le tableau de marche suit
+    // ce qui est annoncé sur le groupe, la validation vient après.
+    const suiviParCommercial = {};
+    const suiviParMachine = {};
+    let suiviTotal = 0;
+    let suiviValidees = 0;
     let ventesValidees = 0;
     let ventesValideesMois = 0; // même période que les RDV du mois : taux comparables
     let ventesValideesOp = 0;   // sur la période de l'opération
 
     ventes.forEach((v) => {
-      if (v.statut_validation !== 'Validé') return;
+      const machine = v.type_machine || 'Autre';
+      const validee = v.statut_validation === 'Validé';
+      suiviTotal += 1;
+      if (validee) suiviValidees += 1;
+      suiviParMachine[machine] = (suiviParMachine[machine] || 0) + 1;
+      if (v.commercial_id) {
+        const e = (suiviParCommercial[v.commercial_id] = suiviParCommercial[v.commercial_id]
+          || { machines: {}, total: 0, validees: 0 });
+        e.machines[machine] = (e.machines[machine] || 0) + 1;
+        e.total += 1;
+        if (validee) e.validees += 1;
+      }
+
+      if (!validee) return;
       ventesValidees += 1;
       if (v.date_vente && v.date_vente >= moisDebut.slice(0, 10)) ventesValideesMois += 1;
       if (dansOperation(v.date_vente)) ventesValideesOp += 1;
@@ -555,7 +575,14 @@ export default async function (req) {
         operation_par_commercial: (opDebut && opFin) ? ventesOpParCommercial : null,
         par_type_machine: ventesParMachine,
         par_type_vente: ventesParTypeVente,
-        par_reprise: ventesParReprise
+        par_reprise: ventesParReprise,
+        // Croisement vendeur × machine, sur les ventes déclarées.
+        suivi: {
+          total: suiviTotal,
+          validees: suiviValidees,
+          par_commercial: suiviParCommercial,
+          par_machine: suiviParMachine
+        }
       },
       offres: { total: offres.length, ca_realise: offres.reduce((s, o) => s + (o.ca_realise || 0), 0) },
       badges: {

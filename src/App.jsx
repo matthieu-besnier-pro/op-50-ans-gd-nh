@@ -16,6 +16,7 @@ import ResetPassword from '@/pages/ResetPassword';
 // (le premier affichage ne charge plus tout l'outil en une seule fois).
 const MonPortefeuille = lazy(() => import('@/pages/MonPortefeuille'));
 const MonEquipe = lazy(() => import('@/pages/MonEquipe'));
+const SuiviVentes = lazy(() => import('@/pages/SuiviVentes'));
 const Calendrier = lazy(() => import('@/pages/Calendrier'));
 const TableauDeBord = lazy(() => import('@/pages/TableauDeBord'));
 const Atelier = lazy(() => import('@/pages/Atelier'));
@@ -76,6 +77,7 @@ const AuthenticatedApp = () => {
         <Route path="/mon-espace" element={<EspaceCommercial />} />
         <Route path="/portefeuille" element={<MonPortefeuille />} />
         <Route path="/equipe" element={<MonEquipe />} />
+        <Route path="/suivi-ventes" element={<SuiviVentes />} />
         <Route path="/calendrier" element={<Calendrier />} />
         <Route path="/tableau-de-bord" element={<TableauDeBord />} />
         <Route path="/atelier" element={<Atelier />} />
