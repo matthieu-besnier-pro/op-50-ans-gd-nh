@@ -570,6 +570,21 @@ export default async function (req) {
       }
     });
 
+    // Dernière remontée du groupe WhatsApp : c'est l'horodatage qui dit si le
+    // tableau vit, bien plus que l'heure du calcul. Le tableau de suivi de 2021
+    // portait déjà cette ligne en tête de ses statistiques.
+    const derniere = allVentes
+      .filter((v) => v.created_date || v.date_vente)
+      .sort((a, b) => String(b.created_date || b.date_vente).localeCompare(String(a.created_date || a.date_vente)))[0] || null;
+    const derniereDeclaration = derniere ? {
+      quand: derniere.created_date || derniere.date_vente || '',
+      // Le nom d'un vendeur à compte se résout côté page, qui a déjà l'annuaire.
+      commercial_id: derniere.commercial_id || '',
+      vendeur: derniere.commercial_nom || '',
+      machine: derniere.type_machine || '',
+      modele: derniere.modele || ''
+    } : null;
+
     return Response.json({
       portee,
       maj: new Date().toISOString(),
@@ -655,6 +670,7 @@ export default async function (req) {
           par_type_vente: suiviParType,
           par_reprise: suiviParReprise,
           par_marque_reprise: parMarqueReprise(),
+          derniere_declaration: derniereDeclaration,
           // Les ventes validées, les plus récentes d'abord.
           // Les rendez-vous en regard des ventes : c'est ce qui donne le taux
           // de transformation, matériel et agri. précision séparément.

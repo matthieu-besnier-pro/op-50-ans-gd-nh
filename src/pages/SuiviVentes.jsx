@@ -272,7 +272,13 @@ export default function SuiviVentes() {
         <Loader />
       ) : (
         <>
-          <BandeauEcheance dateFin={stats?.rdv?.operation?.fin} maj={stats?.maj} />
+          <BandeauEcheance
+            dateFin={stats?.rdv?.operation?.fin}
+            derniere={suivi?.derniere_declaration && {
+              ...suivi.derniere_declaration,
+              vendeur: nomPar[suivi.derniere_declaration.commercial_id] || suivi.derniere_declaration.vendeur
+            }}
+          />
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Carte Icone={TrendingUp} valeur={suivi?.total ?? 0} libelle="Ventes déclarées" accent="text-gd-orange" />
             <Carte Icone={CheckCircle2} valeur={suivi?.validees ?? 0} libelle="Validées" accent="text-emerald-600" />

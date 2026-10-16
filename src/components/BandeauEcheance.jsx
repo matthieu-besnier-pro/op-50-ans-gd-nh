@@ -1,8 +1,12 @@
 import React from 'react';
-import { CalendarClock, RefreshCw } from 'lucide-react';
+import { CalendarClock, MessageSquare } from 'lucide-react';
 
 /**
- * Rappel de l'échéance de l'opération, et heure du dernier calcul.
+ * Rappel de l'échéance de l'opération, et dernière remontée du groupe.
+ *
+ * L'horodatage affiché est celui de la dernière vente déclarée, pas celui du
+ * calcul : c'est lui qui dit si le tableau vit. Le suivi papier de 2021 portait
+ * déjà cette ligne en tête de ses statistiques.
  *
  * La date affichée est une échéance, pas un couperet : les ventes déclarées
  * après continuent d'être comptées. Ce bandeau ne le dit PAS — c'est une règle
@@ -11,7 +15,7 @@ import { CalendarClock, RefreshCw } from 'lucide-react';
 
 const LONG = { day: 'numeric', month: 'long', year: 'numeric' };
 
-export default function BandeauEcheance({ dateFin, maj }) {
+export default function BandeauEcheance({ dateFin, derniere }) {
   const fin = dateFin ? new Date(`${dateFin}T23:59:59`) : null;
   const valide = fin && !Number.isNaN(fin.getTime());
 
@@ -36,11 +40,17 @@ export default function BandeauEcheance({ dateFin, maj }) {
           </span>
         )}
       </p>
-      {maj && (
+      {derniere?.quand && (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Mis à jour le {new Date(maj).toLocaleDateString('fr-FR')} à{' '}
-          {new Date(maj).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+          <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            Dernière déclaration
+            {derniere.vendeur ? <> — <span className="font-semibold text-foreground">{derniere.vendeur}</span></> : null}
+            {derniere.modele || derniere.machine ? ` · ${derniere.modele || derniere.machine}` : ''}
+            {' le '}
+            {new Date(derniere.quand).toLocaleDateString('fr-FR')} à{' '}
+            {new Date(derniere.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </p>
       )}
     </div>

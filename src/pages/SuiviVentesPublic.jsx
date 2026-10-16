@@ -99,7 +99,7 @@ export default function SuiviVentesPublic() {
           <p className="p-8 text-center text-muted-foreground">Chargement…</p>
         ) : (
           <>
-            <BandeauEcheance dateFin={data?.date_fin} maj={data?.maj} />
+            <BandeauEcheance dateFin={data?.date_fin} derniere={suivi?.derniere_declaration} />
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div className="rounded-2xl border border-gd-orange/40 bg-gd-orange/5 p-5">
                 <p className="text-4xl font-extrabold tabular-nums text-gd-orange">{suivi.total}</p>

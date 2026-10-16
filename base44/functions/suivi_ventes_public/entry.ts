@@ -157,6 +157,20 @@ export default async function (req) {
       else if (r.type !== 'RDV atelier hivernage') rdvMateriel += 1;
     });
 
+    const NOM_VENDEUR = (v) => (v.commercial_id && nomPar[v.commercial_id]) || v.commercial_nom || '';
+    // Dernière remontée du groupe WhatsApp : c'est l'horodatage qui dit si le
+    // tableau vit, bien plus que l'heure du calcul. Le tableau de suivi de 2021
+    // portait déjà cette ligne en tête de ses statistiques.
+    const derniere = ventes
+      .filter((v) => v.created_date || v.date_vente)
+      .sort((a, b) => String(b.created_date || b.date_vente).localeCompare(String(a.created_date || a.date_vente)))[0] || null;
+    const derniereDeclaration = derniere ? {
+      quand: derniere.created_date || derniere.date_vente || '',
+      vendeur: NOM_VENDEUR(derniere),
+      machine: derniere.type_machine || '',
+      modele: derniere.modele || ''
+    } : null;
+
     return Response.json({
       operation: p.nom_operation || '',
       date_fin: opFin || '',
@@ -169,6 +183,7 @@ export default async function (req) {
         par_type_vente: parTypeVente,
         par_reprise: parReprise,
         par_marque_reprise: parMarqueReprise(),
+        derniere_declaration: derniereDeclaration,
         rdv: { materiel: rdvMateriel, agri: rdvAgri },
         declarations: declarations
           .sort((a, b) => String(b.date).localeCompare(String(a.date)))
