@@ -23,6 +23,10 @@
       "format": "date",
       "description": "Date de vente"
     },
+    "modele": {
+      "type": "string",
+      "description": "Mod\u00e8le vendu tel qu'annonc\u00e9 (T6.160, TH6.26, Roll-Belt 180\u2026)"
+    },
     "type_machine": {
       "type": "string",
       "enum": [

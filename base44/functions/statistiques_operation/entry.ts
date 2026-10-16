@@ -472,6 +472,27 @@ export default async function (req) {
     // les ventes de l'opération, quelle que soit la portée de qui le consulte.
     // Sans cela, un commercial n'y verrait que les siennes — et ce n'est pas un
     // tableau personnel, c'est celui de l'équipe.
+    // Répartition par MARQUE reprise : « Sans reprise » d'un côté, New Holland
+    // de l'autre, et chaque marque concurrente pour elle-même. On regroupe sans
+    // tenir compte de la casse — « john deere » et « John Deere » sont la même
+    // marque — en gardant l'orthographe la plus fréquente.
+    const marques = {};
+    const compterMarque = (v) => {
+      let libelle;
+      if (v.reprise === 'Reprise NH') libelle = 'New Holland';
+      else if (v.reprise === 'Reprise autre marque') libelle = String(v.marque_reprise || '').trim() || 'Marque non précisée';
+      else if (v.reprise === 'Sans reprise') libelle = 'Sans reprise';
+      else return;
+      const cle = libelle.toLowerCase();
+      const e = (marques[cle] = marques[cle] || { libelle, n: 0, formes: {} });
+      e.n += 1;
+      e.formes[libelle] = (e.formes[libelle] || 0) + 1;
+      if (e.formes[libelle] > (e.formes[e.libelle] || 0)) e.libelle = libelle;
+    };
+    const parMarqueReprise = () => Object.values(marques)
+      .sort((a, b) => b.n - a.n)
+      .reduce((acc, e) => { acc[e.libelle] = e.n; return acc; }, {});
+
     const nomClient = {};
     allClients.forEach((c) => { nomClient[c.id] = c.raison_sociale || ''; });
     const suiviParType = {};
@@ -486,6 +507,7 @@ export default async function (req) {
       suiviParMachine[machine] = (suiviParMachine[machine] || 0) + 1;
       suiviParType[v.type_vente || 'Non précisé'] = (suiviParType[v.type_vente || 'Non précisé'] || 0) + 1;
       suiviParReprise[v.reprise || 'Non précisé'] = (suiviParReprise[v.reprise || 'Non précisé'] || 0) + 1;
+      compterMarque(v);
       // Un vendeur sans compte est regroupé sous son NOM : sa colonne existe
       // comme celle des autres, il n'est pas rejeté hors du tableau.
       const cleVendeur = v.commercial_id || (v.commercial_nom ? `nom:${v.commercial_nom}` : '');
@@ -506,6 +528,7 @@ export default async function (req) {
         commercial_id: cleVendeur,
         vendeur: v.commercial_nom || '',
         machine: v.type_machine || '',
+        modele: v.modele || '',
         type_vente: v.type_vente || '',
         reprise: v.reprise || '',
         marque_reprise: v.marque_reprise || '',
@@ -631,6 +654,7 @@ export default async function (req) {
           par_machine: suiviParMachine,
           par_type_vente: suiviParType,
           par_reprise: suiviParReprise,
+          par_marque_reprise: parMarqueReprise(),
           // Les ventes validées, les plus récentes d'abord.
           // Les rendez-vous en regard des ventes : c'est ce qui donne le taux
           // de transformation, matériel et agri. précision séparément.

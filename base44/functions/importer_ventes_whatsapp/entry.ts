@@ -40,6 +40,7 @@ export default async function(req) {
                 texte_source: { type: 'string', description: 'Le message d\'origine, tel quel' },
                 commercial_nom: { type: 'string', description: 'Nom du commercial vendeur si identifiable' },
                 client_nom: { type: 'string', description: 'Nom de l\'exploitation / client si mentionné' },
+                modele: { type: 'string', description: 'Modèle exact annoncé : T6.160, T7.210, TH6.26, Roll-Belt 180, FR480… Vide si le message ne le donne pas.' },
                 type_machine: { type: 'string', enum: MACHINES },
                 type_vente: { type: 'string', enum: TYPES_VENTE },
                 reprise: { type: 'string', enum: REPRISES },
@@ -57,6 +58,9 @@ export default async function(req) {
       const prompt = `Tu analyses des messages d'un groupe WhatsApp de commerciaux agricoles (concession New Holland) qui déclarent leurs ventes de matériel en texte libre.
 Extrais UNIQUEMENT les messages qui déclarent une vente réelle de machine (ignore les félicitations, blagues, questions, messages sans vente).
 Pour chaque vente :
+- modele : la référence exacte annoncée, sans le numéro de série ni le chargeur.
+  « Vente T6.160 no 152054 » → « T6.160 ». « télescopique TH6.26 démo DBS mat 149068 »
+  → « TH6.26 ». Vide si le message ne donne pas de modèle.
 - type_machine : rattache au plus proche parmi ${MACHINES.join(', ')}.
   « Agri. précision » couvre le guidage et le GPS : Fleet Pro, Trimble, antenne,
   console, autoguidage, kit de précision.
@@ -159,6 +163,7 @@ Messages à analyser :
           // c'est l'opérateur qui tranche à l'écran. Un défaut silencieux —
           // « Tracteur », « Nouvelle commande » — se serait glissé dans les
           // comptages sans que personne ne puisse le rattraper.
+          modele: (v.modele || '').trim(),
           type_machine: MACHINES.includes(v.type_machine) ? v.type_machine : '',
           type_vente: TYPES_VENTE.includes(v.type_vente) ? v.type_vente : '',
           reprise: REPRISES.includes(v.reprise) ? v.reprise : '',
@@ -198,6 +203,7 @@ Messages à analyser :
           commercial_id: v.commercial_id || null,
           commercial_nom: v.commercial_id ? null : vendeurNom,
           date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente : today,
+          modele: String(v.modele || '').trim() || null,
           type_machine: v.type_machine,
           type_vente: v.type_vente,
           reprise: v.reprise,

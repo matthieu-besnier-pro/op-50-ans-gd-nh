@@ -149,6 +149,7 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                 <th className="p-1.5">Vendeur</th>
                 <th className="p-1.5">Client</th>
                 <th className="p-1.5">Machine</th>
+                <th className="p-1.5">Modèle</th>
                 <th className="p-1.5">Qté</th>
                 <th className="p-1.5">Type</th>
                 <th className="p-1.5">Reprise</th>
@@ -206,6 +207,16 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                       <option value="">— à préciser —</option>
                       {MACHINES.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
+                  </td>
+                  {/* Le modèle tel qu'annoncé : c'est ce que les équipes
+                      reconnaissent, bien plus qu'une famille. */}
+                  <td className="p-1.5">
+                    <input
+                      className={`${selCls} w-24`}
+                      value={r.modele || ''}
+                      placeholder="T6.160"
+                      onChange={(e) => setRow(i, { modele: e.target.value })}
+                    />
                   </td>
                   {/* « Vendu 2 x T6.180 » : deux machines, donc deux ventes. */}
                   <td className="p-1.5">

@@ -10,6 +10,7 @@ import { invaliderStats } from '@/lib/operationStats';
 import AdminImportVentesWhatsapp from '@/components/AdminImportVentesWhatsapp';
 import MachineIcone from '@/components/MachineIcone';
 import MACHINES from '@/lib/famillesMachines';
+import AnneauRepartition from '@/components/AnneauRepartition';
 import { TrendingUp, CheckCircle2, Clock, Link2, Check, Trash2, MessageSquarePlus, ChevronUp } from 'lucide-react';
 
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
@@ -427,10 +428,12 @@ export default function SuiviVentes() {
               donnees={suivi?.par_type_vente}
               ordre={['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris', 'Non précisé']}
             />
-            <Repartition
-              titre="Répartition des reprises"
-              donnees={suivi?.par_reprise}
-              ordre={['Sans reprise', 'Reprise NH', 'Reprise autre marque', 'Non précisé']}
+            {/* Par MARQUE : savoir qui l'on reprend vaut mieux que de savoir
+                qu'on reprend. « Sans reprise » reste une part à part entière. */}
+            <AnneauRepartition
+              titre="Reprises par marque"
+              donnees={suivi?.par_marque_reprise}
+              vide="Aucune reprise déclarée."
             />
           </div>
 
@@ -466,6 +469,7 @@ export default function SuiviVentes() {
                   <th className="px-4 py-2 text-left font-semibold">Vendeur</th>
                   <th className="px-4 py-2 text-left font-semibold">Client</th>
                   <th className="px-4 py-2 text-left font-semibold">Machine</th>
+                  <th className="px-4 py-2 text-left font-semibold">Modèle</th>
                   <th className="px-4 py-2 text-left font-semibold">Type</th>
                   <th className="px-4 py-2 text-left font-semibold">Reprise</th>
                   <th className="px-4 py-2 text-left font-semibold">État</th>
@@ -475,7 +479,7 @@ export default function SuiviVentes() {
               <tbody>
                 {visibles.length === 0 ? (
                   <tr>
-                    <td colSpan={peutGerer ? 8 : 7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td colSpan={peutGerer ? 9 : 8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                       Aucune déclaration à afficher.
                     </td>
                   </tr>
@@ -500,6 +504,24 @@ export default function SuiviVentes() {
                               {MACHINES.map((m) => <option key={m.cle} value={m.cle}>{m.libelle}</option>)}
                             </select>
                           ) : (d.machine || '—')}
+                        </td>
+                        {/* Le modèle : c'est lui que les équipes reconnaissent,
+                            bien plus que la famille. Corrigeable sur place. */}
+                        <td className="px-4 py-2">
+                          {peutGerer ? (
+                            <input
+                              className={`${sel} w-24`}
+                              defaultValue={d.modele || ''}
+                              placeholder="T6.160"
+                              disabled={fige}
+                              onBlur={(e) => {
+                                const val = e.target.value.trim();
+                                if (val !== (d.modele || '')) majVente(d.id, { modele: val });
+                              }}
+                            />
+                          ) : (
+                            <span className="font-semibold text-gd-navy">{d.modele || '—'}</span>
+                          )}
                         </td>
                         <td className="px-4 py-2">
                           {peutGerer ? (

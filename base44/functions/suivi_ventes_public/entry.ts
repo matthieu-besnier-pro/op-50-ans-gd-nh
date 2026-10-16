@@ -65,6 +65,27 @@ export default async function (req) {
     (users || []).forEach((u) => { if (u.full_name) nomPar[u.id] = joliNom(u.full_name); });
     (structure || []).forEach((f) => { if (f.user_id && f.nom_commercial) nomPar[f.user_id] = f.nom_commercial; });
 
+    // Répartition par MARQUE reprise : « Sans reprise » d'un côté, New Holland
+    // de l'autre, et chaque marque concurrente pour elle-même. On regroupe sans
+    // tenir compte de la casse — « john deere » et « John Deere » sont la même
+    // marque — en gardant l'orthographe la plus fréquente.
+    const marques = {};
+    const compterMarque = (v) => {
+      let libelle;
+      if (v.reprise === 'Reprise NH') libelle = 'New Holland';
+      else if (v.reprise === 'Reprise autre marque') libelle = String(v.marque_reprise || '').trim() || 'Marque non précisée';
+      else if (v.reprise === 'Sans reprise') libelle = 'Sans reprise';
+      else return;
+      const cle = libelle.toLowerCase();
+      const e = (marques[cle] = marques[cle] || { libelle, n: 0, formes: {} });
+      e.n += 1;
+      e.formes[libelle] = (e.formes[libelle] || 0) + 1;
+      if (e.formes[libelle] > (e.formes[e.libelle] || 0)) e.libelle = libelle;
+    };
+    const parMarqueReprise = () => Object.values(marques)
+      .sort((a, b) => b.n - a.n)
+      .reduce((acc, e) => { acc[e.libelle] = e.n; return acc; }, {});
+
     const declarations = [];
     const parVendeur = {};
     const parMachine = {};
@@ -81,6 +102,7 @@ export default async function (req) {
       parMachine[machine] = (parMachine[machine] || 0) + 1;
       parTypeVente[v.type_vente || 'Non précisé'] = (parTypeVente[v.type_vente || 'Non précisé'] || 0) + 1;
       parReprise[v.reprise || 'Non précisé'] = (parReprise[v.reprise || 'Non précisé'] || 0) + 1;
+      compterMarque(v);
       // La déclaration figure dans la liste même sans vendeur attribué : c'est
       // justement celle-là qu'il faut voir pour la rattraper.
       declarations.push({
@@ -89,6 +111,7 @@ export default async function (req) {
         vendeur: (v.commercial_id && nomPar[v.commercial_id]) || v.commercial_nom || '',
         client_id: v.client_id || '',
         machine: v.type_machine || '',
+        modele: v.modele || '',
         type_vente: v.type_vente || '',
         reprise: v.reprise || '',
         marque_reprise: v.marque_reprise || '',
@@ -144,6 +167,7 @@ export default async function (req) {
         par_machine: parMachine,
         par_type_vente: parTypeVente,
         par_reprise: parReprise,
+        par_marque_reprise: parMarqueReprise(),
         rdv: { materiel: rdvMateriel, agri: rdvAgri },
         declarations: declarations
           .sort((a, b) => String(b.date).localeCompare(String(a.date)))

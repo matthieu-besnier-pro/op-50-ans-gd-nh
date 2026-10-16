@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import MachineIcone from '@/components/MachineIcone';
 import OpLogo from '@/components/OpLogo';
 import MACHINES from '@/lib/famillesMachines';
+import AnneauRepartition from '@/components/AnneauRepartition';
 
 /**
  * Suivi des ventes — vue PUBLIQUE.
@@ -208,10 +209,10 @@ export default function SuiviVentesPublic() {
                 donnees={suivi.par_type_vente}
                 ordre={['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris', 'Non précisé']}
               />
-              <Repartition
-                titre="Répartition des reprises"
-                donnees={suivi.par_reprise}
-                ordre={['Sans reprise', 'Reprise NH', 'Reprise autre marque', 'Non précisé']}
+              <AnneauRepartition
+                titre="Reprises par marque"
+                donnees={suivi.par_marque_reprise}
+                vide="Aucune reprise déclarée."
               />
             </div>
 
@@ -227,6 +228,7 @@ export default function SuiviVentesPublic() {
                     <th className="px-4 py-2 text-left font-semibold">Vendeur</th>
                     <th className="px-4 py-2 text-left font-semibold">Client</th>
                     <th className="px-4 py-2 text-left font-semibold">Machine</th>
+                    <th className="px-4 py-2 text-left font-semibold">Modèle</th>
                     <th className="px-4 py-2 text-left font-semibold">Type</th>
                     <th className="px-4 py-2 text-left font-semibold">Reprise</th>
                   </tr>
@@ -234,7 +236,7 @@ export default function SuiviVentesPublic() {
                 <tbody>
                   {declarations.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
                         Aucune déclaration pour l'instant.
                       </td>
                     </tr>
@@ -247,6 +249,7 @@ export default function SuiviVentesPublic() {
                         <td className="px-4 py-2 font-semibold text-foreground">{d.vendeur || '—'}</td>
                         <td className="px-4 py-2 text-foreground">{d.client || '—'}</td>
                         <td className="px-4 py-2 text-foreground">{d.machine || '—'}</td>
+                        <td className="px-4 py-2 font-semibold text-gd-navy">{d.modele || '—'}</td>
                         <td className="px-4 py-2 text-muted-foreground">{d.type_vente || '—'}</td>
                         <td className="px-4 py-2 text-muted-foreground">
                           {d.reprise || '—'}{d.marque_reprise ? ` · ${d.marque_reprise}` : ''}
