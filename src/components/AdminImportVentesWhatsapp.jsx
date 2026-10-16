@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, Sparkles, Loader2, CheckCircle2, AlertTriangle, Trash2 } from 'lucide-react';
 
-const MACHINES = ['Tracteur', 'Moissonneuse', 'Big Baler', 'Round Baler', 'Télescopique', 'Ensileuse', 'Machine à vendanger'];
+const MACHINES = ['Tracteur', 'Moissonneuse', 'Big Baler', 'Round Baler', 'Télescopique', 'Ensileuse', 'Machine à vendanger', 'Agri. précision'];
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
 const REPRISES = ['Sans reprise', 'Reprise NH', 'Reprise autre marque'];
 
@@ -25,7 +25,9 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
       const res = await base44.functions.invoke('importer_ventes_whatsapp', { action: 'analyser', raw_text: text });
       const data = res?.data ?? res;
       if (data?.error) throw new Error(data.error);
-      setRows((data.ventes || []).map((v) => ({ ...v, inclure: true })));
+      // Le serveur a déjà décoché ce qui sort de l'opération : on respecte son
+      // choix plutôt que de tout cocher.
+      setRows((data.ventes || []).map((v) => ({ ...v, inclure: v.inclure !== false })));
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || 'Erreur');
     } finally {
@@ -130,6 +132,9 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                     <div className="text-foreground">{r.texte_source || <span className="text-muted-foreground">—</span>}</div>
                     <div className="mt-0.5 flex gap-1">
                       {r.confiance && <span className={`rounded px-1 ${r.confiance === 'basse' ? 'bg-red-100 text-red-700' : r.confiance === 'moyenne' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{r.confiance}</span>}
+                      {/* Matériel étranger à l'opération New Holland : la ligne
+                          reste visible, décochée, pour qu'on puisse la rattraper. */}
+                      {r.hors_operation && <span className="rounded bg-slate-200 px-1 font-semibold text-slate-700">hors opération</span>}
 
                     </div>
                   </td>

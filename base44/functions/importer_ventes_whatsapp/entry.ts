@@ -4,7 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 // action = 'analyser' : extrait les ventes du texte collé (IA), rapproche le commercial par son nom.
 // action = 'creer'    : crée les ventes revues, en statut « À valider ».
 
-const MACHINES = ['Tracteur', 'Moissonneuse', 'Big Baler', 'Round Baler', 'Télescopique', 'Ensileuse', 'Machine à vendanger'];
+const MACHINES = ['Tracteur', 'Moissonneuse', 'Big Baler', 'Round Baler', 'Télescopique', 'Ensileuse', 'Machine à vendanger', 'Agri. précision'];
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
 const REPRISES = ['Sans reprise', 'Reprise NH', 'Reprise autre marque'];
 
@@ -46,6 +46,7 @@ export default async function(req) {
                 marque_reprise: { type: 'string', description: 'Marque reprise si reprise autre marque' },
                 date_vente: { type: 'string', description: 'Date au format AAAA-MM-JJ si mentionnée, sinon vide' },
                 quantite: { type: 'number', description: 'Nombre de machines vendues dans ce message (« 2 x T6.180 » = 2). 1 par défaut.' },
+                hors_operation: { type: 'boolean', description: "Vrai si le matériel vendu ne fait pas partie de l'opération New Holland (outil de travail du sol, matériel d'une autre marque vendu seul)." },
                 confiance: { type: 'string', enum: ['haute', 'moyenne', 'basse'] }
               }
             }
@@ -57,6 +58,12 @@ export default async function(req) {
 Extrais UNIQUEMENT les messages qui déclarent une vente réelle de machine (ignore les félicitations, blagues, questions, messages sans vente).
 Pour chaque vente :
 - type_machine : rattache au plus proche parmi ${MACHINES.join(', ')}.
+  « Agri. précision » couvre le guidage et le GPS : Fleet Pro, Trimble, antenne,
+  console, autoguidage, kit de précision.
+- hors_operation : vrai quand le matériel vendu ne relève PAS de l'opération
+  New Holland — un outil de travail du sol (vibroculteur, déchaumeur, charrue),
+  ou du matériel d'une autre marque vendu seul. Ces ventes sont remontées mais
+  décochées : elles ne comptent pas dans l'opération.
 - type_vente : ${TYPES_VENTE.join(', ')} (par défaut « Nouvelle commande » si non précisé).
 - reprise : ${REPRISES.join(', ')} (par défaut « Sans reprise »). Si une marque concurrente est reprise, mets « Reprise autre marque » et renseigne marque_reprise.
 - commercial_nom : le vendeur si identifiable (auteur du message ou nom cité).
@@ -110,7 +117,11 @@ Messages à analyser :
         const m = matchComm(v.commercial_nom);
         return {
           texte_source: v.texte_source || '',
-        quantite: Math.max(1, Math.min(20, Math.round(Number(v.quantite) || 1))),
+          quantite: Math.max(1, Math.min(20, Math.round(Number(v.quantite) || 1))),
+          // Hors opération : la ligne remonte quand même, pour qu'on la voie,
+          // mais décochée — à l'opérateur de la rattraper si l'IA se trompe.
+          hors_operation: v.hors_operation === true,
+          inclure: v.hors_operation !== true,
           commercial_nom: v.commercial_nom || '',
           commercial_id: m?.commercial_id || null,
           commercial_matched: m?.nom || null,

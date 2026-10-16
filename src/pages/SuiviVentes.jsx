@@ -22,7 +22,8 @@ const MACHINES = [
   { cle: 'Moissonneuse', court: 'MB', libelle: 'Moissonneuse' },
   { cle: 'Round Baler', court: 'RD', libelle: 'Round' },
   { cle: 'Big Baler', court: 'BG', libelle: 'Big' },
-  { cle: 'Machine à vendanger', court: 'MAV', libelle: 'Mach. à vendanger' }
+  { cle: 'Machine à vendanger', court: 'MAV', libelle: 'Mach. à vendanger' },
+  { cle: 'Agri. précision', court: 'AGP', libelle: 'Agri. précision (GPS, guidage)' }
 ];
 
 function Carte({ Icone, valeur, libelle, accent }) {
