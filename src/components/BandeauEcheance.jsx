@@ -4,9 +4,9 @@ import { CalendarClock, RefreshCw } from 'lucide-react';
 /**
  * Rappel de l'échéance de l'opération, et heure du dernier calcul.
  *
- * La date du 30 octobre est une échéance, pas un couperet : les ventes
- * déclarées après continuent d'être comptées. Le bandeau le dit, pour que
- * personne ne croie le tableau figé au lendemain.
+ * La date affichée est une échéance, pas un couperet : les ventes déclarées
+ * après continuent d'être comptées. Ce bandeau ne le dit PAS — c'est une règle
+ * interne, qui n'a pas à figurer sur une page ouverte à qui a le lien.
  */
 
 const LONG = { day: 'numeric', month: 'long', year: 'numeric' };
@@ -27,24 +27,15 @@ export default function BandeauEcheance({ dateFin, maj }) {
 
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gd-orange/40 bg-gd-orange/5 px-4 py-3">
-      <div className="flex items-start gap-2.5">
-        <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-gd-orange" />
-        <div>
-          <p className="text-sm font-bold text-gd-navy-dark">
-            {valide ? <>Opération jusqu'au {fin.toLocaleDateString('fr-FR', LONG)}</> : "Opération en cours"}
-            {reste !== null && reste >= 0 && (
-              <span className="ml-2 rounded-full bg-gd-orange px-2 py-0.5 text-xs font-extrabold uppercase text-gd-navy-dark">
-                {reste === 0 ? 'Dernier jour' : `J-${reste}`}
-              </span>
-            )}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {reste !== null && reste < 0
-              ? "L'échéance est passée : les ventes déclarées depuis restent comptées."
-              : "Les ventes déclarées après cette date continueront d'être comptées."}
-          </p>
-        </div>
-      </div>
+      <p className="flex items-center gap-2.5 text-sm font-bold text-gd-navy-dark">
+        <CalendarClock className="h-5 w-5 shrink-0 text-gd-orange" />
+        {valide ? <>Opération jusqu'au {fin.toLocaleDateString('fr-FR', LONG)}</> : 'Opération en cours'}
+        {reste !== null && reste >= 0 && (
+          <span className="rounded-full bg-gd-orange px-2 py-0.5 text-xs font-extrabold uppercase text-gd-navy-dark">
+            {reste === 0 ? 'Dernier jour' : `J-${reste}`}
+          </span>
+        )}
+      </p>
       {maj && (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <RefreshCw className="h-3.5 w-3.5" />
