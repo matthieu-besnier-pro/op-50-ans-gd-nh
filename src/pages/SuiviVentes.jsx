@@ -9,6 +9,7 @@ import { useOperationStats } from '@/lib/useOperationStats';
 import { invaliderStats } from '@/lib/operationStats';
 import AdminImportVentesWhatsapp from '@/components/AdminImportVentesWhatsapp';
 import MachineIcone from '@/components/MachineIcone';
+import MACHINES from '@/lib/famillesMachines';
 import { TrendingUp, CheckCircle2, Clock, Link2, Check, Trash2, MessageSquarePlus, ChevronUp } from 'lucide-react';
 
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
@@ -35,21 +36,7 @@ const joliNom = (v) => {
   return `${mots.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join('-')} ${nom}`;
 };
 
-// L'ordre des colonnes est celui du tableau de suivi historique. Les
-// pictogrammes reprennent le vocabulaire des fiches client (MaterielPicto) :
-// une famille doit se reconnaître du même coup d'œil partout dans l'outil.
-// Round et Big, regroupées ailleurs sous « presses », se distinguent ici par
-// la forme de leurs bottes — ronde et carrée.
-const MACHINES = [
-  { cle: 'Tracteur', court: 'TR', libelle: 'Tracteurs' },
-  { cle: 'Télescopique', court: 'TÉL', libelle: 'Télescopiques' },
-  { cle: 'Moissonneuse', court: 'MB', libelle: 'Moissonneuses' },
-  { cle: 'Ensileuse', court: 'EN', libelle: 'Ensileuses' },
-  { cle: 'Round Baler', court: 'RD', libelle: 'Round balers' },
-  { cle: 'Big Baler', court: 'BG', libelle: 'Big balers' },
-  { cle: 'Machine à vendanger', court: 'MAV', libelle: 'Machines à vendanger' },
-  { cle: 'Agri. précision', court: 'AGP', libelle: 'Agri. précision' }
-];
+
 
 // Une répartition simple, lisible sans graphique : le libellé, la barre, le
 // nombre. Sur un tableau qu'on partage largement, ça vaut mieux qu'un camembert
@@ -184,7 +171,8 @@ export default function SuiviVentes() {
   const [importOuvert, setImportOuvert] = React.useState(false);
   const [copie, setCopie] = React.useState(false);
   const copierLien = () => {
-    const lien = `${window.location.origin}/suivi-ventes`;
+    // Le lien partagé est le PUBLIC : celui qui le reçoit n'a pas de compte.
+    const lien = `${window.location.origin}/ventes`;
     const fini = () => { setCopie(true); setTimeout(() => setCopie(false), 2500); };
     // Le presse-papier est refusé hors contexte sécurisé : on retombe alors sur
     // une sélection, plutôt que de ne rien faire sans rien dire.
@@ -226,7 +214,7 @@ export default function SuiviVentes() {
           <h1 className="text-2xl font-extrabold text-gd-navy-dark">Suivi des ventes</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Déclarations du groupe WhatsApp, par vendeur et par type de machine.
-            Ce tableau est le même pour tous.
+            Le lien de partage ouvre une version publique, consultable sans compte.
           </p>
         </div>
         {/* Le lien se copie plutôt qu'il ne se dicte : l'adresse est longue, et

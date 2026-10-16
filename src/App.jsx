@@ -17,6 +17,7 @@ import ResetPassword from '@/pages/ResetPassword';
 const MonPortefeuille = lazy(() => import('@/pages/MonPortefeuille'));
 const MonEquipe = lazy(() => import('@/pages/MonEquipe'));
 const SuiviVentes = lazy(() => import('@/pages/SuiviVentes'));
+const SuiviVentesPublic = lazy(() => import('@/pages/SuiviVentesPublic'));
 const Calendrier = lazy(() => import('@/pages/Calendrier'));
 const TableauDeBord = lazy(() => import('@/pages/TableauDeBord'));
 const Atelier = lazy(() => import('@/pages/Atelier'));
@@ -69,6 +70,9 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      {/* Tableau de marche ouvert à tous, sans compte ni menu : il ne livre
+          que des agrégats, jamais un nom de client. */}
+      <Route path="/ventes" element={<SuiviVentesPublic />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
