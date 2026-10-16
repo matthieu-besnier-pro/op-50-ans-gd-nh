@@ -12,6 +12,71 @@ const norm = (s) => String(s || '')
   .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .replace(/[^a-z0-9]+/g, ' ').trim();
 
+// ---- Horodatage des messages WhatsApp ----
+//
+// Un export WhatsApp préfixe chaque message de sa date et de son heure :
+//
+//   [13/10/2026 14:45:34] Jfrancois DRAGON: Vente T6.160 no 152054 …
+//
+// C'est CETTE heure qui fait foi — celle où le vendeur a annoncé sa vente,
+// pas celle où quelqu'un a collé le texte dans l'outil, qui est la même pour
+// tout un lot et ne distingue plus rien.
+//
+// Le préfixe est lu par expression régulière plutôt que par l'IA : un
+// horodatage est une donnée exacte, et un modèle qui le reformule finit par
+// en inventer un.
+const LIGNE_HORODATEE = /^\s*\[?\s*(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(?: |\s)*([AaPp][Mm])?\s*\]?\s*/;
+
+// Heure locale française, sans suffixe de fuseau : l'export est déjà dans
+// l'heure de ceux qui l'ont écrit, la convertir la décalerait.
+const isoDepuis = (m) => {
+  let [, j, mo, a, h, mi, sec, ampm] = m;
+  let jour = Number(j), mois = Number(mo), annee = Number(a);
+  // Export en MM/JJ : seul un premier nombre > 12 tranche avec certitude.
+  if (jour <= 12 && mois > 12) { const t = jour; jour = mois; mois = t; }
+  if (annee < 100) annee += 2000;
+  let heure = Number(h);
+  if (ampm) {
+    const pm = ampm.toLowerCase() === 'pm';
+    if (pm && heure < 12) heure += 12;
+    if (!pm && heure === 12) heure = 0;
+  }
+  if (mois < 1 || mois > 12 || jour < 1 || jour > 31 || heure > 23) return '';
+  const p2 = (n) => String(n).padStart(2, '0');
+  return `${annee}-${p2(mois)}-${p2(jour)}T${p2(heure)}:${p2(Number(mi))}:${p2(Number(sec || 0))}`;
+};
+
+const cleTexte = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 60);
+
+// Index des messages horodatés du texte collé. L'IA renvoie le message
+// d'origine ; on le retrouve ici pour lui rendre son heure, même si elle a
+// laissé tomber le préfixe en recopiant.
+function indexerHorodatages(rawText) {
+  const index = [];
+  String(rawText || '').split(/\r?\n/).forEach((ligne) => {
+    const m = ligne.match(LIGNE_HORODATEE);
+    if (!m) return;
+    const iso = isoDepuis(m);
+    if (iso) index.push({ iso, cle: cleTexte(ligne.slice(m[0].length)) });
+  });
+  return index;
+}
+
+function horodatageDe(vente, index) {
+  // Le préfixe est resté dans ce que l'IA a recopié : on le lit directement.
+  for (const champ of [vente?.horodatage, vente?.texte_source]) {
+    const m = String(champ || '').match(LIGNE_HORODATEE);
+    if (m) { const iso = isoDepuis(m); if (iso) return iso; }
+  }
+  // Sinon on raccroche le message à sa ligne d'origine par son contenu.
+  const cle = cleTexte(String(vente?.texte_source || '').replace(LIGNE_HORODATEE, ''));
+  if (cle.length >= 12) {
+    const trouve = index.find((e) => e.cle.includes(cle.slice(0, 40)) || cle.includes(e.cle.slice(0, 40)));
+    if (trouve) return trouve.iso;
+  }
+  return '';
+}
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -37,7 +102,8 @@ export default async function(req) {
             items: {
               type: 'object',
               properties: {
-                texte_source: { type: 'string', description: 'Le message d\'origine, tel quel' },
+                texte_source: { type: 'string', description: 'La ligne d\'origine COMPLÈTE, horodatage entre crochets compris, recopiée sans rien changer' },
+                horodatage: { type: 'string', description: 'Le préfixe horodaté de la ligne, recopié tel quel (ex. « [13/10/2026 14:45:34] »). Vide si la ligne n\'en a pas.' },
                 commercial_nom: { type: 'string', description: 'Nom du commercial vendeur si identifiable' },
                 client_nom: { type: 'string', description: 'Nom de l\'exploitation / client si mentionné' },
                 modele: { type: 'string', description: 'Modèle exact annoncé : T6.160, T7.210, TH6.26, Roll-Belt 180, FR480… Vide si le message ne le donne pas.' },
@@ -76,6 +142,9 @@ Pour chaque vente :
   main, une valeur fausse passerait inaperçue.
 - commercial_nom : le vendeur si identifiable (auteur du message ou nom cité).
 - client_nom : l'exploitation/client si mentionné, sinon vide.
+- texte_source et horodatage : recopie la ligne SANS RIEN REFORMATER. Si elle commence
+  par « [13/10/2026 14:45:34] », ces caractères doivent se retrouver à l'identique.
+  Ne reformate jamais une date, ne la traduis pas, ne la complète pas.
 - confiance : ton niveau de certitude sur l'extraction.
 - quantite : le nombre de machines du message. « Vendu 2 x T6.180 » = 2, « vendu T7 » = 1.
   Un chargeur, un kit ou un équipement vendu AVEC une machine ne compte pas en plus.
@@ -96,6 +165,7 @@ Messages à analyser :
         return Response.json({ error: `Analyse IA indisponible : ${e?.message || e}` }, { status: 500 });
       }
       const ventes = (llm?.ventes || llm?.data?.ventes || []);
+      const horodatages = indexerHorodatages(rawText);
 
       // Rapprochement du vendeur : comptes, fiches de secteur, et tableau de
       // répartition — ce dernier nomme aussi ceux qui n'ont jamais ouvert
@@ -148,6 +218,8 @@ Messages à analyser :
         const m = matchComm(v.commercial_nom);
         return {
           texte_source: v.texte_source || '',
+          // Heure de la déclaration sur le groupe : c'est elle qui sera affichée.
+          declare_le: horodatageDe(v, horodatages),
           quantite: Math.max(1, Math.min(20, Math.round(Number(v.quantite) || 1))),
           // Hors opération : la ligne remonte quand même, pour qu'on la voie,
           // mais décochée — à l'opérateur de la rattraper si l'IA se trompe.
@@ -170,7 +242,8 @@ Messages à analyser :
           type_vente: TYPES_VENTE.includes(v.type_vente) ? v.type_vente : '',
           reprise: REPRISES.includes(v.reprise) ? v.reprise : '',
           marque_reprise: v.marque_reprise || '',
-          date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente : today,
+          date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente
+            : (horodatageDe(v, horodatages).slice(0, 10) || today),
           confiance: v.confiance || 'moyenne'
         };
       });
@@ -207,12 +280,14 @@ Messages à analyser :
           client_nom: String(v.client_nom || '').trim() || null,
           commercial_id: v.commercial_id || null,
           commercial_nom: v.commercial_id ? null : vendeurNom,
-          date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente : today,
+          date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente
+            : (String(v.declare_le || '').slice(0, 10) || today),
           modele: String(v.modele || '').trim() || null,
           type_machine: v.type_machine,
           type_vente: v.type_vente,
           reprise: v.reprise,
           marque_reprise: v.reprise === 'Reprise autre marque' ? (v.marque_reprise || null) : null,
+          declare_le: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v.declare_le || '') ? v.declare_le : null,
           source_declaration: 'Import WhatsApp',
           statut_validation: 'À valider'
         };

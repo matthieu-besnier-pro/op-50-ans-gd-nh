@@ -114,8 +114,10 @@ export default async function (req) {
       declarations.push({
         id: v.id,
         date: v.date_vente || '',
-        // Horodatage de l'entrée dans l'outil : seul à porter une heure.
-        declaree: v.created_date || '',
+        // Heure de la déclaration sur le groupe WhatsApp. L'heure d'import ne
+        // prend le relais que pour les lignes antérieures, qui ne l'avaient pas
+        // conservée : elle est la même pour tout un lot et ne distingue rien.
+        declaree: v.declare_le || v.created_date || '',
         // Nom du client tel qu'annoncé ; la fiche prend le relais pour les
         // déclarations antérieures, qui ne l'ont pas conservé.
         client_nom: String(v.client_nom || '').trim(),
@@ -180,13 +182,14 @@ export default async function (req) {
     // L'heure d'INTÉGRATION est celle du dernier import, tous enregistrements
     // confondus. Elle dit jusqu'où le tableau est à jour : une vente annoncée
     // sur WhatsApp après cette heure n'est pas encore comptée.
+    // Clé de tri : l'horodatage du message WhatsApp quand on l'a, le jour de
+    // vente sinon. Les deux commencent par AAAA-MM-JJ, ils se comparent donc
+    // directement, et une ligne horodatée l'emporte sur une ligne du même jour
+    // sans heure — elle est connue plus précisément.
+    const quandDeclaree = (v) => v.declare_le || v.date_vente || '';
     const derniere = ventes
-      .filter((v) => v.date_vente)
-      .sort((a, b) => {
-        const parDate = String(b.date_vente).localeCompare(String(a.date_vente));
-        // Même jour : la dernière arrivée tranche.
-        return parDate !== 0 ? parDate : String(b.created_date || '').localeCompare(String(a.created_date || ''));
-      })[0] || null;
+      .filter((v) => quandDeclaree(v))
+      .sort((a, b) => quandDeclaree(b).localeCompare(quandDeclaree(a)))[0] || null;
     const integreLe = ventes.reduce((max, v) => (v.created_date > max ? v.created_date : max), '');
     const derniereDeclaration = derniere ? {
       integre: integreLe,
@@ -213,7 +216,8 @@ export default async function (req) {
         par_jour: suiviParJour,
         rdv: { materiel: rdvMateriel, agri: rdvAgri },
         declarations: declarations
-          .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+          // Même ordre que la colonne « Déclarée le » : ce qu'on lit est ce qui trie.
+          .sort((a, b) => String(b.declaree || b.date).localeCompare(String(a.declaree || a.date)))
           .slice(0, 300)
       }
     });

@@ -162,7 +162,17 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                   <td className="p-1.5"><input type="checkbox" checked={r.inclure} onChange={(e) => setRow(i, { inclure: e.target.checked })} /></td>
                   <td className="p-1.5 max-w-[220px]">
                     <div className="text-foreground">{r.texte_source || <span className="text-muted-foreground">—</span>}</div>
-                    <div className="mt-0.5 flex gap-1">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                      {/* Heure lue dans le préfixe du message. Affichée avant
+                          validation : si le préfixe manquait, la ligne le dit
+                          plutôt que de prendre l'heure de l'import en silence. */}
+                      {r.declare_le ? (
+                        <span className="rounded bg-gd-navy/10 px-1 font-semibold tabular-nums text-gd-navy">
+                          {r.declare_le.slice(8, 10)}/{r.declare_le.slice(5, 7)} à {r.declare_le.slice(11, 13)}h{r.declare_le.slice(14, 16)}
+                        </span>
+                      ) : (
+                        <span className="rounded bg-gd-orange/20 px-1 font-semibold text-gd-navy-dark">heure non détectée</span>
+                      )}
                       {r.confiance && <span className={`rounded px-1 ${r.confiance === 'basse' ? 'bg-red-100 text-red-700' : r.confiance === 'moyenne' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{r.confiance}</span>}
                       {/* Matériel étranger à l'opération New Holland : la ligne
                           reste visible, décochée, pour qu'on puisse la rattraper. */}

@@ -257,7 +257,7 @@ export default function SuiviVentesPublic() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-2 text-left font-semibold">Reçue le</th>
+                    <th className="px-4 py-2 text-left font-semibold">Déclarée le</th>
                     <th className="px-4 py-2 text-left font-semibold">Vendeur</th>
                     <th className="px-4 py-2 text-left font-semibold">Client</th>
                     <th className="px-4 py-2 text-left font-semibold">Machine</th>
