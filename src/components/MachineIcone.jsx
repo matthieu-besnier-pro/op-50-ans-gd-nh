@@ -3,14 +3,13 @@ import React from 'react';
 /**
  * Visuels des familles de matériel de l'opération.
  *
- * Les photos produit viennent du tableau de suivi 2021 de la maison : ce sont
- * les visuels New Holland déjà utilisés pour les opérations précédentes,
- * redimensionnés pour le web. Cinq familles en ont un.
+ * Les huit familles ont leur photo produit : cinq viennent du tableau de suivi
+ * 2021 de la maison, trois ont été fournies ensuite. Toutes redimensionnées
+ * pour le web — une cinquantaine de kilo-octets chacune.
  *
- * Les trois autres — télescopique, machine à vendanger, agriculture de
- * précision — gardent une silhouette dessinée en SVG, faute de photo dans ce
- * fichier. Déposer l'image correspondante dans public/machines/ suffit à la
- * remplacer : la photo prend alors le dessus, sans toucher au code.
+ * Les silhouettes SVG restent en dessous, en filet : si une image venait à
+ * manquer, le dessin prend le relais plutôt que de laisser un trou. Elles
+ * servent aussi de repère pour une famille qu'on ajouterait demain.
  *
  * Chaque silhouette garde le trait qui fait reconnaître la machine : la grande
  * roue arrière du tracteur, le bras du télescopique, la coupe de la
@@ -25,10 +24,9 @@ const PHOTOS = {
   Ensileuse: 'ensileuse.png',
   'Round Baler': 'round-baler.png',
   'Big Baler': 'big-baler.png',
-  // Déposez ces fichiers pour remplacer les silhouettes :
-  // 'Télescopique': 'telescopique.png',
-  // 'Machine à vendanger': 'machine-a-vendanger.png',
-  // 'Agri. précision': 'agri-precision.png'
+  'Télescopique': 'telescopique.png',
+  'Machine à vendanger': 'machine-a-vendanger.png',
+  'Agri. précision': 'agri-precision.png'
 };
 
 const Roue = ({ cx, cy, r }) => (
