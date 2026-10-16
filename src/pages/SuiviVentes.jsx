@@ -165,8 +165,11 @@ export default function SuiviVentes() {
     }
   };
 
-  const visibles = (declarations || []).filter((d) =>
+  // Dix déclarations suffisent à voir ce qui se passe ; le reste se déplie.
+  const [toutVoir, setToutVoir] = React.useState(false);
+  const retenues = (declarations || []).filter((d) =>
     filtre === 'toutes' || (filtre === 'validees' ? d.validee : !d.validee));
+  const visibles = toutVoir ? retenues : retenues.slice(0, 10);
 
   const [importOuvert, setImportOuvert] = React.useState(false);
   const [copie, setCopie] = React.useState(false);
@@ -419,7 +422,7 @@ export default function SuiviVentes() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
               <h2 className="text-sm font-bold uppercase tracking-wider text-gd-navy-dark">
                 Déclarations de vente
-                <span className="ml-2 font-normal normal-case text-muted-foreground">{visibles.length}</span>
+                <span className="ml-2 font-normal normal-case text-muted-foreground">{retenues.length}</span>
               </h2>
               <div className="flex gap-1">
                 {[
@@ -530,6 +533,15 @@ export default function SuiviVentes() {
                 )}
               </tbody>
             </table>
+            {retenues.length > 10 && (
+              <button
+                type="button"
+                onClick={() => setToutVoir((v) => !v)}
+                className="w-full border-t border-border py-3 text-sm font-semibold text-gd-navy transition-colors hover:bg-muted/50"
+              >
+                {toutVoir ? 'Réduire' : `Voir la suite (${retenues.length - 10})`}
+              </button>
+            )}
           </div>
 
           {autres > 0 && (

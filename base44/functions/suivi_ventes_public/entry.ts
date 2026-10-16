@@ -8,10 +8,12 @@ import { routageRdv } from '../../shared/atelier.ts';
 // qui permet d'ouvrir le tableau de marche à qui reçoit le lien, sans lui
 // demander de créer un compte.
 //
-// En contrepartie elle ne renvoie QUE des agrégats : le nombre de ventes par
-// vendeur et par famille de matériel, et les rendez-vous qui servent au taux de
-// transformation. Aucun nom de client, aucune fiche, aucun détail de vente —
-// rien qui n'appartienne à un tiers ne sort par cette porte.
+// Elle livre le tableau de marche complet : agrégats, et déclarations avec leur
+// client. C'est un choix assumé de la Direction — la page est ouverte à qui a
+// le lien, donc les raisons sociales le sont aussi.
+//
+// Elle ne lit en revanche QUE les clients cités par une vente, pas le fichier
+// entier : une page rafraîchie en continu n'a pas à balayer la base.
 
 const CHUNK = 2000;
 const MAX_PAGES = 10;
@@ -63,6 +65,7 @@ export default async function (req) {
     (users || []).forEach((u) => { if (u.full_name) nomPar[u.id] = joliNom(u.full_name); });
     (structure || []).forEach((f) => { if (f.user_id && f.nom_commercial) nomPar[f.user_id] = f.nom_commercial; });
 
+    const declarations = [];
     const parVendeur = {};
     const parMachine = {};
     const parTypeVente = {};
@@ -78,12 +81,39 @@ export default async function (req) {
       parMachine[machine] = (parMachine[machine] || 0) + 1;
       parTypeVente[v.type_vente || 'Non précisé'] = (parTypeVente[v.type_vente || 'Non précisé'] || 0) + 1;
       parReprise[v.reprise || 'Non précisé'] = (parReprise[v.reprise || 'Non précisé'] || 0) + 1;
+      // La déclaration figure dans la liste même sans vendeur attribué : c'est
+      // justement celle-là qu'il faut voir pour la rattraper.
+      declarations.push({
+        id: v.id,
+        date: v.date_vente || '',
+        vendeur: (v.commercial_id && nomPar[v.commercial_id]) || '',
+        client_id: v.client_id || '',
+        machine: v.type_machine || '',
+        type_vente: v.type_vente || '',
+        reprise: v.reprise || '',
+        marque_reprise: v.marque_reprise || '',
+        validee
+      });
+
       if (!v.commercial_id) return;
       const e = (parVendeur[v.commercial_id] = parVendeur[v.commercial_id]
         || { nom: nomPar[v.commercial_id] || 'Vendeur', machines: {}, total: 0, validees: 0 });
       e.machines[machine] = (e.machines[machine] || 0) + 1;
       e.total += 1;
       if (validee) e.validees += 1;
+    });
+
+    // Raison sociale des seuls clients cités par une vente, lue par paquets.
+    const idsClients = [...new Set(declarations.map((d) => d.client_id).filter(Boolean))];
+    const nomClient = {};
+    for (let i = 0; i < idsClients.length; i += 50) {
+      const lot = await avecReprise(() => sr.entities.client
+        .filter({ id: { $in: idsClients.slice(i, i + 50) } }, 'id', 50)).catch(() => []);
+      (lot || []).forEach((c) => { nomClient[c.id] = c.raison_sociale || ''; });
+    }
+    declarations.forEach((d) => {
+      d.client = nomClient[d.client_id] || '';
+      delete d.client_id;
     });
 
     // Les rendez-vous en regard des ventes, pour le taux de transformation.
@@ -109,7 +139,10 @@ export default async function (req) {
         par_machine: parMachine,
         par_type_vente: parTypeVente,
         par_reprise: parReprise,
-        rdv: { materiel: rdvMateriel, agri: rdvAgri }
+        rdv: { materiel: rdvMateriel, agri: rdvAgri },
+        declarations: declarations
+          .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+          .slice(0, 300)
       }
     });
   } catch (error) {
