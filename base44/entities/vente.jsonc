@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Client (Client)"
     },
+    "commercial_nom": {
+      "type": "string",
+      "description": "Vendeur d\u00e9clar\u00e9 par son NOM, quand il n'a pas encore de compte dans l'outil"
+    },
     "commercial_id": {
       "type": "string",
       "description": "Commercial (User)"

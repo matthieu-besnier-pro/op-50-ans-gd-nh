@@ -91,9 +91,14 @@ export default function SuiviVentes() {
   const [structure, setStructure] = React.useState([]);
   const [users, setUsers] = React.useState([]);
 
+  const [sites, setSites] = React.useState([]);
+
   React.useEffect(() => {
     listerPartage('structure_commerciale', '-nom_commercial', 500).then(setStructure).catch(() => {});
     listerPartage('User', '-created_date', 500).then(setUsers).catch(() => {});
+    // Le tableau de répartition nomme TOUS les commerciaux de la société, y
+    // compris ceux qui n'ont jamais ouvert l'outil.
+    listerPartage('base', 'nom', 500).then(setSites).catch(() => {});
   }, []);
 
   // Nom affichable d'un vendeur : son compte, sinon sa fiche de secteur.
@@ -123,10 +128,20 @@ export default function SuiviVentes() {
       if (parId.has(u.id) || !vendeurs.includes(u.app_role || '')) return;
       parId.set(u.id, joliNom(u.full_name || u.email || '') || 'Vendeur');
     });
-    return [...parId.entries()]
-      .map(([id, nom]) => ({ id, nom }))
-      .sort((a, b) => a.nom.localeCompare(b.nom));
-  }, [structure, users]);
+
+    const avecCompte = [...parId.entries()].map(([id, nom]) => ({ id, nom }));
+
+    // Et ceux du tableau de répartition qui n'ont pas de compte : ils vendent
+    // sans s'être jamais connectés. Leur vente est enregistrée à leur NOM,
+    // plutôt que perdue faute de les trouver dans la liste.
+    const cle = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').sort().join(' ');
+    const connus = new Set(avecCompte.map((c) => cle(c.nom)));
+    const sansCompte = [...new Set((sites || []).flatMap((b) => b.commerciaux || []).filter(Boolean))]
+      .filter((nom) => !connus.has(cle(nom)))
+      .map((nom) => ({ id: `nom:${nom}`, nom, sansCompte: true }));
+
+    return [...avecCompte, ...sansCompte].sort((a, b) => a.nom.localeCompare(b.nom));
+  }, [structure, users, sites]);
 
   // Les déclarations vivent en état local : une correction doit se voir tout de
   // suite, sans attendre le prochain calcul serveur.
@@ -191,7 +206,8 @@ export default function SuiviVentes() {
     return Object.entries(par)
       .map(([id, v]) => ({
         id,
-        nom: nomPar[id] || `Vendeur ${String(id).slice(-4)}`,
+        // Clé « nom:… » : un vendeur sans compte, déclaré par son nom.
+        nom: nomPar[id] || v.nom || (String(id).startsWith('nom:') ? id.slice(4) : `Vendeur ${String(id).slice(-4)}`),
         machines: v.machines || {},
         total: v.total || 0,
         validees: v.validees || 0
@@ -472,7 +488,7 @@ export default function SuiviVentes() {
                         <td className="whitespace-nowrap px-4 py-2 tabular-nums text-muted-foreground">
                           {d.date ? d.date.split('-').reverse().join('/') : '—'}
                         </td>
-                        <td className="px-4 py-2 font-semibold text-foreground">{nomPar[d.commercial_id] || '—'}</td>
+                        <td className="px-4 py-2 font-semibold text-foreground">{nomPar[d.commercial_id] || d.vendeur || '—'}</td>
                         <td className="px-4 py-2 text-foreground">{d.client || '—'}</td>
                         {/* La Direction corrige sur place : une déclaration mal
                             rangée se répare en deux clics, sans quitter la page. */}

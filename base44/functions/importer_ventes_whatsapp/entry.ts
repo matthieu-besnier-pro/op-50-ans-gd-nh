@@ -93,10 +93,13 @@ Messages à analyser :
       }
       const ventes = (llm?.ventes || llm?.data?.ventes || []);
 
-      // Rapprochement commercial par nom (users + structure_commerciale)
-      const [users, structure] = await Promise.all([
+      // Rapprochement du vendeur : comptes, fiches de secteur, et tableau de
+      // répartition — ce dernier nomme aussi ceux qui n'ont jamais ouvert
+      // l'outil, et dont la vente sera enregistrée à leur nom.
+      const [users, structure, bases] = await Promise.all([
         sr.entities.User.list('-created_date', 300).catch(() => []),
-        sr.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => [])
+        sr.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => []),
+        sr.entities.base.list('nom', 200).catch(() => [])
       ]);
       const commByName = new Map();
       for (const u of users) {
@@ -107,12 +110,32 @@ Messages à analyser :
           commByName.set(norm(s.nom_commercial), { commercial_id: s.user_id, nom: s.nom_commercial });
         }
       }
+      for (const b of (bases || [])) {
+        for (const nom of (b.commerciaux || [])) {
+          if (nom && !commByName.has(norm(nom))) {
+            commByName.set(norm(nom), { commercial_id: null, nom });
+          }
+        }
+      }
+
+      // Sur WhatsApp, chacun signe comme il veut : « Jo Bastier » pour Jonathan
+      // BASTIER, « Jfrancois DRAGON » pour Jean-François. Le NOM DE FAMILLE est
+      // le seul repère fiable — on s'en sert quand il ne désigne qu'une
+      // personne, et on renonce plutôt que de deviner quand il y en a deux.
       const matchComm = (nom) => {
         if (!nom) return null;
         const n = norm(nom);
         if (commByName.has(n)) return commByName.get(n);
-        for (const [k, v] of commByName) {
-          if (k && (k.includes(n) || n.includes(k))) return v;
+
+        // Rapprochement partiel : on ne retient que s'il ne désigne QU'UNE
+        // personne. « Alexandre » seul en désigne deux — mieux vaut laisser
+        // l'opérateur trancher que d'attribuer la vente au mauvais.
+        const partiels = [...commByName.entries()].filter(([k]) => k && (k.includes(n) || n.includes(k)));
+        if (partiels.length === 1) return partiels[0][1];
+
+        for (const jeton of n.split(' ').filter((t) => t.length >= 4)) {
+          const candidats = [...commByName.entries()].filter(([k]) => k.split(' ').includes(jeton));
+          if (candidats.length === 1) return candidats[0][1];
         }
         return null;
       };
@@ -128,6 +151,8 @@ Messages à analyser :
           inclure: v.hors_operation !== true,
           commercial_nom: v.commercial_nom || '',
           commercial_id: m?.commercial_id || null,
+          // Vendeur reconnu mais sans compte : on retient son nom.
+          commercial_nom: m && !m.commercial_id ? m.nom : '',
           commercial_matched: m?.nom || null,
           client_nom: v.client_nom || '',
           // Rien n'est deviné : ce que le message ne dit pas reste VIDE, et
@@ -159,14 +184,19 @@ Messages à analyser :
         const combien = Math.max(1, Math.min(20, Math.round(Number(v.quantite) || 1)));
         // Une ligne incomplète n'est pas créée avec des valeurs de secours :
         // elle est écartée et signalée, pour être complétée à l'écran.
+        // Un vendeur sans compte est accepté par son NOM : il figure au tableau
+        // de répartition sans s'être jamais connecté, et sa vente ne doit pas
+        // être perdue pour autant.
+        const vendeurNom = String(v.commercial_nom || '').trim();
         if (!MACHINES.includes(v.type_machine) || !TYPES_VENTE.includes(v.type_vente)
-          || !REPRISES.includes(v.reprise) || !v.commercial_id) {
+          || !REPRISES.includes(v.reprise) || (!v.commercial_id && !vendeurNom)) {
           incompletes += 1;
           return;
         }
         const ligne = {
           client_id: v.client_id || null,
-          commercial_id: v.commercial_id,
+          commercial_id: v.commercial_id || null,
+          commercial_nom: v.commercial_id ? null : vendeurNom,
           date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente : today,
           type_machine: v.type_machine,
           type_vente: v.type_vente,

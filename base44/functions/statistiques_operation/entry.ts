@@ -486,9 +486,12 @@ export default async function (req) {
       suiviParMachine[machine] = (suiviParMachine[machine] || 0) + 1;
       suiviParType[v.type_vente || 'Non précisé'] = (suiviParType[v.type_vente || 'Non précisé'] || 0) + 1;
       suiviParReprise[v.reprise || 'Non précisé'] = (suiviParReprise[v.reprise || 'Non précisé'] || 0) + 1;
-      if (v.commercial_id) {
-        const e = (suiviParCommercial[v.commercial_id] = suiviParCommercial[v.commercial_id]
-          || { machines: {}, total: 0, validees: 0 });
+      // Un vendeur sans compte est regroupé sous son NOM : sa colonne existe
+      // comme celle des autres, il n'est pas rejeté hors du tableau.
+      const cleVendeur = v.commercial_id || (v.commercial_nom ? `nom:${v.commercial_nom}` : '');
+      if (cleVendeur) {
+        const e = (suiviParCommercial[cleVendeur] = suiviParCommercial[cleVendeur]
+          || { machines: {}, total: 0, validees: 0, nom: v.commercial_nom || '' });
         e.machines[machine] = (e.machines[machine] || 0) + 1;
         e.total += 1;
         if (validee) e.validees += 1;
@@ -500,7 +503,8 @@ export default async function (req) {
         id: v.id,
         date: v.date_vente || '',
         client: nomClient[v.client_id] || '',
-        commercial_id: v.commercial_id || '',
+        commercial_id: cleVendeur,
+        vendeur: v.commercial_nom || '',
         machine: v.type_machine || '',
         type_vente: v.type_vente || '',
         reprise: v.reprise || '',

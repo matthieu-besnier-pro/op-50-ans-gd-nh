@@ -86,7 +86,7 @@ export default async function (req) {
       declarations.push({
         id: v.id,
         date: v.date_vente || '',
-        vendeur: (v.commercial_id && nomPar[v.commercial_id]) || '',
+        vendeur: (v.commercial_id && nomPar[v.commercial_id]) || v.commercial_nom || '',
         client_id: v.client_id || '',
         machine: v.type_machine || '',
         type_vente: v.type_vente || '',
@@ -95,9 +95,14 @@ export default async function (req) {
         validee
       });
 
-      if (!v.commercial_id) return;
-      const e = (parVendeur[v.commercial_id] = parVendeur[v.commercial_id]
-        || { nom: nomPar[v.commercial_id] || 'Vendeur', machines: {}, total: 0, validees: 0 });
+      // Un vendeur sans compte compte comme les autres, sous son nom.
+      const cleVendeur = v.commercial_id || (v.commercial_nom ? `nom:${v.commercial_nom}` : '');
+      if (!cleVendeur) return;
+      const e = (parVendeur[cleVendeur] = parVendeur[cleVendeur]
+        || {
+          nom: (v.commercial_id && nomPar[v.commercial_id]) || v.commercial_nom || 'Vendeur',
+          machines: {}, total: 0, validees: 0
+        });
       e.machines[machine] = (e.machines[machine] || 0) + 1;
       e.total += 1;
       if (validee) e.validees += 1;

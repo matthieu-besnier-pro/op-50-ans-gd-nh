@@ -16,7 +16,17 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
 
-  const commList = commerciaux.map((c) => ({ id: c.id, nom: c.full_name || c.nom || 'Commercial' }));
+  // Un identifiant préfixé « nom: » désigne un vendeur SANS compte : la vente
+  // est alors enregistrée à son nom. Sans cela, un vendeur jamais connecté
+  // n'existe pas pour l'outil, et sa déclaration reste bloquée.
+  const commList = commerciaux.map((c) => ({
+    id: c.id,
+    nom: c.full_name || c.nom || 'Commercial',
+    sansCompte: Boolean(c.sansCompte) || String(c.id || '').startsWith('nom:')
+  }));
+  const choisirVendeur = (i, valeur) => setRow(i, valeur.startsWith('nom:')
+    ? { commercial_id: null, commercial_nom: valeur.slice(4) }
+    : { commercial_id: valeur || null, commercial_nom: '' });
 
   const analyser = async () => {
     if (!text.trim()) return;
@@ -58,7 +68,7 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
 
   // Une ligne ne peut être créée que complète : rien n'est deviné à sa place.
   const manquants = (r) => [
-    !r.commercial_id && 'vendeur',
+    !r.commercial_id && !r.commercial_nom && 'vendeur',
     !r.type_machine && 'machine',
     !r.type_vente && 'type',
     !r.reprise && 'reprise'
@@ -165,9 +175,15 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
                     </div>
                   </td>
                   <td className="p-1.5">
-                    <select className={selCls} value={r.commercial_id || ''} onChange={(e) => setRow(i, { commercial_id: e.target.value || null })}>
-                      <option value="">{r.commercial_nom ? `? ${r.commercial_nom}` : '— non attribué —'}</option>
-                      {commList.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                    <select
+                      className={`${selCls} ${r.commercial_id || r.commercial_nom ? '' : 'border-gd-orange bg-gd-orange/5'}`}
+                      value={r.commercial_id || (r.commercial_nom ? `nom:${r.commercial_nom}` : '')}
+                      onChange={(e) => choisirVendeur(i, e.target.value)}
+                    >
+                      <option value="">— à préciser —</option>
+                      {commList.map((c) => (
+                        <option key={c.id} value={c.id}>{c.nom}{c.sansCompte ? ' (sans compte)' : ''}</option>
+                      ))}
                     </select>
                   </td>
                   {/* Le client détecté est corrigeable : c'est lui qu'on relit en
