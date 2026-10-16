@@ -107,6 +107,11 @@
           "user_condition": {
             "app_role": "direction"
           }
+        },
+        {
+          "user_condition": {
+            "app_role": "responsable"
+          }
         }
       ]
     },
@@ -126,6 +131,11 @@
         {
           "user_condition": {
             "app_role": "direction"
+          }
+        },
+        {
+          "user_condition": {
+            "app_role": "responsable"
           }
         }
       ]

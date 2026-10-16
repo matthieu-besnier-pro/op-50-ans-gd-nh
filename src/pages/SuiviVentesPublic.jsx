@@ -5,6 +5,8 @@ import OpLogo from '@/components/OpLogo';
 import MACHINES from '@/lib/famillesMachines';
 import AnneauRepartition from '@/components/AnneauRepartition';
 import BandeauEcheance from '@/components/BandeauEcheance';
+import VentesParJour from '@/components/VentesParJour';
+import { RefreshCw } from 'lucide-react';
 
 /**
  * Suivi des ventes — vue PUBLIQUE.
@@ -48,24 +50,30 @@ export default function SuiviVentesPublic() {
   const [erreur, setErreur] = useState('');
   // Dix déclarations suffisent à voir ce qui se passe ; le reste se déplie.
   const [toutVoir, setToutVoir] = useState(false);
+  const [rafraichit, setRafraichit] = useState(false);
 
-  useEffect(() => {
-    let actif = true;
-    const charger = () => base44.functions
+  // Pas de rafraîchissement automatique.
+  //
+  // Les chiffres ne bougent qu'à l'import des déclarations WhatsApp, quelques
+  // fois par jour : recharger toutes les minutes ne changeait rien à l'écran
+  // tout en laissant croire à une mise à jour permanente. Le bandeau annonce
+  // désormais l'heure du dernier import, et ce bouton redemande les chiffres
+  // quand on veut en avoir le cœur net.
+  const charger = React.useCallback(() => {
+    setRafraichit(true);
+    return base44.functions
       .invoke('suivi_ventes_public', {})
       .then((res) => {
-        if (!actif) return;
         const d = res?.data || res;
         if (d?.error) throw new Error(d.error);
         setData(d);
         setErreur('');
       })
-      .catch(() => { if (actif) setErreur('Les chiffres ne sont pas disponibles pour le moment.'); });
-    charger();
-    // Le tableau vit : on le rafraîchit sans que personne n'ait à recharger.
-    const t = setInterval(charger, 60000);
-    return () => { actif = false; clearInterval(t); };
+      .catch(() => setErreur('Les chiffres ne sont pas disponibles pour le moment.'))
+      .finally(() => setRafraichit(false));
   }, []);
+
+  useEffect(() => { charger(); }, [charger]);
 
   const suivi = data?.suivi || null;
   const totauxMachines = suivi?.par_machine || {};
@@ -100,6 +108,18 @@ export default function SuiviVentesPublic() {
         ) : (
           <>
             <BandeauEcheance dateFin={data?.date_fin} derniere={suivi?.derniere_declaration} />
+
+            <div className="mb-4 flex justify-end">
+              <button
+                type="button"
+                onClick={charger}
+                disabled={rafraichit}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-gd-navy shadow-sm transition-colors hover:bg-muted/60 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${rafraichit ? 'animate-spin' : ''}`} />
+                {rafraichit ? 'Actualisation…' : 'Actualiser'}
+              </button>
+            </div>
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div className="rounded-2xl border border-gd-orange/40 bg-gd-orange/5 p-5">
                 <p className="text-4xl font-extrabold tabular-nums text-gd-orange">{suivi.total}</p>
@@ -205,6 +225,10 @@ export default function SuiviVentesPublic() {
               </table>
             </div>
 
+            <div className="mt-6">
+              <VentesParJour parJour={suivi.par_jour} debut={data?.date_debut} fin={data?.date_fin} />
+            </div>
+
             <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <Repartition
                 titre="Répartition des ventes"
@@ -273,7 +297,7 @@ export default function SuiviVentesPublic() {
             </div>
 
             <p className="mt-6 text-center text-xs text-muted-foreground/40">
-              Cette page s'actualise toute seule, chaque minute.
+              Les chiffres évoluent à chaque import des déclarations du groupe WhatsApp.
             </p>
           </>
         )}

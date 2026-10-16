@@ -31,6 +31,16 @@ export function isResponsable(user) {
   return getAppRole(user) === 'responsable';
 }
 
+// Qui tient le tableau de marche des ventes.
+//
+// Direction et administrateurs, plus les responsables COMMERCIAUX : ce sont
+// eux qui arbitrent une déclaration douteuse auprès de leur équipe. Les
+// responsables SAV en sont exclus — les ventes ne relèvent pas de leur
+// périmètre. Tous les autres profils consultent.
+export function peutGererVentes(user) {
+  return isDirection(user) || isResponsable(user);
+}
+
 export function isCommercial(user) {
   return getAppRole(user) === 'commercial';
 }

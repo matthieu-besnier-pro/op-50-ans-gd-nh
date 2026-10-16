@@ -3,7 +3,7 @@ import Layout from '@/components/Layout';
 import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { isDirection } from '@/lib/permissions';
+import { isDirection, peutGererVentes } from '@/lib/permissions';
 import { listerPartage } from '@/lib/donneesPartagees';
 import { useOperationStats } from '@/lib/useOperationStats';
 import { invaliderStats } from '@/lib/operationStats';
@@ -12,6 +12,7 @@ import MachineIcone from '@/components/MachineIcone';
 import MACHINES from '@/lib/famillesMachines';
 import AnneauRepartition from '@/components/AnneauRepartition';
 import BandeauEcheance from '@/components/BandeauEcheance';
+import VentesParJour from '@/components/VentesParJour';
 import { TrendingUp, CheckCircle2, Clock, Link2, Check, Trash2, MessageSquarePlus, ChevronUp } from 'lucide-react';
 
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
@@ -87,9 +88,13 @@ function Carte({ Icone, valeur, libelle, accent }) {
 export default function SuiviVentes() {
   const stats = useOperationStats();
   const { user } = useAuth();
-  // Tout le monde consulte ; seule la Direction corrige ou supprime — c'est
-  // aussi ce que disent les règles d'accès de l'entité.
-  const peutGerer = isDirection(user);
+  // Tout le monde consulte ; Direction et responsables commerciaux sont seuls
+  // à déclarer, corriger ou supprimer — c'est aussi ce que disent les règles
+  // d'accès de l'entité.
+  const peutGerer = peutGererVentes(user);
+  // Supprimer reste à la seule Direction : une déclaration effacée ne se
+  // retrouve pas, alors qu'une déclaration fausse se corrige.
+  const peutSupprimer = isDirection(user);
   const [structure, setStructure] = React.useState([]);
   const [users, setUsers] = React.useState([]);
 
@@ -430,6 +435,14 @@ export default function SuiviVentes() {
             </table>
           </div>
 
+          <div className="mt-6">
+            <VentesParJour
+              parJour={suivi?.par_jour}
+              debut={stats?.rdv?.operation?.debut}
+              fin={stats?.rdv?.operation?.fin}
+            />
+          </div>
+
           <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Repartition
               titre="Répartition des ventes"
@@ -481,13 +494,13 @@ export default function SuiviVentes() {
                   <th className="px-4 py-2 text-left font-semibold">Type</th>
                   <th className="px-4 py-2 text-left font-semibold">Reprise</th>
                   <th className="px-4 py-2 text-left font-semibold">État</th>
-                  {peutGerer && <th className="px-4 py-2" />}
+                  {peutSupprimer && <th className="px-4 py-2" />}
                 </tr>
               </thead>
               <tbody>
                 {visibles.length === 0 ? (
                   <tr>
-                    <td colSpan={peutGerer ? 9 : 8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td colSpan={peutSupprimer ? 9 : 8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                       Aucune déclaration à afficher.
                     </td>
                   </tr>
@@ -564,7 +577,7 @@ export default function SuiviVentes() {
                             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">À valider</span>
                           )}
                         </td>
-                        {peutGerer && (
+                        {peutSupprimer && (
                           <td className="px-4 py-2 text-right">
                             <button type="button" disabled={fige} onClick={() => supprimerVente(d)}
                               title="Supprimer cette déclaration"

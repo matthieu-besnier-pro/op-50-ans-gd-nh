@@ -94,8 +94,14 @@ export default async function (req) {
     let total = 0;
     let validees = 0;
 
+    // Rythme jour par jour, sur la date que le vendeur a annoncée. C'est la
+    // courbe qui dit si l'opération tient son allure ou si elle s'essouffle.
+    const suiviParJour = {};
+
     ventes.forEach((v) => {
       const machine = v.type_machine || 'Autre';
+      const jour = String(v.date_vente || '').slice(0, 10);
+      if (jour) suiviParJour[jour] = (suiviParJour[jour] || 0) + 1;
       const validee = v.statut_validation === 'Validé';
       total += 1;
       if (validee) validees += 1;
@@ -158,14 +164,27 @@ export default async function (req) {
     });
 
     const NOM_VENDEUR = (v) => (v.commercial_id && nomPar[v.commercial_id]) || v.commercial_nom || '';
-    // Dernière remontée du groupe WhatsApp : c'est l'horodatage qui dit si le
-    // tableau vit, bien plus que l'heure du calcul. Le tableau de suivi de 2021
-    // portait déjà cette ligne en tête de ses statistiques.
+    // Deux horodatages, qu'il ne faut surtout pas confondre.
+    //
+    // La DERNIÈRE DÉCLARATION est celle dont la date de vente est la plus
+    // récente : c'est l'ordre dans lequel les vendeurs les annoncent sur le
+    // groupe, et donc celui qu'ils reconnaissent. Trier sur la date d'import
+    // donnerait un autre gagnant à chaque rattrapage de saisie.
+    //
+    // L'heure d'INTÉGRATION est celle du dernier import, tous enregistrements
+    // confondus. Elle dit jusqu'où le tableau est à jour : une vente annoncée
+    // sur WhatsApp après cette heure n'est pas encore comptée.
     const derniere = ventes
-      .filter((v) => v.created_date || v.date_vente)
-      .sort((a, b) => String(b.created_date || b.date_vente).localeCompare(String(a.created_date || a.date_vente)))[0] || null;
+      .filter((v) => v.date_vente)
+      .sort((a, b) => {
+        const parDate = String(b.date_vente).localeCompare(String(a.date_vente));
+        // Même jour : la dernière arrivée tranche.
+        return parDate !== 0 ? parDate : String(b.created_date || '').localeCompare(String(a.created_date || ''));
+      })[0] || null;
+    const integreLe = ventes.reduce((max, v) => (v.created_date > max ? v.created_date : max), '');
     const derniereDeclaration = derniere ? {
-      quand: derniere.created_date || derniere.date_vente || '',
+      integre: integreLe,
+      quand: derniere.date_vente || '',
       vendeur: NOM_VENDEUR(derniere),
       machine: derniere.type_machine || '',
       modele: derniere.modele || ''
@@ -173,6 +192,7 @@ export default async function (req) {
 
     return Response.json({
       operation: p.nom_operation || '',
+      date_debut: opDebut || '',
       date_fin: opFin || '',
       maj: new Date().toISOString(),
       suivi: {
@@ -184,6 +204,7 @@ export default async function (req) {
         par_reprise: parReprise,
         par_marque_reprise: parMarqueReprise(),
         derniere_declaration: derniereDeclaration,
+        par_jour: suiviParJour,
         rdv: { materiel: rdvMateriel, agri: rdvAgri },
         declarations: declarations
           .sort((a, b) => String(b.date).localeCompare(String(a.date)))
