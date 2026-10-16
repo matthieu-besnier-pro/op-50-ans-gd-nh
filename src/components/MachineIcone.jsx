@@ -1,17 +1,35 @@
 import React from 'react';
 
 /**
- * Silhouettes des familles de matériel de l'opération.
+ * Visuels des familles de matériel de l'opération.
  *
- * Dessinées en SVG plutôt qu'empruntées : rien à héberger, rien à licencier,
- * net à toutes les tailles, et la couleur suit celle du texte — on peut donc
- * les poser aussi bien sur fond clair que sur le Grand Écran.
+ * Les photos produit viennent du tableau de suivi 2021 de la maison : ce sont
+ * les visuels New Holland déjà utilisés pour les opérations précédentes,
+ * redimensionnés pour le web. Cinq familles en ont un.
+ *
+ * Les trois autres — télescopique, machine à vendanger, agriculture de
+ * précision — gardent une silhouette dessinée en SVG, faute de photo dans ce
+ * fichier. Déposer l'image correspondante dans public/machines/ suffit à la
+ * remplacer : la photo prend alors le dessus, sans toucher au code.
  *
  * Chaque silhouette garde le trait qui fait reconnaître la machine : la grande
  * roue arrière du tracteur, le bras du télescopique, la coupe de la
  * moissonneuse, la goulotte de l'ensileuse, la botte ronde ou carrée de la
  * presse, le portique de la machine à vendanger, le satellite du guidage.
  */
+
+// Photos produit disponibles, par famille.
+const PHOTOS = {
+  Tracteur: 'tracteur.png',
+  Moissonneuse: 'moissonneuse.png',
+  Ensileuse: 'ensileuse.png',
+  'Round Baler': 'round-baler.png',
+  'Big Baler': 'big-baler.png',
+  // Déposez ces fichiers pour remplacer les silhouettes :
+  // 'Télescopique': 'telescopique.png',
+  // 'Machine à vendanger': 'machine-a-vendanger.png',
+  // 'Agri. précision': 'agri-precision.png'
+};
 
 const Roue = ({ cx, cy, r }) => (
   <>
@@ -97,6 +115,21 @@ const DESSINS = {
 };
 
 export default function MachineIcone({ famille, className = 'h-7 w-11', titre }) {
+  const photo = PHOTOS[famille];
+  if (photo) {
+    // L'application peut être servie sous un sous-chemin : on part de sa base.
+    const base = (import.meta.env && import.meta.env.BASE_URL) || '/';
+    return (
+      <img
+        src={`${base}machines/${photo}`}
+        alt={titre || famille}
+        title={titre || famille}
+        loading="lazy"
+        className={`${className} object-contain`}
+      />
+    );
+  }
+
   const dessin = DESSINS[famille];
   if (!dessin) return null;
   return (

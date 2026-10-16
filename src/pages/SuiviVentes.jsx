@@ -287,7 +287,7 @@ export default function SuiviVentes() {
                 <div key={u.titre} className="rounded-xl border border-border bg-card p-5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-gd-navy-dark">
-                      <MachineIcone famille={u.famille} titre={u.titre} className="h-6 w-9 text-gd-navy" />
+                      <MachineIcone famille={u.famille} titre={u.titre} className="h-8 w-12 text-gd-navy" />
                       {u.titre}
                     </h2>
                     <span className="text-2xl font-extrabold tabular-nums text-gd-orange">{taux}%</span>
@@ -308,7 +308,7 @@ export default function SuiviVentes() {
 
           {/* Le parc vendu d'un coup d'œil : un picto, un chiffre. C'est ce que
               le suivi papier faisait avec ses vignettes, en plus lisible. */}
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
             {MACHINES.map((m) => {
               const n = totauxMachines[m.cle] || 0;
               return (
@@ -322,13 +322,13 @@ export default function SuiviVentes() {
                   <MachineIcone
                     famille={m.cle}
                     titre={m.libelle}
-                    className={`mx-auto h-8 w-12 ${n > 0 ? 'text-gd-navy' : 'text-muted-foreground/40'}`}
+                    className={`mx-auto h-14 w-full ${n > 0 ? 'text-gd-navy' : 'text-muted-foreground/40'} ${n > 0 ? '' : 'opacity-50 grayscale'}`}
                   />
                   <p className={`mt-1.5 text-2xl font-extrabold tabular-nums ${n > 0 ? 'text-gd-navy-dark' : 'text-muted-foreground/40'}`}>
                     {n}
                   </p>
-                  <p className="mt-0.5 truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {m.court}
+                  <p className="mt-0.5 text-[11px] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
+                    {m.libelle}
                   </p>
                 </div>
               );
@@ -343,10 +343,10 @@ export default function SuiviVentes() {
                     Vendeur
                   </th>
                   {MACHINES.map((m) => (
-                    <th key={m.cle} title={m.libelle} className="px-3 py-2 text-center">
-                      <MachineIcone famille={m.cle} titre={m.libelle} className="mx-auto h-6 w-9 text-gd-navy" />
-                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        {m.court}
+                    <th key={m.cle} className="px-3 py-2 text-center align-bottom">
+                      <MachineIcone famille={m.cle} titre={m.libelle} className="mx-auto h-9 w-16 text-gd-navy" />
+                      <span className="mx-auto mt-1 block max-w-[5.5rem] text-[10px] font-semibold uppercase leading-tight tracking-wide text-muted-foreground">
+                        {m.libelle}
                       </span>
                     </th>
                   ))}
