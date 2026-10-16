@@ -510,6 +510,20 @@ export default async function (req) {
       });
     });
 
+    // Les rendez-vous de l'opération, en portée GLOBALE eux aussi : le taux de
+    // transformation rapporte des ventes communes à des rendez-vous communs.
+    // Les rendez-vous d'atelier sont écartés — ils relèvent du suivi SAV, pas
+    // de la vente de matériel.
+    let rdvMaterielOp = 0;
+    let rdvAgriOp = 0;
+    allRdvs.forEach((r) => {
+      if (r.statut === 'Annulé' || estAtelier(r)) return;
+      const jour = (r.created_date || r.date_heure || '').slice(0, 10);
+      if (opDebut && opFin && !(jour >= opDebut && jour <= opFin)) return;
+      if (r.type === 'RDV agri. précision') rdvAgriOp += 1;
+      else if (r.type !== 'RDV atelier hivernage') rdvMaterielOp += 1;
+    });
+
     ventes.forEach((v) => {
       if (v.statut_validation !== 'Validé') return;
       ventesValidees += 1;
@@ -614,6 +628,9 @@ export default async function (req) {
           par_type_vente: suiviParType,
           par_reprise: suiviParReprise,
           // Les ventes validées, les plus récentes d'abord.
+          // Les rendez-vous en regard des ventes : c'est ce qui donne le taux
+          // de transformation, matériel et agri. précision séparément.
+          rdv: { materiel: rdvMaterielOp, agri: rdvAgriOp },
           declarations: declarations
             .sort((a, b) => String(b.date).localeCompare(String(a.date)))
             .slice(0, 600)

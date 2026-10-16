@@ -7,7 +7,8 @@ import { isDirection } from '@/lib/permissions';
 import { listerPartage } from '@/lib/donneesPartagees';
 import { useOperationStats } from '@/lib/useOperationStats';
 import { invaliderStats } from '@/lib/operationStats';
-import { TrendingUp, CheckCircle2, Clock, Link2, Check, Trash2 } from 'lucide-react';
+import AdminImportVentesWhatsapp from '@/components/AdminImportVentesWhatsapp';
+import { TrendingUp, CheckCircle2, Clock, Link2, Check, Trash2, MessageSquarePlus, ChevronUp } from 'lucide-react';
 
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
 const REPRISES = ['Sans reprise', 'Reprise NH', 'Reprise autre marque'];
@@ -21,16 +22,20 @@ const REPRISES = ['Sans reprise', 'Reprise NH', 'Reprise autre marque'];
  * annoncé sur le terrain, la validation vient après.
  */
 
-// L'ordre des colonnes est celui du tableau de suivi historique.
+// L'ordre des colonnes est celui du tableau de suivi historique. Les
+// pictogrammes reprennent le vocabulaire des fiches client (MaterielPicto) :
+// une famille doit se reconnaître du même coup d'œil partout dans l'outil.
+// Round et Big, regroupées ailleurs sous « presses », se distinguent ici par
+// la forme de leurs bottes — ronde et carrée.
 const MACHINES = [
-  { cle: 'Tracteur', court: 'TR', libelle: 'Tracteur' },
-  { cle: 'Télescopique', court: 'TÉL', libelle: 'Télescopique' },
-  { cle: 'Ensileuse', court: 'EN', libelle: 'Ensileuse' },
-  { cle: 'Moissonneuse', court: 'MB', libelle: 'Moissonneuse' },
-  { cle: 'Round Baler', court: 'RD', libelle: 'Round' },
-  { cle: 'Big Baler', court: 'BG', libelle: 'Big' },
-  { cle: 'Machine à vendanger', court: 'MAV', libelle: 'Mach. à vendanger' },
-  { cle: 'Agri. précision', court: 'AGP', libelle: 'Agri. précision (GPS, guidage)' }
+  { cle: 'Tracteur', court: 'TR', libelle: 'Tracteurs', emoji: '🚜' },
+  { cle: 'Télescopique', court: 'TÉL', libelle: 'Télescopiques', emoji: '🏗️' },
+  { cle: 'Moissonneuse', court: 'MB', libelle: 'Moissonneuses', emoji: '🌾' },
+  { cle: 'Ensileuse', court: 'EN', libelle: 'Ensileuses', emoji: '🌽' },
+  { cle: 'Round Baler', court: 'RD', libelle: 'Round balers', emoji: '🟡' },
+  { cle: 'Big Baler', court: 'BG', libelle: 'Big balers', emoji: '🟨' },
+  { cle: 'Machine à vendanger', court: 'MAV', libelle: 'Machines à vendanger', emoji: '🍇' },
+  { cle: 'Agri. précision', court: 'AGP', libelle: 'Agri. précision', emoji: '🛰️' }
 ];
 
 // Une répartition simple, lisible sans graphique : le libellé, la barre, le
@@ -101,6 +106,17 @@ export default function SuiviVentes() {
 
   const suivi = stats?.ventes?.suivi || null;
 
+  // Les vendeurs proposés à l'import : leur nom de secteur, bien plus lisible
+  // que le nom de compte, qui vaut souvent l'identifiant de l'adresse.
+  const commerciauxListe = useMemo(
+    () => (structure || [])
+      .filter((f) => f.user_id && f.nom_commercial)
+      .map((f) => ({ id: f.user_id, nom: f.nom_commercial }))
+      .filter((c, i, t) => t.findIndex((x) => x.id === c.id) === i)
+      .sort((a, b) => a.nom.localeCompare(b.nom)),
+    [structure]
+  );
+
   // Les déclarations vivent en état local : une correction doit se voir tout de
   // suite, sans attendre le prochain calcul serveur.
   const [declarations, setDeclarations] = React.useState(null);
@@ -141,6 +157,7 @@ export default function SuiviVentes() {
   const visibles = (declarations || []).filter((d) =>
     filtre === 'toutes' || (filtre === 'validees' ? d.validee : !d.validee));
 
+  const [importOuvert, setImportOuvert] = React.useState(false);
   const [copie, setCopie] = React.useState(false);
   const copierLien = () => {
     const lien = `${window.location.origin}/suivi-ventes`;
@@ -168,6 +185,9 @@ export default function SuiviVentes() {
   }, [suivi, nomPar]);
 
   const totauxMachines = suivi?.par_machine || {};
+  // Deux univers distincts : le matériel d'un côté, l'agri. précision de l'autre.
+  const ventesAgri = totauxMachines['Agri. précision'] || 0;
+  const ventesMateriel = Math.max((suivi?.total || 0) - ventesAgri, 0);
   // Un type de machine absent de la liste historique — un outil, un kit — ne
   // doit pas disparaître du total : on le regroupe sous « Autre ».
   const connus = new Set(MACHINES.map((m) => m.cle));
@@ -187,6 +207,16 @@ export default function SuiviVentes() {
         </div>
         {/* Le lien se copie plutôt qu'il ne se dicte : l'adresse est longue, et
             tout le monde n'a pas l'outil déjà ouvert. */}
+        <div className="flex shrink-0 flex-wrap gap-2">
+        {peutGerer && (
+          <button
+            type="button"
+            onClick={() => setImportOuvert((o) => !o)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gd-orange px-3 py-2 text-xs font-bold uppercase tracking-wider text-gd-navy-dark transition-colors hover:bg-gd-orange/90"
+          >
+            {importOuvert ? <><ChevronUp className="h-4 w-4" /> Fermer</> : <><MessageSquarePlus className="h-4 w-4" /> Déclarer des ventes</>}
+          </button>
+        )}
         <button
           type="button"
           onClick={copierLien}
@@ -194,7 +224,16 @@ export default function SuiviVentes() {
         >
           {copie ? <><Check className="h-4 w-4 text-emerald-600" /> Lien copié</> : <><Link2 className="h-4 w-4" /> Copier le lien de partage</>}
         </button>
+        </div>
       </div>
+
+      {/* Tout ce qui touche aux ventes se fait ici : déclarer, relire, corriger.
+          Plus besoin de passer par l'Administration. */}
+      {peutGerer && importOuvert && (
+        <div className="mb-6 rounded-xl border border-gd-orange/40 bg-gd-orange/5 p-4">
+          <AdminImportVentesWhatsapp commerciaux={commerciauxListe} onReload={invaliderStats} />
+        </div>
+      )}
 
       {!stats ? (
         <Loader />
@@ -211,6 +250,63 @@ export default function SuiviVentes() {
             />
           </div>
 
+          {/* Le rapport des ventes aux rendez-vous, chaque univers avec le sien :
+              rapporter des ventes de matériel à des rendez-vous d'agri. précision
+              n'aurait aucun sens. */}
+          <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {[
+              { emoji: '🚜', titre: 'Matériel', ventes: ventesMateriel, rdv: suivi?.rdv?.materiel || 0 },
+              { emoji: '🛰️', titre: 'Agri. précision', ventes: ventesAgri, rdv: suivi?.rdv?.agri || 0 }
+            ].map((u) => {
+              const taux = u.rdv > 0 ? Math.round((u.ventes / u.rdv) * 100) : 0;
+              return (
+                <div key={u.titre} className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-gd-navy-dark">
+                      <span className="text-xl" role="img" aria-hidden="true">{u.emoji}</span>
+                      {u.titre}
+                    </h2>
+                    <span className="text-2xl font-extrabold tabular-nums text-gd-orange">{taux}%</span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    <span className="font-bold text-gd-navy-dark">{u.ventes}</span> vente{u.ventes > 1 ? 's' : ''}
+                    {' pour '}
+                    <span className="font-bold text-gd-navy-dark">{u.rdv}</span> rendez-vous
+                    {' — taux de transformation'}
+                  </p>
+                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-gd-orange" style={{ width: `${Math.min(taux, 100)}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Le parc vendu d'un coup d'œil : un picto, un chiffre. C'est ce que
+              le suivi papier faisait avec ses vignettes, en plus lisible. */}
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+            {MACHINES.map((m) => {
+              const n = totauxMachines[m.cle] || 0;
+              return (
+                <div
+                  key={m.cle}
+                  title={m.libelle}
+                  className={`rounded-xl border p-3 text-center transition-colors ${
+                    n > 0 ? 'border-gd-orange/40 bg-gd-orange/5' : 'border-border bg-card'
+                  }`}
+                >
+                  <div className="text-3xl leading-none" role="img" aria-label={m.libelle}>{m.emoji}</div>
+                  <p className={`mt-1.5 text-2xl font-extrabold tabular-nums ${n > 0 ? 'text-gd-navy-dark' : 'text-muted-foreground/40'}`}>
+                    {n}
+                  </p>
+                  <p className="mt-0.5 truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {m.court}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
           <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
             <table className="w-full">
               <thead>
@@ -219,12 +315,11 @@ export default function SuiviVentes() {
                     Vendeur
                   </th>
                   {MACHINES.map((m) => (
-                    <th
-                      key={m.cle}
-                      title={m.libelle}
-                      className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                    >
-                      {m.court}
+                    <th key={m.cle} title={m.libelle} className="px-3 py-2 text-center">
+                      <span className="block text-xl leading-none" role="img" aria-label={m.libelle}>{m.emoji}</span>
+                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {m.court}
+                      </span>
                     </th>
                   ))}
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -253,13 +348,14 @@ export default function SuiviVentes() {
                       {MACHINES.map((m) => {
                         const n = l.machines[m.cle] || 0;
                         return (
-                          <td
-                            key={m.cle}
-                            className={`px-3 py-3 text-center text-sm tabular-nums ${
-                              n > 0 ? 'font-bold text-gd-navy' : 'text-muted-foreground/40'
-                            }`}
-                          >
-                            {n || '—'}
+                          <td key={m.cle} className="px-3 py-3 text-center">
+                            {n > 0 ? (
+                              <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-gd-navy px-2 text-sm font-bold tabular-nums text-white">
+                                {n}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-muted-foreground/30">—</span>
+                            )}
                           </td>
                         );
                       })}
