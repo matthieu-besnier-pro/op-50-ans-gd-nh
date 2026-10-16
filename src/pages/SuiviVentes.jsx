@@ -482,7 +482,6 @@ export default function SuiviVentes() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="px-4 py-2 text-left font-semibold">Date de vente</th>
                   <th className="px-4 py-2 text-left font-semibold">Reçue le</th>
                   <th className="px-4 py-2 text-left font-semibold">Vendeur</th>
                   <th className="px-4 py-2 text-left font-semibold">Client</th>
@@ -497,7 +496,7 @@ export default function SuiviVentes() {
               <tbody>
                 {visibles.length === 0 ? (
                   <tr>
-                    <td colSpan={peutSupprimer ? 10 : 9} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td colSpan={peutSupprimer ? 9 : 8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                       Aucune déclaration à afficher.
                     </td>
                   </tr>
@@ -507,9 +506,6 @@ export default function SuiviVentes() {
                     const sel = 'rounded border border-border bg-background px-1.5 py-1 text-sm';
                     return (
                       <tr key={d.id} className={`border-b border-border last:border-0 text-sm hover:bg-muted/30 ${fige ? 'opacity-50' : ''}`}>
-                        <td className="whitespace-nowrap px-4 py-2 tabular-nums text-muted-foreground">
-                          {d.date ? d.date.split('-').reverse().join('/') : '—'}
-                        </td>
                         <td className="whitespace-nowrap px-4 py-2 tabular-nums text-muted-foreground">
                           {horodate(d.declaree) || '—'}
                         </td>
