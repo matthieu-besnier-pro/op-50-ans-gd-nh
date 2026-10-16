@@ -468,12 +468,24 @@ export default async function (req) {
     let ventesValideesMois = 0; // même période que les RDV du mois : taux comparables
     let ventesValideesOp = 0;   // sur la période de l'opération
 
-    ventes.forEach((v) => {
+    // Le suivi des ventes est un tableau de marche COMMUN : il porte sur toutes
+    // les ventes de l'opération, quelle que soit la portée de qui le consulte.
+    // Sans cela, un commercial n'y verrait que les siennes — et ce n'est pas un
+    // tableau personnel, c'est celui de l'équipe.
+    const nomClient = {};
+    allClients.forEach((c) => { nomClient[c.id] = c.raison_sociale || ''; });
+    const suiviParType = {};
+    const suiviParReprise = {};
+    const declarations = [];
+
+    allVentes.forEach((v) => {
       const machine = v.type_machine || 'Autre';
       const validee = v.statut_validation === 'Validé';
       suiviTotal += 1;
       if (validee) suiviValidees += 1;
       suiviParMachine[machine] = (suiviParMachine[machine] || 0) + 1;
+      suiviParType[v.type_vente || 'Non précisé'] = (suiviParType[v.type_vente || 'Non précisé'] || 0) + 1;
+      suiviParReprise[v.reprise || 'Non précisé'] = (suiviParReprise[v.reprise || 'Non précisé'] || 0) + 1;
       if (v.commercial_id) {
         const e = (suiviParCommercial[v.commercial_id] = suiviParCommercial[v.commercial_id]
           || { machines: {}, total: 0, validees: 0 });
@@ -481,8 +493,25 @@ export default async function (req) {
         e.total += 1;
         if (validee) e.validees += 1;
       }
+      // Toutes les déclarations, validées ou non : la liste sert aussi à les
+      // corriger. Le nom du client est résolu ICI — un collaborateur ne peut pas
+      // lire les fiches clients, mais il doit voir de qui il s'agit.
+      declarations.push({
+        id: v.id,
+        date: v.date_vente || '',
+        client: nomClient[v.client_id] || '',
+        commercial_id: v.commercial_id || '',
+        machine: v.type_machine || '',
+        type_vente: v.type_vente || '',
+        reprise: v.reprise || '',
+        marque_reprise: v.marque_reprise || '',
+        validee,
+        source: v.source_declaration || ''
+      });
+    });
 
-      if (!validee) return;
+    ventes.forEach((v) => {
+      if (v.statut_validation !== 'Validé') return;
       ventesValidees += 1;
       if (v.date_vente && v.date_vente >= moisDebut.slice(0, 10)) ventesValideesMois += 1;
       if (dansOperation(v.date_vente)) ventesValideesOp += 1;
@@ -581,7 +610,13 @@ export default async function (req) {
           total: suiviTotal,
           validees: suiviValidees,
           par_commercial: suiviParCommercial,
-          par_machine: suiviParMachine
+          par_machine: suiviParMachine,
+          par_type_vente: suiviParType,
+          par_reprise: suiviParReprise,
+          // Les ventes validées, les plus récentes d'abord.
+          declarations: declarations
+            .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+            .slice(0, 600)
         }
       },
       offres: { total: offres.length, ca_realise: offres.reduce((s, o) => s + (o.ca_realise || 0), 0) },
