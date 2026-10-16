@@ -4,6 +4,7 @@ import MachineIcone from '@/components/MachineIcone';
 import OpLogo from '@/components/OpLogo';
 import MACHINES from '@/lib/famillesMachines';
 import AnneauRepartition from '@/components/AnneauRepartition';
+import BandeauEcheance from '@/components/BandeauEcheance';
 
 /**
  * Suivi des ventes — vue PUBLIQUE.
@@ -98,6 +99,7 @@ export default function SuiviVentesPublic() {
           <p className="p-8 text-center text-muted-foreground">Chargement…</p>
         ) : (
           <>
+            <BandeauEcheance dateFin={data?.date_fin} maj={data?.maj} />
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div className="rounded-2xl border border-gd-orange/40 bg-gd-orange/5 p-5">
                 <p className="text-4xl font-extrabold tabular-nums text-gd-orange">{suivi.total}</p>
@@ -271,7 +273,7 @@ export default function SuiviVentesPublic() {
             </div>
 
             <p className="mt-6 text-center text-xs text-muted-foreground/40">
-              Mis à jour {data?.maj ? new Date(data.maj).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''} — actualisation automatique
+              Cette page s'actualise toute seule, chaque minute.
             </p>
           </>
         )}

@@ -159,6 +159,7 @@ export default async function (req) {
 
     return Response.json({
       operation: p.nom_operation || '',
+      date_fin: opFin || '',
       maj: new Date().toISOString(),
       suivi: {
         total,

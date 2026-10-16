@@ -11,6 +11,7 @@ import AdminImportVentesWhatsapp from '@/components/AdminImportVentesWhatsapp';
 import MachineIcone from '@/components/MachineIcone';
 import MACHINES from '@/lib/famillesMachines';
 import AnneauRepartition from '@/components/AnneauRepartition';
+import BandeauEcheance from '@/components/BandeauEcheance';
 import { TrendingUp, CheckCircle2, Clock, Link2, Check, Trash2, MessageSquarePlus, ChevronUp } from 'lucide-react';
 
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
@@ -271,6 +272,7 @@ export default function SuiviVentes() {
         <Loader />
       ) : (
         <>
+          <BandeauEcheance dateFin={stats?.rdv?.operation?.fin} maj={stats?.maj} />
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Carte Icone={TrendingUp} valeur={suivi?.total ?? 0} libelle="Ventes déclarées" accent="text-gd-orange" />
             <Carte Icone={CheckCircle2} valeur={suivi?.validees ?? 0} libelle="Validées" accent="text-emerald-600" />
