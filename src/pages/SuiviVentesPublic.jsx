@@ -257,7 +257,8 @@ export default function SuiviVentesPublic() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-2 text-left font-semibold">Date</th>
+                    <th className="px-4 py-2 text-left font-semibold">Date de vente</th>
+                    <th className="px-4 py-2 text-left font-semibold">Reçue le</th>
                     <th className="px-4 py-2 text-left font-semibold">Vendeur</th>
                     <th className="px-4 py-2 text-left font-semibold">Client</th>
                     <th className="px-4 py-2 text-left font-semibold">Machine</th>
@@ -269,7 +270,7 @@ export default function SuiviVentesPublic() {
                 <tbody>
                   {declarations.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                         Aucune déclaration pour l'instant.
                       </td>
                     </tr>
@@ -278,14 +279,9 @@ export default function SuiviVentesPublic() {
                       <tr key={d.id} className="border-b border-border last:border-0 text-sm">
                         <td className="whitespace-nowrap px-4 py-2 tabular-nums text-muted-foreground">
                           {d.date ? d.date.split('-').reverse().join('/') : '—'}
-                          {/* Jour de la vente au-dessus, horodatage de la remontée
-                              en dessous : la date de vente n'a pas d'heure, seule
-                              l'entrée dans l'outil en porte une. */}
-                          {d.declaree && (
-                            <span className="block text-[11px] leading-tight text-muted-foreground/70">
-                              reçue le {horodate(d.declaree)}
-                            </span>
-                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2 tabular-nums text-muted-foreground">
+                          {horodate(d.declaree) || '—'}
                         </td>
                         <td className="px-4 py-2 font-semibold text-foreground">{d.vendeur || '—'}</td>
                         <td className="px-4 py-2 text-foreground">{d.client || '—'}</td>
