@@ -114,7 +114,14 @@ export default function AdminImportVentesWhatsapp({ commerciaux = [], onReload }
 
       {result?.ok && (
         <div className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4" /> {result.ventes_creees} vente(s) créée(s) en « À valider ». Validez-les dans l'onglet « Ventes à valider ».
+          <CheckCircle2 className="h-4 w-4" />
+          <span>
+            {result.ventes_creees} vente(s) créée(s) en « À valider ».
+            {' '}Validez-les sur la page <strong>Suivi des ventes</strong>, où elles s'affichent avec le reste.
+            {result.incompletes > 0 && (
+              <> {result.incompletes} ligne(s) n'ont pas été créées : il leur manquait un champ.</>
+            )}
+          </span>
         </div>
       )}
 

@@ -8,6 +8,7 @@ import { listerPartage } from '@/lib/donneesPartagees';
 import { useOperationStats } from '@/lib/useOperationStats';
 import { invaliderStats } from '@/lib/operationStats';
 import AdminImportVentesWhatsapp from '@/components/AdminImportVentesWhatsapp';
+import MachineIcone from '@/components/MachineIcone';
 import { TrendingUp, CheckCircle2, Clock, Link2, Check, Trash2, MessageSquarePlus, ChevronUp } from 'lucide-react';
 
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
@@ -22,20 +23,32 @@ const REPRISES = ['Sans reprise', 'Reprise NH', 'Reprise autre marque'];
  * annoncé sur le terrain, la validation vient après.
  */
 
+// Les comptes portent souvent pour nom l'identifiant de leur adresse
+// (« jean-francois-dragon ») : on le rend lisible plutôt que de l'afficher tel
+// quel dans un tableau qu'on projette et qu'on partage.
+const joliNom = (v) => {
+  const t = String(v || '').trim();
+  if (!t || t.includes(' ')) return t;
+  const mots = t.split(/[._-]+/).filter(Boolean);
+  if (mots.length < 2) return t;
+  const nom = mots.pop().toUpperCase();
+  return `${mots.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join('-')} ${nom}`;
+};
+
 // L'ordre des colonnes est celui du tableau de suivi historique. Les
 // pictogrammes reprennent le vocabulaire des fiches client (MaterielPicto) :
 // une famille doit se reconnaître du même coup d'œil partout dans l'outil.
 // Round et Big, regroupées ailleurs sous « presses », se distinguent ici par
 // la forme de leurs bottes — ronde et carrée.
 const MACHINES = [
-  { cle: 'Tracteur', court: 'TR', libelle: 'Tracteurs', emoji: '🚜' },
-  { cle: 'Télescopique', court: 'TÉL', libelle: 'Télescopiques', emoji: '🏗️' },
-  { cle: 'Moissonneuse', court: 'MB', libelle: 'Moissonneuses', emoji: '🌾' },
-  { cle: 'Ensileuse', court: 'EN', libelle: 'Ensileuses', emoji: '🌽' },
-  { cle: 'Round Baler', court: 'RD', libelle: 'Round balers', emoji: '🟡' },
-  { cle: 'Big Baler', court: 'BG', libelle: 'Big balers', emoji: '🟨' },
-  { cle: 'Machine à vendanger', court: 'MAV', libelle: 'Machines à vendanger', emoji: '🍇' },
-  { cle: 'Agri. précision', court: 'AGP', libelle: 'Agri. précision', emoji: '🛰️' }
+  { cle: 'Tracteur', court: 'TR', libelle: 'Tracteurs' },
+  { cle: 'Télescopique', court: 'TÉL', libelle: 'Télescopiques' },
+  { cle: 'Moissonneuse', court: 'MB', libelle: 'Moissonneuses' },
+  { cle: 'Ensileuse', court: 'EN', libelle: 'Ensileuses' },
+  { cle: 'Round Baler', court: 'RD', libelle: 'Round balers' },
+  { cle: 'Big Baler', court: 'BG', libelle: 'Big balers' },
+  { cle: 'Machine à vendanger', court: 'MAV', libelle: 'Machines à vendanger' },
+  { cle: 'Agri. précision', court: 'AGP', libelle: 'Agri. précision' }
 ];
 
 // Une répartition simple, lisible sans graphique : le libellé, la barre, le
@@ -99,8 +112,10 @@ export default function SuiviVentes() {
   // Nom affichable d'un vendeur : son compte, sinon sa fiche de secteur.
   const nomPar = useMemo(() => {
     const m = {};
-    (structure || []).forEach((f) => { if (f.user_id) m[f.user_id] = f.nom_commercial; });
-    (users || []).forEach((u) => { if (u.full_name) m[u.id] = u.full_name; });
+    // Le nom du compte d'abord, puis celui de la fiche de secteur, qui est le
+    // plus propre quand elle existe.
+    (users || []).forEach((u) => { if (u.full_name) m[u.id] = joliNom(u.full_name); });
+    (structure || []).forEach((f) => { if (f.user_id && f.nom_commercial) m[f.user_id] = f.nom_commercial; });
     return m;
   }, [structure, users]);
 
@@ -108,14 +123,23 @@ export default function SuiviVentes() {
 
   // Les vendeurs proposés à l'import : leur nom de secteur, bien plus lisible
   // que le nom de compte, qui vaut souvent l'identifiant de l'adresse.
-  const commerciauxListe = useMemo(
-    () => (structure || [])
-      .filter((f) => f.user_id && f.nom_commercial)
-      .map((f) => ({ id: f.user_id, nom: f.nom_commercial }))
-      .filter((c, i, t) => t.findIndex((x) => x.id === c.id) === i)
-      .sort((a, b) => a.nom.localeCompare(b.nom)),
-    [structure]
-  );
+  const commerciauxListe = useMemo(() => {
+    const parId = new Map();
+    (structure || []).forEach((f) => {
+      if (f.user_id && f.nom_commercial) parId.set(f.user_id, f.nom_commercial);
+    });
+    // Un vendeur peut ne PAS figurer dans la structure commerciale — il n'était
+    // pas du phoning — et vendre malgré tout. Son compte suffit à le proposer :
+    // sinon sa vente n'a personne à qui être attribuée.
+    const vendeurs = ['commercial', 'agri_precision', 'commercial_chef_atelier', 'responsable', 'direction'];
+    (users || []).forEach((u) => {
+      if (parId.has(u.id) || !vendeurs.includes(u.app_role || '')) return;
+      parId.set(u.id, joliNom(u.full_name || u.email || '') || 'Vendeur');
+    });
+    return [...parId.entries()]
+      .map(([id, nom]) => ({ id, nom }))
+      .sort((a, b) => a.nom.localeCompare(b.nom));
+  }, [structure, users]);
 
   // Les déclarations vivent en état local : une correction doit se voir tout de
   // suite, sans attendre le prochain calcul serveur.
@@ -255,15 +279,15 @@ export default function SuiviVentes() {
               n'aurait aucun sens. */}
           <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
             {[
-              { emoji: '🚜', titre: 'Matériel', ventes: ventesMateriel, rdv: suivi?.rdv?.materiel || 0 },
-              { emoji: '🛰️', titre: 'Agri. précision', ventes: ventesAgri, rdv: suivi?.rdv?.agri || 0 }
+              { famille: 'Tracteur', titre: 'Matériel', ventes: ventesMateriel, rdv: suivi?.rdv?.materiel || 0 },
+              { famille: 'Agri. précision', titre: 'Agri. précision', ventes: ventesAgri, rdv: suivi?.rdv?.agri || 0 }
             ].map((u) => {
               const taux = u.rdv > 0 ? Math.round((u.ventes / u.rdv) * 100) : 0;
               return (
                 <div key={u.titre} className="rounded-xl border border-border bg-card p-5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-gd-navy-dark">
-                      <span className="text-xl" role="img" aria-hidden="true">{u.emoji}</span>
+                      <MachineIcone famille={u.famille} titre={u.titre} className="h-6 w-9 text-gd-navy" />
                       {u.titre}
                     </h2>
                     <span className="text-2xl font-extrabold tabular-nums text-gd-orange">{taux}%</span>
@@ -295,7 +319,11 @@ export default function SuiviVentes() {
                     n > 0 ? 'border-gd-orange/40 bg-gd-orange/5' : 'border-border bg-card'
                   }`}
                 >
-                  <div className="text-3xl leading-none" role="img" aria-label={m.libelle}>{m.emoji}</div>
+                  <MachineIcone
+                    famille={m.cle}
+                    titre={m.libelle}
+                    className={`mx-auto h-8 w-12 ${n > 0 ? 'text-gd-navy' : 'text-muted-foreground/40'}`}
+                  />
                   <p className={`mt-1.5 text-2xl font-extrabold tabular-nums ${n > 0 ? 'text-gd-navy-dark' : 'text-muted-foreground/40'}`}>
                     {n}
                   </p>
@@ -316,7 +344,7 @@ export default function SuiviVentes() {
                   </th>
                   {MACHINES.map((m) => (
                     <th key={m.cle} title={m.libelle} className="px-3 py-2 text-center">
-                      <span className="block text-xl leading-none" role="img" aria-label={m.libelle}>{m.emoji}</span>
+                      <MachineIcone famille={m.cle} titre={m.libelle} className="mx-auto h-6 w-9 text-gd-navy" />
                       <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                         {m.court}
                       </span>
