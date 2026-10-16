@@ -19,6 +19,15 @@ import { RefreshCw } from 'lucide-react';
  * comprises. Ce qu'elle ne propose pas, c'est de les modifier.
  */
 
+// Date et heure d'une remontée, en une ligne lisible : « 16/10 à 09h41 ».
+const horodate = (iso) => {
+  const d = iso ? new Date(iso) : null;
+  if (!d || Number.isNaN(d.getTime())) return '';
+  return `${d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} à ${d
+    .toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    .replace(':', 'h')}`;
+};
+
 function Repartition({ titre, donnees, ordre }) {
   const entrees = (ordre || Object.keys(donnees || {}))
     .map((cle) => [cle, (donnees || {})[cle] || 0])
@@ -120,14 +129,12 @@ export default function SuiviVentesPublic() {
                 {rafraichit ? 'Actualisation…' : 'Actualiser'}
               </button>
             </div>
-            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {/* Le total déclaré, seul en tête : la validation est un suivi
+                  interne, qui n'a rien à dire à qui consulte le lien. */}
               <div className="rounded-2xl border border-gd-orange/40 bg-gd-orange/5 p-5">
                 <p className="text-4xl font-extrabold tabular-nums text-gd-orange">{suivi.total}</p>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ventes déclarées</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card shadow-sm p-5">
-                <p className="text-4xl font-extrabold tabular-nums text-gd-navy-dark">{suivi.validees}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Validées</p>
               </div>
               {[
                 { famille: 'Tracteur', titre: 'Matériel', ventes: ventesMateriel, rdv: suivi.rdv?.materiel || 0 },
@@ -271,6 +278,14 @@ export default function SuiviVentesPublic() {
                       <tr key={d.id} className="border-b border-border last:border-0 text-sm">
                         <td className="whitespace-nowrap px-4 py-2 tabular-nums text-muted-foreground">
                           {d.date ? d.date.split('-').reverse().join('/') : '—'}
+                          {/* Jour de la vente au-dessus, horodatage de la remontée
+                              en dessous : la date de vente n'a pas d'heure, seule
+                              l'entrée dans l'outil en porte une. */}
+                          {d.declaree && (
+                            <span className="block text-[11px] leading-tight text-muted-foreground/70">
+                              reçue le {horodate(d.declaree)}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-2 font-semibold text-foreground">{d.vendeur || '—'}</td>
                         <td className="px-4 py-2 text-foreground">{d.client || '—'}</td>

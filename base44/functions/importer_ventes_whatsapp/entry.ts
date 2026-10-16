@@ -153,10 +153,12 @@ Messages à analyser :
           // mais décochée — à l'opérateur de la rattraper si l'IA se trompe.
           hors_operation: v.hors_operation === true,
           inclure: v.hors_operation !== true,
-          commercial_nom: v.commercial_nom || '',
           commercial_id: m?.commercial_id || null,
-          // Vendeur reconnu mais sans compte : on retient son nom.
-          commercial_nom: m && !m.commercial_id ? m.nom : '',
+          // Le nom n'est retenu QUE si le vendeur n'a pas de compte — sous son
+          // nom d'annuaire s'il est reconnu, sous celui du message sinon.
+          // Effacer ce dernier cas faisait rejeter la ligne comme incomplète :
+          // un vendeur absent de la liste ne pouvait pas être déclaré du tout.
+          commercial_nom: m?.commercial_id ? '' : (m?.nom || v.commercial_nom || ''),
           commercial_matched: m?.nom || null,
           client_nom: v.client_nom || '',
           // Rien n'est deviné : ce que le message ne dit pas reste VIDE, et
@@ -200,6 +202,9 @@ Messages à analyser :
         }
         const ligne = {
           client_id: v.client_id || null,
+          // Le nom annoncé est conservé même quand une fiche a été reconnue :
+          // c'est sous ce nom-là que le vendeur retrouve sa déclaration.
+          client_nom: String(v.client_nom || '').trim() || null,
           commercial_id: v.commercial_id || null,
           commercial_nom: v.commercial_id ? null : vendeurNom,
           date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente : today,

@@ -114,6 +114,11 @@ export default async function (req) {
       declarations.push({
         id: v.id,
         date: v.date_vente || '',
+        // Horodatage de l'entrée dans l'outil : seul à porter une heure.
+        declaree: v.created_date || '',
+        // Nom du client tel qu'annoncé ; la fiche prend le relais pour les
+        // déclarations antérieures, qui ne l'ont pas conservé.
+        client_nom: String(v.client_nom || '').trim(),
         vendeur: (v.commercial_id && nomPar[v.commercial_id]) || v.commercial_nom || '',
         client_id: v.client_id || '',
         machine: v.type_machine || '',
@@ -146,8 +151,9 @@ export default async function (req) {
       (lot || []).forEach((c) => { nomClient[c.id] = c.raison_sociale || ''; });
     }
     declarations.forEach((d) => {
-      d.client = nomClient[d.client_id] || '';
+      d.client = d.client_nom || nomClient[d.client_id] || '';
       delete d.client_id;
+      delete d.client_nom;
     });
 
     // Les rendez-vous en regard des ventes, pour le taux de transformation.

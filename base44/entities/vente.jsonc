@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Client (Client)"
     },
+    "client_nom": {
+      "type": "string",
+      "description": "Nom du client tel qu'il figure dans la déclaration WhatsApp, quand aucune fiche ne lui correspond"
+    },
     "commercial_nom": {
       "type": "string",
       "description": "Vendeur d\u00e9clar\u00e9 par son NOM, quand il n'a pas encore de compte dans l'outil"

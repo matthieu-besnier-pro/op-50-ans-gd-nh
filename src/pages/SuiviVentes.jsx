@@ -13,7 +13,7 @@ import MACHINES from '@/lib/famillesMachines';
 import AnneauRepartition from '@/components/AnneauRepartition';
 import BandeauEcheance from '@/components/BandeauEcheance';
 import VentesParJour from '@/components/VentesParJour';
-import { TrendingUp, CheckCircle2, Clock, Link2, Check, Trash2, MessageSquarePlus, ChevronUp } from 'lucide-react';
+import { TrendingUp, Link2, Check, Trash2, MessageSquarePlus, ChevronUp } from 'lucide-react';
 
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
 const REPRISES = ['Sans reprise', 'Reprise NH', 'Reprise autre marque'];
@@ -44,6 +44,15 @@ const joliNom = (v) => {
 // Une répartition simple, lisible sans graphique : le libellé, la barre, le
 // nombre. Sur un tableau qu'on partage largement, ça vaut mieux qu'un camembert
 // qu'il faut survoler pour lire.
+// Date et heure d'une remontée, en une ligne lisible : « 16/10 à 09h41 ».
+const horodate = (iso) => {
+  const d = iso ? new Date(iso) : null;
+  if (!d || Number.isNaN(d.getTime())) return '';
+  return `${d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} à ${d
+    .toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    .replace(':', 'h')}`;
+};
+
 function Repartition({ titre, donnees, ordre }) {
   const entrees = (ordre || Object.keys(donnees || {}))
     .map((cle) => [cle, (donnees || {})[cle] || 0])
@@ -284,15 +293,12 @@ export default function SuiviVentes() {
               vendeur: nomPar[suivi.derniere_declaration.commercial_id] || suivi.derniere_declaration.vendeur
             }}
           />
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* Un seul chiffre en tête : ce qui a été déclaré. L'état de
+              validation est un suivi d'arrière-boutique — il reste consultable
+              colonne « État » et par les filtres, sans occuper le haut de page
+              ni laisser croire que deux totaux s'opposent. */}
+          <div className="mb-6">
             <Carte Icone={TrendingUp} valeur={suivi?.total ?? 0} libelle="Ventes déclarées" accent="text-gd-orange" />
-            <Carte Icone={CheckCircle2} valeur={suivi?.validees ?? 0} libelle="Validées" accent="text-emerald-600" />
-            <Carte
-              Icone={Clock}
-              valeur={Math.max((suivi?.total ?? 0) - (suivi?.validees ?? 0), 0)}
-              libelle="En attente de validation"
-              accent="text-muted-foreground"
-            />
           </div>
 
           {/* Le rapport des ventes aux rendez-vous, chaque univers avec le sien :
@@ -512,6 +518,14 @@ export default function SuiviVentes() {
                       <tr key={d.id} className={`border-b border-border last:border-0 text-sm hover:bg-muted/30 ${fige ? 'opacity-50' : ''}`}>
                         <td className="whitespace-nowrap px-4 py-2 tabular-nums text-muted-foreground">
                           {d.date ? d.date.split('-').reverse().join('/') : '—'}
+                          {/* Jour de la vente au-dessus, horodatage de la remontée
+                              en dessous : la date de vente n'a pas d'heure, seule
+                              l'entrée dans l'outil en porte une. */}
+                          {d.declaree && (
+                            <span className="block text-[11px] leading-tight text-muted-foreground/70">
+                              reçue le {horodate(d.declaree)}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-2 font-semibold text-foreground">{nomPar[d.commercial_id] || d.vendeur || '—'}</td>
                         <td className="px-4 py-2 text-foreground">{d.client || '—'}</td>

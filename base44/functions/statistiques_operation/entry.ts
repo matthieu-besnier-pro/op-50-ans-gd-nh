@@ -530,7 +530,13 @@ export default async function (req) {
       declarations.push({
         id: v.id,
         date: v.date_vente || '',
-        client: nomClient[v.client_id] || '',
+        // Horodatage de l'entrée dans l'outil : c'est le seul qui porte une
+        // heure, la date de vente n'étant qu'un jour.
+        declaree: v.created_date || '',
+        // Le nom ANNONCÉ prime sur la raison sociale de la fiche : c'est sous
+        // ce nom-là que le vendeur reconnaît sa déclaration. La fiche prend le
+        // relais pour les déclarations antérieures, qui ne l'ont pas conservé.
+        client: String(v.client_nom || '').trim() || nomClient[v.client_id] || '',
         commercial_id: cleVendeur,
         vendeur: v.commercial_nom || '',
         machine: v.type_machine || '',
