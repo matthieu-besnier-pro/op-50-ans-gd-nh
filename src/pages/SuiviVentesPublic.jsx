@@ -6,6 +6,7 @@ import MACHINES from '@/lib/famillesMachines';
 import AnneauRepartition from '@/components/AnneauRepartition';
 import BandeauEcheance from '@/components/BandeauEcheance';
 import VentesParJour from '@/components/VentesParJour';
+import HorlogeEcran from '@/components/HorlogeEcran';
 import { RefreshCw } from 'lucide-react';
 
 /**
@@ -99,7 +100,7 @@ export default function SuiviVentesPublic() {
 
   return (
     <div className="min-h-screen bg-muted/30 text-foreground">
-      <header className="flex items-center gap-4 border-b border-border px-6 py-5">
+      <header className="flex flex-wrap items-center gap-4 border-b border-border px-6 py-5">
         <OpLogo className="h-12 w-12 rounded-full object-contain" fallback={null} />
         <div>
           <h1 className="text-xl font-extrabold leading-none">Suivi des ventes</h1>
@@ -107,6 +108,9 @@ export default function SuiviVentesPublic() {
             {data?.operation || '50 ans Gonnin Duris × New Holland'}
           </p>
         </div>
+        {/* Horodate la capture d'écran : une photo du tableau sans sa date ne
+            vaut rien dès qu'elle circule. */}
+        <HorlogeEcran className="ml-auto" />
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">

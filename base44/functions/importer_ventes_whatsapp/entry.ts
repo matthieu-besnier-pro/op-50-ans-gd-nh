@@ -83,7 +83,9 @@ function horodatageDe(vente, index) {
 //
 // La règle ne s'applique qu'à DÉFAUT : un message qui annonce explicitement une
 // nouvelle commande garde ce qu'il dit.
-const RX_MAT = /\bmat(?:ricule)?\.?\s*(?:n[°ºo]?\s*)?\d{3,}|\bn[°ºo]\s*mat\b/i;
+// « no », « n° », « nº » et « mat » désignent la même chose dans les messages :
+// le numéro de la machine au parc. Les vendeurs abrègent comme ils veulent.
+const RX_MAT = /\b(?:mat(?:ricule)?|n[°ºo]s?|num(?:[ée]ro)?)\.?\s*(?:mat\.?\s*)?\d{3,}/i;
 const aNumeroDeMat = (...textes) => textes.some((t) => RX_MAT.test(String(t || '')));
 
 export default async function(req) {
@@ -144,9 +146,10 @@ Pour chaque vente :
   ou du matériel d'une autre marque vendu seul. Ces ventes sont remontées mais
   décochées : elles ne comptent pas dans l'opération.
 - type_vente : ${TYPES_VENTE.join(', ')}. LAISSE VIDE si le message ne le dit pas.
-  EXCEPTION : un numéro de MAT (« mat 149068 », « n° mat 152054 ») désigne une machine
-  déjà au parc Gonnin-Duris — démo, location, stock. Mets alors « Stock Gonnin-Duris »,
-  sauf si le message annonce explicitement une nouvelle commande.
+  EXCEPTION : un numéro de machine — « mat 149068 », « no 152054 », « n°97507 » —
+  désigne un matériel déjà immatriculé au parc Gonnin-Duris : démo, location, stock.
+  Mets alors « Stock Gonnin-Duris », sauf si le message annonce explicitement une
+  nouvelle commande, auquel cas c'est elle qui l'emporte.
 - reprise : ${REPRISES.join(', ')}. LAISSE VIDE si le message ne dit rien de la reprise.
   « Sans reprise » ne se met QUE si le message l'indique explicitement. Si une marque
   concurrente est reprise, mets « Reprise autre marque » et renseigne marque_reprise.

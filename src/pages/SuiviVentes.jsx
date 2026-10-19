@@ -13,6 +13,7 @@ import MACHINES from '@/lib/famillesMachines';
 import AnneauRepartition from '@/components/AnneauRepartition';
 import BandeauEcheance from '@/components/BandeauEcheance';
 import VentesParJour from '@/components/VentesParJour';
+import HorlogeEcran from '@/components/HorlogeEcran';
 import { Link2, Check, Trash2, MessageSquarePlus, ChevronUp } from 'lucide-react';
 
 const TYPES_VENTE = ['Nouvelle commande', 'Stock NH', 'Stock Gonnin-Duris'];
@@ -249,7 +250,10 @@ export default function SuiviVentes() {
         </div>
         {/* Le lien se copie plutôt qu'il ne se dicte : l'adresse est longue, et
             tout le monde n'a pas l'outil déjà ouvert. */}
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <div className="flex shrink-0 flex-col items-end gap-2">
+        {/* Horodate la capture d'écran. */}
+        <HorlogeEcran />
+        <div className="flex flex-wrap justify-end gap-2">
         {peutGerer && (
           <button
             type="button"
@@ -266,6 +270,7 @@ export default function SuiviVentes() {
         >
           {copie ? <><Check className="h-4 w-4 text-emerald-600" /> Lien copié</> : <><Link2 className="h-4 w-4" /> Copier le lien de partage</>}
         </button>
+        </div>
         </div>
       </div>
 
