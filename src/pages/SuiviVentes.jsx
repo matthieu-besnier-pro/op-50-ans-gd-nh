@@ -151,7 +151,6 @@ export default function SuiviVentes() {
   // Les déclarations vivent en état local : une correction doit se voir tout de
   // suite, sans attendre le prochain calcul serveur.
   const [declarations, setDeclarations] = React.useState(null);
-  const [filtre, setFiltre] = React.useState('toutes');
   const [enCours, setEnCours] = React.useState(null);
 
   React.useEffect(() => {
@@ -162,7 +161,7 @@ export default function SuiviVentes() {
     setEnCours(id);
     try {
       await base44.entities.vente.update(id, champs);
-      setDeclarations((l) => (l || []).map((d) => (d.id === id ? { ...d, ...champs, machine: champs.type_machine ?? d.machine, validee: champs.statut_validation ? champs.statut_validation === 'Validé' : d.validee } : d)));
+      setDeclarations((l) => (l || []).map((d) => (d.id === id ? { ...d, ...champs, machine: champs.type_machine ?? d.machine } : d)));
       invaliderStats(); // le croisement du haut doit suivre
     } catch (e) {
       window.alert("Modification impossible : " + (e?.message || 'droits insuffisants'));
@@ -187,8 +186,7 @@ export default function SuiviVentes() {
 
   // Dix déclarations suffisent à voir ce qui se passe ; le reste se déplie.
   const [toutVoir, setToutVoir] = React.useState(false);
-  const retenues = (declarations || []).filter((d) =>
-    filtre === 'toutes' || (filtre === 'validees' ? d.validee : !d.validee));
+  const retenues = declarations || [];
   const visibles = toutVoir ? retenues : retenues.slice(0, 10);
 
   const [importOuvert, setImportOuvert] = React.useState(false);
@@ -384,11 +382,6 @@ export default function SuiviVentes() {
                     <tr key={l.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                       <td className="px-4 py-3 text-sm">
                         <span className="font-semibold text-foreground">{l.nom}</span>
-                        {l.validees < l.total && (
-                          <span className="block text-xs font-normal text-muted-foreground">
-                            {l.validees} validée{l.validees > 1 ? 's' : ''} sur {l.total}
-                          </span>
-                        )}
                       </td>
                       {MACHINES.map((m) => {
                         const n = l.machines[m.cle] || 0;
@@ -460,24 +453,6 @@ export default function SuiviVentes() {
                 Déclarations de vente
                 <span className="ml-2 font-normal normal-case text-muted-foreground">{retenues.length}</span>
               </h2>
-              <div className="flex gap-1">
-                {[
-                  { cle: 'toutes', libelle: 'Toutes' },
-                  { cle: 'validees', libelle: 'Validées' },
-                  { cle: 'attente', libelle: 'À valider' }
-                ].map((f) => (
-                  <button
-                    key={f.cle}
-                    type="button"
-                    onClick={() => setFiltre(f.cle)}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
-                      filtre === f.cle ? 'bg-gd-navy text-white' : 'text-muted-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {f.libelle}
-                  </button>
-                ))}
-              </div>
             </div>
             <table className="w-full">
               <thead>
@@ -489,14 +464,13 @@ export default function SuiviVentes() {
                   <th className="px-4 py-2 text-left font-semibold">Modèle</th>
                   <th className="px-4 py-2 text-left font-semibold">Type</th>
                   <th className="px-4 py-2 text-left font-semibold">Reprise</th>
-                  <th className="px-4 py-2 text-left font-semibold">État</th>
                   {peutSupprimer && <th className="px-4 py-2" />}
                 </tr>
               </thead>
               <tbody>
                 {visibles.length === 0 ? (
                   <tr>
-                    <td colSpan={peutSupprimer ? 9 : 8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td colSpan={peutSupprimer ? 8 : 7} className="px-4 py-10 text-center text-sm text-muted-foreground">
                       Aucune déclaration à afficher.
                     </td>
                   </tr>
@@ -558,19 +532,6 @@ export default function SuiviVentes() {
                             </select>
                           ) : (
                             <>{d.reprise || '—'}{d.marque_reprise ? ` · ${d.marque_reprise}` : ''}</>
-                          )}
-                        </td>
-                        <td className="px-4 py-2">
-                          {d.validee ? (
-                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Validée</span>
-                          ) : peutGerer ? (
-                            <button type="button" disabled={fige}
-                              onClick={() => majVente(d.id, { statut_validation: 'Validé' })}
-                              className="rounded-full bg-gd-orange/20 px-2 py-0.5 text-xs font-semibold text-gd-navy-dark hover:bg-gd-orange/30">
-                              Valider
-                            </button>
-                          ) : (
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">À valider</span>
                           )}
                         </td>
                         {peutSupprimer && (

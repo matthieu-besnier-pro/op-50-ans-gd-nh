@@ -77,6 +77,15 @@ function horodatageDe(vente, index) {
   return '';
 }
 
+// Un numéro de MAT désigne une machine déjà immatriculée au parc Gonnin-Duris
+// — matériel de démo, de location, de stock. Elle n'est donc pas commandée à
+// New Holland pour l'occasion : c'est une vente sur stock maison.
+//
+// La règle ne s'applique qu'à DÉFAUT : un message qui annonce explicitement une
+// nouvelle commande garde ce qu'il dit.
+const RX_MAT = /\bmat(?:ricule)?\.?\s*(?:n[°ºo]?\s*)?\d{3,}|\bn[°ºo]\s*mat\b/i;
+const aNumeroDeMat = (...textes) => textes.some((t) => RX_MAT.test(String(t || '')));
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -135,6 +144,9 @@ Pour chaque vente :
   ou du matériel d'une autre marque vendu seul. Ces ventes sont remontées mais
   décochées : elles ne comptent pas dans l'opération.
 - type_vente : ${TYPES_VENTE.join(', ')}. LAISSE VIDE si le message ne le dit pas.
+  EXCEPTION : un numéro de MAT (« mat 149068 », « n° mat 152054 ») désigne une machine
+  déjà au parc Gonnin-Duris — démo, location, stock. Mets alors « Stock Gonnin-Duris »,
+  sauf si le message annonce explicitement une nouvelle commande.
 - reprise : ${REPRISES.join(', ')}. LAISSE VIDE si le message ne dit rien de la reprise.
   « Sans reprise » ne se met QUE si le message l'indique explicitement. Si une marque
   concurrente est reprise, mets « Reprise autre marque » et renseigne marque_reprise.
@@ -239,7 +251,10 @@ Messages à analyser :
           // comptages sans que personne ne puisse le rattraper.
           modele: (v.modele || '').trim(),
           type_machine: MACHINES.includes(v.type_machine) ? v.type_machine : '',
-          type_vente: TYPES_VENTE.includes(v.type_vente) ? v.type_vente : '',
+          // Défaut déduit du numéro de MAT, appliqué seulement si l'IA n'a rien
+          // trouvé : la règle comble un trou, elle ne contredit pas le message.
+          type_vente: TYPES_VENTE.includes(v.type_vente) ? v.type_vente
+            : (aNumeroDeMat(v.texte_source, v.modele) ? 'Stock Gonnin-Duris' : ''),
           reprise: REPRISES.includes(v.reprise) ? v.reprise : '',
           marque_reprise: v.marque_reprise || '',
           date_vente: /^\d{4}-\d{2}-\d{2}$/.test(v.date_vente || '') ? v.date_vente
@@ -289,7 +304,10 @@ Messages à analyser :
           marque_reprise: v.reprise === 'Reprise autre marque' ? (v.marque_reprise || null) : null,
           declare_le: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v.declare_le || '') ? v.declare_le : null,
           source_declaration: 'Import WhatsApp',
-          statut_validation: 'À valider'
+          // Relue à l'écran d'analyse, la déclaration est acquise : un second
+          // tour de validation ne vérifiait rien de plus et laissait les ventes
+          // hors des compteurs tant que personne n'y repassait.
+          statut_validation: 'Validé'
         };
         for (let i = 0; i < combien; i++) aCreer.push({ ...ligne });
       });
