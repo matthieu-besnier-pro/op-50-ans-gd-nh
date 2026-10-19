@@ -37,14 +37,15 @@ export const LIGNES = [
   { site: 'Chasseneuil-sur-Bonnieure', vendeur: 'Jean-Batiste GALLAND', carton: 11, bidon20: 31, bidon55: 17, bidon60: 1, fut209: 8, kg: 3392.6 }
 ];
 
-// Regroupement par point de vente, du plus gros au plus petit : c'est la
-// question posée — qui a vendu quoi, et où.
+// Regroupement par point de vente, du plus gros au plus petit. Un magasin qui
+// compte deux magasiniers — Sauzé, La Ferrière — ne fait qu'une ligne : leurs
+// quantités s'additionnent, c'est le point de vente qu'on suit, pas la personne.
 export function parPointDeVente() {
   const sites = new Map();
   LIGNES.forEach((l) => {
-    const e = sites.get(l.site) || { site: l.site, vendeurs: [], kg: 0 };
-    e.vendeurs.push(l);
+    const e = sites.get(l.site) || { site: l.site, kg: 0 };
     e.kg += l.kg || 0;
+    COLONNES.forEach(({ cle }) => { if (l[cle]) e[cle] = (e[cle] || 0) + l[cle]; });
     sites.set(l.site, e);
   });
   return [...sites.values()].sort((a, b) => b.kg - a.kg);

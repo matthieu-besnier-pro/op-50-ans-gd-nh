@@ -1,13 +1,16 @@
 import React from 'react';
 import { Droplets, Trophy } from 'lucide-react';
-import { COLONNES, LIGNES, parPointDeVente, TOTAL_KG } from '@/lib/televenteOuest';
+import { COLONNES, parPointDeVente, TOTAL_KG } from '@/lib/televenteOuest';
 
 /**
  * Télévente HUILE & GRAISSE — résultats du secteur Ouest, par point de vente.
  *
- * Le classement passe avant le détail : la question posée est « qui a vendu
- * combien, et où ». Le tableau produit par produit vient ensuite, pour ceux
- * qui veulent savoir ce qui s'est vendu plutôt que combien.
+ * Le classement passe avant le détail : la question posée est « où a-t-on
+ * vendu, et combien ». Le tableau produit par produit vient ensuite, pour
+ * ceux qui veulent savoir ce qui s'est vendu plutôt que combien.
+ *
+ * Une ligne par point de vente, jamais par personne. Les magasins à deux
+ * magasiniers additionnent leurs quantités : c'est le magasin qu'on suit.
  *
  * Les quantités sont des contenants, le total est en kilos — un carton de
  * graisse et un fût de 209 litres ne pèsent pas la même chose, les additionner
@@ -21,7 +24,7 @@ export default function TeleventeOuest({ titre = 'Télévente Huile & Graisse �
   const sites = parPointDeVente();
   const haut = Math.max(...sites.map((s) => s.kg), 1);
   const totaux = {};
-  COLONNES.forEach(({ cle }) => { totaux[cle] = LIGNES.reduce((s, l) => s + (l[cle] || 0), 0); });
+  COLONNES.forEach(({ cle }) => { totaux[cle] = sites.reduce((n, s) => n + (s[cle] || 0), 0); });
 
   return (
     <section className="space-y-4">
@@ -30,9 +33,7 @@ export default function TeleventeOuest({ titre = 'Télévente Huile & Graisse �
           <Droplets className="h-7 w-7 shrink-0 text-gd-orange" />
           <div>
             <h2 className="text-base font-extrabold text-gd-navy-dark">{titre}</h2>
-            <p className="text-xs text-muted-foreground">
-              {sites.length} points de vente · {LIGNES.length} vendeurs
-            </p>
+            <p className="text-xs text-muted-foreground">{sites.length} points de vente</p>
           </div>
         </div>
         <div className="text-right">
@@ -74,7 +75,6 @@ export default function TeleventeOuest({ titre = 'Télévente Huile & Graisse �
           <thead>
             <tr className="border-b border-border bg-muted/40 text-xs">
               <th className="px-3 py-2 text-left font-semibold">Point de vente</th>
-              <th className="px-3 py-2 text-left font-semibold">Vendeur</th>
               {familles.map((f) => (
                 <th
                   key={f}
@@ -87,7 +87,6 @@ export default function TeleventeOuest({ titre = 'Télévente Huile & Graisse �
               <th className="border-l border-border px-3 py-2 text-right font-semibold">Total</th>
             </tr>
             <tr className="border-b border-border bg-muted/20 text-[11px] text-muted-foreground">
-              <th className="px-3 py-1.5" />
               <th className="px-3 py-1.5" />
               {COLONNES.map((c, i) => (
                 <th
@@ -103,33 +102,26 @@ export default function TeleventeOuest({ titre = 'Télévente Huile & Graisse �
             </tr>
           </thead>
           <tbody>
-            {sites.map((s) =>
-              s.vendeurs.map((l, idx) => (
-                <tr key={`${s.site}-${l.vendeur}`} className="border-b border-border last:border-0 text-sm hover:bg-muted/30">
-                  {/* Le point de vente n'est écrit qu'une fois : le répéter sur
-                      chaque vendeur brouillerait le regroupement. */}
-                  <td className="whitespace-nowrap px-3 py-2 font-semibold text-gd-navy">
-                    {idx === 0 ? s.site : ''}
+            {sites.map((s) => (
+              <tr key={s.site} className="border-b border-border last:border-0 text-sm hover:bg-muted/30">
+                <td className="whitespace-nowrap px-3 py-2 font-semibold text-gd-navy">{s.site}</td>
+                {COLONNES.map((c, i) => (
+                  <td
+                    key={c.cle}
+                    className={`px-3 py-2 text-center tabular-nums ${
+                      s[c.cle] ? 'text-foreground' : 'text-muted-foreground/40'
+                    } ${i === 0 || COLONNES[i - 1]?.famille !== c.famille ? 'border-l border-border' : ''}`}
+                  >
+                    {s[c.cle] || '—'}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-foreground">{l.vendeur}</td>
-                  {COLONNES.map((c, i) => (
-                    <td
-                      key={c.cle}
-                      className={`px-3 py-2 text-center tabular-nums ${
-                        l[c.cle] ? 'text-foreground' : 'text-muted-foreground/40'
-                      } ${i === 0 || COLONNES[i - 1]?.famille !== c.famille ? 'border-l border-border' : ''}`}
-                    >
-                      {l[c.cle] || '—'}
-                    </td>
-                  ))}
-                  <td className="border-l border-border px-3 py-2 text-right font-bold tabular-nums text-gd-navy-dark">
-                    {kg(l.kg)}
-                  </td>
-                </tr>
-              ))
-            )}
+                ))}
+                <td className="border-l border-border px-3 py-2 text-right font-bold tabular-nums text-gd-navy-dark">
+                  {kg(s.kg)}
+                </td>
+              </tr>
+            ))}
             <tr className="border-t-2 border-gd-navy/20 bg-muted/40 text-sm">
-              <td className="px-3 py-2.5 font-extrabold uppercase text-gd-navy-dark" colSpan={2}>Total</td>
+              <td className="px-3 py-2.5 font-extrabold uppercase text-gd-navy-dark">Total</td>
               {COLONNES.map((c, i) => (
                 <td
                   key={c.cle}
