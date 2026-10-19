@@ -10,7 +10,8 @@ import { isDirection } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Store, Tag, Plus } from 'lucide-react';
+import { Store, Tag, Plus, Link2, Check } from 'lucide-react';
+import TeleventeOuest from '@/components/TeleventeOuest';
 
 export default function Magasin() {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ export default function Magasin() {
   const [params, setParams] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [copie, setCopie] = useState(false);
   const [form, setForm] = useState({ titre: '', date_debut: '', date_fin: '', ca_realise: 0 });
   const direction = isDirection(user);
 
@@ -37,6 +39,19 @@ export default function Magasin() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const copierLienTelevente = async () => {
+    const lien = `${window.location.origin}/televente`;
+    try {
+      await navigator.clipboard.writeText(lien);
+    } catch {
+      // Presse-papiers refusé (contexte non sécurisé, permission) : on laisse
+      // l'adresse sélectionnable plutôt que d'échouer en silence.
+      window.prompt('Lien à copier :', lien);
+    }
+    setCopie(true);
+    setTimeout(() => setCopie(false), 2000);
+  };
 
   const caCumul = offres.reduce((s, o) => s + (o.ca_realise || 0), 0);
   const objCa = params?.objectif_ca_magasin || 0;
@@ -63,11 +78,22 @@ export default function Magasin() {
           <h1 className="text-2xl font-extrabold text-gd-navy-dark">Magasin</h1>
           <p className="mt-1 text-sm text-muted-foreground">Suivi du CA et des offres</p>
         </div>
-        {direction && (
-          <Button onClick={() => setShowForm(!showForm)} className="bg-gd-navy hover:bg-gd-navy-dark text-white">
-            <Plus className="h-4 w-4 mr-1.5" /> Nouvelle offre
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Le lien public de la télévente se copie ici : c'est depuis cette
+              page qu'on le partage, pas depuis une adresse à retenir. */}
+          <button
+            type="button"
+            onClick={copierLienTelevente}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gd-navy/30 px-3 py-2 text-xs font-semibold text-gd-navy transition-colors hover:bg-gd-navy/5"
+          >
+            {copie ? <><Check className="h-4 w-4 text-emerald-600" /> Lien copié</> : <><Link2 className="h-4 w-4" /> Lien public télévente</>}
+          </button>
+          {direction && (
+            <Button onClick={() => setShowForm(!showForm)} className="bg-gd-navy hover:bg-gd-navy-dark text-white">
+              <Plus className="h-4 w-4 mr-1.5" /> Nouvelle offre
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -94,6 +120,10 @@ export default function Magasin() {
           </div>
         </div>
       )}
+
+      <div className="mb-6">
+        <TeleventeOuest />
+      </div>
 
       <div className="rounded-xl border border-border bg-card shadow-sm">
         <h2 className="px-5 py-4 border-b border-border text-sm font-bold uppercase tracking-wider text-muted-foreground">Historique des offres</h2>
