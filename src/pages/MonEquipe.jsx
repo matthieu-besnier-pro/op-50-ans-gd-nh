@@ -16,17 +16,24 @@ import { useOperationStats } from '@/lib/useOperationStats';
 import { useStatuts, tonaliteDe } from '@/lib/statuts';
 
 // La seconde équipe porte le nom de la fonction exercée en plus.
+// Nom d'une équipe d'après la fonction qui la dirige, pour les deux onglets.
 const LIBELLE_SECONDE = {
   agri_precision: 'Équipe GPS',
   commercial: 'Équipe commerce',
   responsable: 'Équipe commerce',
+  commercial_chef_atelier: 'Équipe atelier',
   chef_atelier: 'Équipe atelier',
-  responsable_sav: 'Équipe SAV'
+  responsable_sav: 'Équipe SAV',
+  direction: 'Toute l\'équipe'
 };
 
 export default function MonEquipe() {
   const { user } = useAuth();
   const persona = useDemoPersona();
+  // Taille et nature de la seconde équipe, renseignées par le serveur. Elles
+  // sont déclarées ici parce que les calculs de rôle ci-dessous s'en servent.
+  const [autreEquipe, setAutreEquipe] = useState(0);
+  const [secondRole, setSecondRole] = useState('');
   // Le responsable SAV encadre des chefs d'atelier : le vocabulaire doit suivre,
   // qu'on soit connecté comme lui ou qu'on le visionne en « Voir en tant que ».
   // La Direction demande explicitement la vue SAV par l'adresse (?sav=1) : on
@@ -39,19 +46,19 @@ export default function MonEquipe() {
     ? new URLSearchParams(window.location.search).get('sav') : null;
   const savDemande = paramSav === '1';
   const commerceDemande = paramSav === '0';
-  // Encadrer deux équipes vaut aussi quand on REGARDE quelqu'un : en « Voir
-  // en tant que », le rôle du compte connecté est « direction », celui qu'on
-  // visionne ne s'y lit pas. C'est le persona qui porte cette information.
-  const estResponsableSav = (user?.app_role || '') === 'responsable_sav'
-    || persona.mode === 'atelier';
-  const estSav = commerceDemande
-    ? false
-    : estResponsableSav || persona.mode === 'atelier' || savDemande;
-  // Nombre de vendeurs encadrés par ailleurs : décide de la bascule.
-  const [autreEquipe, setAutreEquipe] = useState(0);
-  // Nom de la seconde équipe, donné par le serveur : « commerce » ne
-  // conviendrait pas à qui encadre l'agriculture de précision.
-  const [secondRole, setSecondRole] = useState('');
+  // Rôle PRINCIPAL de la personne regardée. En « Voir en tant que », le rôle
+  // du compte connecté est « direction » : c'est le persona qui renseigne
+  // celui qu'on visionne.
+  const rolePrincipal = persona.mode === 'atelier'
+    ? 'responsable_sav'
+    : (user?.app_role || '');
+  // Le second onglet montre l'équipe de la SECONDE casquette, quelle qu'elle
+  // soit. L'affichage suit donc le rôle effectivement montré, et non le rôle
+  // principal : encadrer le SAV en second doit donner l'écran du SAV.
+  const roleAffiche = commerceDemande ? secondRole : rolePrincipal;
+  const estSav = savDemande
+    || roleAffiche === 'responsable_sav'
+    || roleAffiche === 'chef_atelier';
   const stats = useOperationStats();
   // Liste des statuts administrée par la Direction (Administration → Statuts).
   const statuts = useStatuts();
@@ -315,11 +322,14 @@ export default function MonEquipe() {
           {/* Encadrer deux équipes à la fois — le SAV et l'agriculture de
               précision — tient dans un seul compte : la bascule n'apparaît
               que pour qui a réellement les deux. */}
-          {estResponsableSav && (autreEquipe > 0 || commerceDemande) && (
+          {/* La bascule ne dépend plus du rôle porté : elle apparaît dès qu'une
+              seconde équipe existe. La réserver au responsable SAV la rendait
+              invisible à qui encadre deux équipes sous un autre titre. */}
+          {(autreEquipe > 0 || commerceDemande) && (
             <div className="mt-2 inline-flex rounded-lg border border-border p-0.5">
               {[
-                { libelle: 'Équipe SAV', actif: estSav, vers: '/equipe' },
-                { libelle: LIBELLE_SECONDE[secondRole] || 'Équipe commerce', actif: !estSav, vers: '/equipe?sav=0' }
+                { libelle: LIBELLE_SECONDE[rolePrincipal] || 'Mon équipe', actif: !commerceDemande, vers: '/equipe' },
+                { libelle: LIBELLE_SECONDE[secondRole] || 'Seconde équipe', actif: commerceDemande, vers: '/equipe?sav=0' }
               ].map((o) => (
                 <Link
                   key={o.vers}

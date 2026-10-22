@@ -81,28 +81,56 @@ export default async function(req) {
         || { full_name: nomVise, email: '' };
     }
 
-    // La seconde équipe d'un double rôle. « Agriculture de précision » n'est
-    // pas une liste de fiches mais une FONCTION : ses spécialistes se
-    // reconnaissent à leur rôle, pas à un nom de manager recopié sur chaque
-    // fiche — qui n'y figure jamais.
+    // La seconde équipe d'un double rôle, quel que soit le rôle PRINCIPAL :
+    // encadrer deux équipes n'est pas le privilège du responsable SAV.
+    //
+    // Sa composition dépend de la seconde fonction, car toutes ne se
+    // constituent pas de la même façon :
+    //   — l'agriculture de précision est une FONCTION : ses spécialistes se
+    //     reconnaissent à leur rôle, aucune fiche ne nomme qui les encadre ;
+    //   — l'atelier se lit dans le tableau de répartition, site par site ;
+    //   — une équipe de vendeurs se lit dans la structure commerciale.
     const secondRole = sujet?.app_role_secondaire || '';
-    const equipeDuSecondRole = async () => {
-      if (!secondRole) return [];
+    const demandeSeconde = body?.sav === false;
+
+    const equipeSeconde = async () => {
+      if (!secondRole) return { membres: [], noms: [] };
       const tous = await sr.entities.User.list('-created_date', 500).catch(() => []);
-      return (tous || []).filter((u) => u.app_role === secondRole && u.id !== sujet?.id);
+
+      if (secondRole === 'responsable_sav' || secondRole === 'chef_atelier') {
+        const perimetre = await perimetreAtelier(sr, sujet);
+        const toutesBases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
+        const mesSites = new Set((perimetre?.sites || []).map(cleSite));
+        return { membres: effectifChefs(toutesBases.filter((b) => mesSites.has(cleSite(b.nom))), tous), noms: [] };
+      }
+
+      if (secondRole === 'responsable') {
+        const e = await equipeManagee(sr, sujet);
+        const ids = new Set(e?.ids || []);
+        return { membres: tous.filter((u) => ids.has(u.id)), noms: e?.noms || [] };
+      }
+
+      return { membres: tous.filter((u) => u.app_role === secondRole && u.id !== sujet?.id), noms: [] };
     };
 
     // La Direction veut voir l'équipe SAV complète, sans se mettre à la place de
     // personne : tous les chefs d'atelier, de tous les ateliers.
-    if (isAdmin && nomVise && body?.sav === false) {
-      // La seconde équipe de la personne visionnée.
-      const equipe = await equipeManagee(sr, sujet);
-      fiches = equipe?.noms || [];
-      const ids = new Set(equipe?.ids || []);
-      const allUsers = await sr.entities.User.list('-created_date', 200);
-      teamMembers = allUsers.filter((u) => ids.has(u.id));
-      for (const u of await equipeDuSecondRole()) {
-        if (!teamMembers.some((m) => m.id === u.id)) teamMembers.push(u);
+    if (demandeSeconde && (secondRole || (isAdmin && nomVise))) {
+      // La SECONDE équipe, demandée explicitement. Elle passe avant tout le
+      // reste : le rôle principal ne doit pas la court-circuiter, c'est
+      // précisément ce qui la rendait inatteignable.
+      const seconde = await equipeSeconde();
+      teamMembers = seconde.membres;
+      fiches = seconde.noms;
+      // Les vendeurs dont le sujet est manager s'y ajoutent, s'il y en a.
+      const managee = await equipeManagee(sr, sujet);
+      if ((managee?.noms || []).length > 0) {
+        fiches = [...new Set([...(fiches || []), ...managee.noms])];
+        const ids = new Set(managee.ids || []);
+        const tous = await sr.entities.User.list('-created_date', 500).catch(() => []);
+        tous.filter((u) => ids.has(u.id)).forEach((u) => {
+          if (!teamMembers.some((m) => m.id === u.id)) teamMembers.push(u);
+        });
       }
     } else if (isAdmin && body?.sav === true && sitesDemandes.length === 0) {
       const bases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
@@ -149,10 +177,6 @@ export default async function(req) {
       const ids = new Set(equipe?.ids || []);
       const allUsers = await sr.entities.User.list('-created_date', 200);
       teamMembers = allUsers.filter((u) => ids.has(u.id));
-      // Et sa seconde casquette, le cas échéant.
-      for (const u of await equipeDuSecondRole()) {
-        if (!teamMembers.some((m) => m.id === u.id)) teamMembers.push(u);
-      }
     }
 
     // Nombre de vendeurs encadrés par ailleurs : il décide de l'affichage de
@@ -160,9 +184,12 @@ export default async function(req) {
     // en a vraiment deux.
     // Le sujet vaut la personne visionnée quand il y en a une, le compte
     // connecté sinon : la bascule doit parler de l'équipe qu'on regarde.
-    const commerce = (estResponsableSav || (isAdmin && nomVise))
-      ? ((await equipeManagee(sr, sujet))?.noms || []).length + (await equipeDuSecondRole()).length
-      : 0;
+    // Taille de la seconde équipe : elle décide de l'affichage de la bascule,
+    // qui n'a lieu d'être que pour qui en a vraiment deux.
+    const commerce = demandeSeconde
+      ? teamMembers.length
+      : (secondRole ? (await equipeSeconde()).membres.length : 0)
+        + (estResponsableSav ? ((await equipeManagee(sr, sujet))?.noms || []).length : 0);
 
     return Response.json({
       fiches,
