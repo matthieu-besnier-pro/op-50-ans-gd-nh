@@ -24,6 +24,7 @@ export default function MonEquipe() {
   const [roleServeur, setRoleServeur] = useState('');
   const [equipes, setEquipes] = useState([]);
   const [equipeActive, setEquipeActive] = useState('');
+  const [diagnostic, setDiagnostic] = useState(null);
   // Le responsable SAV encadre des chefs d'atelier : le vocabulaire doit suivre,
   // qu'on soit connecté comme lui ou qu'on le visionne en « Voir en tant que ».
   // La Direction demande explicitement la vue SAV par l'adresse (?sav=1) : on
@@ -94,6 +95,7 @@ export default function MonEquipe() {
         setRoleServeur(res.data?.role_principal || '');
         setEquipes(res.data?.equipes || []);
         setEquipeActive(res.data?.equipe_active || '');
+        setDiagnostic(res.data?.diagnostic || null);
         const membres = (res.data?.members || []).map((m) => ({
           id: m.id, user_id: m.user_id || m.id, nom: null,
           full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '',
@@ -168,6 +170,7 @@ export default function MonEquipe() {
       setRoleServeur(res.data?.role_principal || '');
       setEquipes(res.data?.equipes || []);
       setEquipeActive(res.data?.equipe_active || '');
+      setDiagnostic(res.data?.diagnostic || null);
       // Un responsable ne voit que ses vendeurs : le serveur renvoie leurs noms.
       // Pour la Direction, « fiches » vaut null et toute la structure est conservée.
       const noms = res.data?.fiches;
@@ -329,6 +332,21 @@ export default function MonEquipe() {
           {/* La bascule ne dépend plus du rôle porté : elle apparaît dès qu'une
               seconde équipe existe. La réserver au responsable SAV la rendait
               invisible à qui encadre deux équipes sous un autre titre. */}
+          {/* Lecture de ce que le serveur a trouvé : un rattachement absent
+              des fichiers et un défaut de code produisent le même écran vide,
+              et seule cette ligne permet de les distinguer. */}
+          {diagnostic && equipes.length <= 1 && (
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              <span className="font-semibold text-gd-navy-dark">{diagnostic.compte || 'ce compte'}</span>
+              {' · rôle '}<span className="font-mono">{diagnostic.role || '—'}</span>
+              {diagnostic.second_role_saisi ? <> · second rôle <span className="font-mono">{diagnostic.second_role_saisi}</span></> : ' · aucun second rôle'}
+              {' · ateliers au tableau de répartition : '}
+              <span className={diagnostic.sites_atelier?.length ? 'font-semibold text-gd-navy-dark' : 'font-semibold text-gd-orange'}>
+                {diagnostic.sites_atelier?.length ? diagnostic.sites_atelier.join(', ') : 'aucun'}
+              </span>
+              {' · vendeurs encadrés : '}{diagnostic.vendeurs_manages ?? 0}
+            </p>
+          )}
           {equipes.length > 1 && (
             <div className="mt-2 inline-flex flex-wrap rounded-lg border border-border p-0.5">
               {equipes.map((e) => (

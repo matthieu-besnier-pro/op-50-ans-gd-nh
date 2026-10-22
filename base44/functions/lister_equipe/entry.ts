@@ -291,6 +291,16 @@ export default async function(req) {
       // responsable SAV qui encadre le GPS n'encadre pas des vendeurs.
       second_role: secondRole,
       equipes,
+      // Ce que le serveur a RÉELLEMENT trouvé pour ce compte. Affiché à la
+      // Direction : sans cela, un rattachement manquant dans les fichiers et
+      // un défaut de code se ressemblent, et on cherche du mauvais côté.
+      diagnostic: {
+        compte: sujet?.full_name || sujet?.email || '',
+        role: sujet?.app_role || '',
+        second_role_saisi: sujet?.app_role_secondaire || '',
+        sites_atelier: (atelierDuSujet.bases || []).map((b) => b.nom).filter(Boolean),
+        vendeurs_manages: ((await equipeManagee(sr, sujet))?.noms || []).length
+      },
       equipe_active: (catalogue.find((e) => e.cle === cleDemandee) || catalogue[0])?.cle || '',
       // Rôle du compte regardé : la page s'en sert pour choisir son écran,
       // et il n'est plus devinable côté navigateur depuis que la simulation
