@@ -3,7 +3,7 @@ import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { listerPartage, invalider, fetchClients } from '@/lib/donneesPartagees';
 import { fetchAtelierStats } from '@/lib/atelierStats';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
@@ -33,15 +33,21 @@ export default function MonEquipe() {
   // compte d'atteindre ses deux équipes : « 1 » force la vue SAV, « 0 » force
   // la vue commerce, absent laisse le rôle décider. Sans le « 0 », un
   // responsable SAV était renvoyé au SAV quoi qu'il demande.
-  const paramSav = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('sav') : null;
+  // Lu par le ROUTEUR, pas par window.location.
+  //
+  // Les deux donnent la même chaîne, mais seule la première abonne la page aux
+  // changements d'adresse. En lisant window.location pendant le rendu, la page
+  // ne redemandait rien quand on passait de /equipe à /equipe?equipe=atelier :
+  // le chemin ne changeant pas, rien ne la redessinait, et le clic sur l'onglet
+  // restait sans effet visible.
+  const parametres = new URLSearchParams(useLocation().search);
+  const paramSav = parametres.get('sav');
   const savDemande = paramSav === '1';
   const commerceDemande = paramSav === '0';
   // Clé de l'équipe demandée. Une personne peut en diriger plus de deux —
   // commerce, SAV et agriculture de précision — et deux onglets n'y
   // suffisaient pas : le serveur en donne la liste, l'adresse en désigne une.
-  const equipeDemandee = typeof window !== 'undefined'
-    ? (new URLSearchParams(window.location.search).get('equipe') || '') : '';
+  const equipeDemandee = parametres.get('equipe') || '';
   // Rôle PRINCIPAL de la personne regardée. En « Voir en tant que », le rôle
   // du compte connecté est « direction » : c'est le persona qui renseigne
   // celui qu'on visionne.
