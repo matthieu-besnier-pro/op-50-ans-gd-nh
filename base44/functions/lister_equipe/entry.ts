@@ -66,9 +66,23 @@ export default async function(req) {
     // connecté — et affichait une équipe vide.
     const sitesDemandes = Array.isArray(body?.sites) ? body.sites.filter(Boolean) : [];
 
+    // « Voir en tant que » : la Direction demande l'équipe d'une personne
+    // nommée, pas la sienne. Sans ce sujet explicite, la page retomberait sur
+    // le compte réellement connecté — celui de la Direction, qui voit tout.
+    const nomVise = typeof body?.manager === 'string' ? body.manager.trim() : '';
+    const sujet = (isAdmin && nomVise) ? { full_name: nomVise, email: '' } : user;
+
     // La Direction veut voir l'équipe SAV complète, sans se mettre à la place de
     // personne : tous les chefs d'atelier, de tous les ateliers.
-    if (isAdmin && body?.sav === true && sitesDemandes.length === 0) {
+    if (isAdmin && nomVise && body?.sav === false) {
+      // L'équipe COMMERCIALE de la personne visionnée : ses vendeurs, ceux
+      // dont elle est le manager dans la structure.
+      const equipe = await equipeManagee(sr, sujet);
+      fiches = equipe?.noms || [];
+      const ids = new Set(equipe?.ids || []);
+      const allUsers = await sr.entities.User.list('-created_date', 200);
+      teamMembers = allUsers.filter((u) => ids.has(u.id));
+    } else if (isAdmin && body?.sav === true && sitesDemandes.length === 0) {
       const bases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
       const allUsers = await sr.entities.User.list('-created_date', 500);
       teamMembers = effectifChefs(bases, allUsers);
@@ -118,8 +132,10 @@ export default async function(req) {
     // Nombre de vendeurs encadrés par ailleurs : il décide de l'affichage de
     // la bascule entre les deux équipes, qui ne doit apparaître que pour qui
     // en a vraiment deux.
-    const commerce = estResponsableSav
-      ? ((await equipeManagee(sr, user))?.noms || []).length
+    // Le sujet vaut la personne visionnée quand il y en a une, le compte
+    // connecté sinon : la bascule doit parler de l'équipe qu'on regarde.
+    const commerce = (estResponsableSav || (isAdmin && nomVise))
+      ? ((await equipeManagee(sr, sujet))?.noms || []).length
       : 0;
 
     return Response.json({

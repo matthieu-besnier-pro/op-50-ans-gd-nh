@@ -30,7 +30,11 @@ export default function MonEquipe() {
     ? new URLSearchParams(window.location.search).get('sav') : null;
   const savDemande = paramSav === '1';
   const commerceDemande = paramSav === '0';
-  const estResponsableSav = (user?.app_role || '') === 'responsable_sav';
+  // Encadrer deux équipes vaut aussi quand on REGARDE quelqu'un : en « Voir
+  // en tant que », le rôle du compte connecté est « direction », celui qu'on
+  // visionne ne s'y lit pas. C'est le persona qui porte cette information.
+  const estResponsableSav = (user?.app_role || '') === 'responsable_sav'
+    || persona.mode === 'atelier';
   const estSav = commerceDemande
     ? false
     : estResponsableSav || persona.mode === 'atelier' || savDemande;
@@ -64,8 +68,11 @@ export default function MonEquipe() {
       // D'ATELIER de ses sites. Ils ne figurent pas dans la structure
       // commerciale — on les demande au serveur, site par site. Sans cette
       // branche, la page retombait sur le compte réellement connecté.
-      if (persona.mode === 'atelier') {
-        const res = await base44.functions.invoke('lister_equipe', { sites: persona.sites || [] });
+      if (persona.mode === 'atelier' && !commerceDemande) {
+        // `manager` sert au décompte de la seconde équipe : la bascule ne doit
+        // apparaître que si la personne visionnée encadre vraiment des vendeurs.
+        const res = await base44.functions.invoke('lister_equipe', { sites: persona.sites || [], manager: persona.label || '' });
+        setAutreEquipe(res.data?.commerce || 0);
         const membres = (res.data?.members || []).map((m) => ({
           id: m.id, user_id: m.user_id || m.id, nom: null,
           full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '',
@@ -127,7 +134,9 @@ export default function MonEquipe() {
       const [res, structRows] = await Promise.all([
         // `sav: false` dit au serveur de constituer l'équipe COMMERCIALE même
         // pour un responsable SAV, qui sans cela recevrait ses chefs d'atelier.
-        base44.functions.invoke('lister_equipe', commerceDemande ? { sav: false } : {}),
+        base44.functions.invoke('lister_equipe', commerceDemande
+          ? { sav: false, manager: persona.mode === 'atelier' ? (persona.label || '') : '' }
+          : {}),
         listerPartage('structure_commerciale', '-nom_commercial', 200)
       ]);
       const equipeMembers = res.data?.members || [];
