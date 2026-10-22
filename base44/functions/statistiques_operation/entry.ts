@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { avecReprise } from '../../shared/debit.ts';
-import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre, filtreClientsPerimetre } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, perimetreCommercial, estDansPerimetre, filtreClientsPerimetre, sujetDeLaRequete } from '../../shared/perimetre.ts';
 import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_ATELIER } from '../../shared/atelier.ts';
 
 // Comptages EXACTS de l'opération, calculés côté serveur en parcourant l'intégralité
@@ -38,11 +38,16 @@ const debutDuMois = () => {
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 });
+    const appelant = await base44.auth.me();
+    if (!appelant) return Response.json({ error: 'Non autorisé' }, { status: 401 });
 
     const sr = base44.asServiceRole;
     const body = await req.json().catch(() => ({}));
+
+    // « Voir en tant que » : la réponse est calculée pour le compte visé, pas
+    // pour l'appelant. Tout ce qui suit raisonne donc sur `user` — c'est-à-dire
+    // la personne qu'on regarde — et la page n'a rien à refiltrer.
+    const user = await sujetDeLaRequete(sr, appelant, body);
     const estDirection = user.role === 'admin' || user.app_role === 'direction';
     const role = user.app_role || 'collaborateur';
 

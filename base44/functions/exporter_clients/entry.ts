@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { perimetreResponsable, perimetreCommercial, estDansPerimetre } from '../../shared/perimetre.ts';
+import { perimetreResponsable, perimetreCommercial, estDansPerimetre, sujetDeLaRequete } from '../../shared/perimetre.ts';
 import { contactAtelierPose, STATUTS_CONTACT_ATELIER } from '../../shared/atelier.ts';
 
 // Export des clients TRAVAILLÉS : ceux qui ont quitté le statut « À contacter ».
@@ -47,11 +47,16 @@ async function lireTout(fetchPage) {
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 });
+    const appelant = await base44.auth.me();
+    if (!appelant) return Response.json({ error: 'Non autorisé' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
     const sr = base44.asServiceRole;
+
+    // « Voir en tant que » : la réponse est calculée pour le compte visé, pas
+    // pour l'appelant. Tout ce qui suit raisonne donc sur `user` — c'est-à-dire
+    // la personne qu'on regarde — et la page n'a rien à refiltrer.
+    const user = await sujetDeLaRequete(sr, appelant, body);
 
     const estDirection = user.role === 'admin' || user.app_role === 'direction';
     const estResponsable = user.app_role === 'responsable';

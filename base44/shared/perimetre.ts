@@ -118,6 +118,26 @@ export async function equipeManagee(sr, user) {
   };
 }
 
+// « Voir en tant que », résolu côté serveur.
+//
+// Un administrateur peut demander à être traité comme un autre compte. La
+// fonction répond alors avec le périmètre de CE compte, si bien que toutes
+// les pages montrent exactement ce que la personne voit — sans que chacune
+// ait à refiltrer ce qu'elle reçoit.
+//
+// Deux garde-fous :
+//   — seul un administrateur peut viser un autre compte ; pour tout le monde
+//     d'autre, le paramètre est ignoré et c'est son propre compte qui répond ;
+//   — le périmètre obtenu est celui du compte visé, donc plus étroit que
+//     celui d'un administrateur. Simuler ne peut rien ouvrir.
+export async function sujetDeLaRequete(sr, user, body) {
+  const id = typeof body?.compte_id === 'string' ? body.compte_id.trim() : '';
+  if (!id || id === user?.id) return user;
+  if (user?.role !== 'admin' && user?.app_role !== 'direction') return user;
+  const vus = await sr.entities.User.filter({ id }, 'id', 1).catch(() => []);
+  return (vus && vus[0]) ? vus[0] : user;
+}
+
 // Périmètre d'un COMMERCIAL : ses clients, par assignation ou par secteur.
 // Le second critère est le filet : à l'import, les comptes n'existaient pas
 // encore et l'assignation n'a pu se faire qu'après la première connexion.

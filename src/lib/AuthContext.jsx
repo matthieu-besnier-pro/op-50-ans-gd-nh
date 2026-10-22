@@ -1,5 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, definirCompteSimule } from '@/api/base44Client';
+import { invalider } from '@/lib/donneesPartagees';
+import { invaliderStats } from '@/lib/operationStats';
+import { invaliderAtelierStats } from '@/lib/atelierStats';
 import { appParams } from '@/lib/app-params';
 
 const AuthContext = createContext();
@@ -19,6 +22,16 @@ export const AuthProvider = ({ children }) => {
   // Compte réel choisi dans « Voir en tant que » : il pilote les quatre états
   // ci-dessus et sert à afficher qui l'on regarde.
   const [viewAsCompte, setViewAsCompte] = useState(null);
+
+  // Le compte simulé part avec chaque appel de fonction : le serveur répond
+  // alors dans SON périmètre. Les caches sont vidés au changement, sinon on
+  // lirait les chiffres de la personne précédente.
+  useEffect(() => {
+    definirCompteSimule(viewAsCompte);
+    invalider();
+    invaliderStats();
+    invaliderAtelierStats();
+  }, [viewAsCompte]);
 
   useEffect(() => {
     checkAppState();

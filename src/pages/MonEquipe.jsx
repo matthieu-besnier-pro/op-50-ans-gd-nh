@@ -34,6 +34,7 @@ export default function MonEquipe() {
   // sont déclarées ici parce que les calculs de rôle ci-dessous s'en servent.
   const [autreEquipe, setAutreEquipe] = useState(0);
   const [secondRole, setSecondRole] = useState('');
+  const [roleServeur, setRoleServeur] = useState('');
   // Le responsable SAV encadre des chefs d'atelier : le vocabulaire doit suivre,
   // qu'on soit connecté comme lui ou qu'on le visionne en « Voir en tant que ».
   // La Direction demande explicitement la vue SAV par l'adresse (?sav=1) : on
@@ -49,9 +50,11 @@ export default function MonEquipe() {
   // Rôle PRINCIPAL de la personne regardée. En « Voir en tant que », le rôle
   // du compte connecté est « direction » : c'est le persona qui renseigne
   // celui qu'on visionne.
-  const rolePrincipal = persona.mode === 'atelier'
-    ? 'responsable_sav'
-    : (user?.app_role || '');
+  // Le rôle affiché vient du serveur quand il a répondu : lui seul sait de
+  // quel compte il a calculé le périmètre. Avant sa réponse, on se rabat sur
+  // ce que le navigateur sait.
+  const rolePrincipal = roleServeur
+    || (persona.mode === 'atelier' ? 'responsable_sav' : (user?.app_role || ''));
   // Le second onglet montre l'équipe de la SECONDE casquette, quelle qu'elle
   // soit. L'affichage suit donc le rôle effectivement montré, et non le rôle
   // principal : encadrer le SAV en second doit donner l'écran du SAV.
@@ -93,6 +96,7 @@ export default function MonEquipe() {
         const res = await base44.functions.invoke('lister_equipe', { sites: persona.sites || [], manager: persona.label || '' });
         setAutreEquipe(res.data?.commerce || 0);
         setSecondRole(res.data?.second_role || '');
+        setRoleServeur(res.data?.role_principal || '');
         const membres = (res.data?.members || []).map((m) => ({
           id: m.id, user_id: m.user_id || m.id, nom: null,
           full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '',
@@ -164,6 +168,7 @@ export default function MonEquipe() {
       // bascule n'a lieu d'être que pour qui a vraiment deux équipes.
       setAutreEquipe(res.data?.commerce || 0);
       setSecondRole(res.data?.second_role || '');
+      setRoleServeur(res.data?.role_principal || '');
       // Un responsable ne voit que ses vendeurs : le serveur renvoie leurs noms.
       // Pour la Direction, « fiches » vaut null et toute la structure est conservée.
       const noms = res.data?.fiches;

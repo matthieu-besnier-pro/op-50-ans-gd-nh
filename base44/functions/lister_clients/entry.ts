@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { avecReprise } from '../../shared/debit.ts';
-import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre, clientDansPerimetre, RESTREINDRE_PAR_FICHE } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre, clientDansPerimetre, RESTREINDRE_PAR_FICHE, sujetDeLaRequete } from '../../shared/perimetre.ts';
 
 // Renvoie les clients selon le rôle, en asServiceRole (contourne le RLS navigateur).
 // Optimisé perf : UN seul appel filtré + projection légère (champs de la liste seulement).
@@ -40,11 +40,16 @@ async function lireTout(fetchPage, max) {
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 });
+    const appelant = await base44.auth.me();
+    if (!appelant) return Response.json({ error: 'Non autorisé' }, { status: 401 });
     const sr = base44.asServiceRole;
 
     const body = await req.json().catch(() => ({}));
+
+    // « Voir en tant que » : la réponse est calculée pour le compte visé, pas
+    // pour l'appelant. Tout ce qui suit raisonne donc sur `user` — c'est-à-dire
+    // la personne qu'on regarde — et la page n'a rien à refiltrer.
+    const user = await sujetDeLaRequete(sr, appelant, body);
 
     // Fiche client : un seul client complet. L'accès à une fiche nommée n'est plus
     // restreint au périmètre (voir RESTREINDRE_PAR_FICHE) : l'outil ne doit pas

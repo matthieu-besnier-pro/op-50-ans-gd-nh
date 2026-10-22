@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { avecReprise } from '../../shared/debit.ts';
-import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre } from '../../shared/perimetre.ts';
+import { perimetreAtelier, perimetreResponsable, perimetreCommercial, filtreClientsPerimetre, sujetDeLaRequete } from '../../shared/perimetre.ts';
 import { STATUT_CONTACT_ATELIER_REFUS, rdvAtelierObtenu, routageRdv, TYPE_RDV_ATELIER, basesCompletees, cleNom, cleSite } from '../../shared/atelier.ts';
 
 // Comptage des contacts pris par les ateliers, pour la moitié « ateliers » du Grand Écran.
@@ -25,9 +25,15 @@ const VIDE = { cibles: 0, contactes: 0, ok: 0, refus: 0, rdv_pris: 0, restants: 
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 });
+    const appelant = await base44.auth.me();
+    if (!appelant) return Response.json({ error: 'Non autorisé' }, { status: 401 });
     const sr = base44.asServiceRole;
+    const body = await req.json().catch(() => ({}));
+
+    // « Voir en tant que » : la réponse est calculée pour le compte visé, pas
+    // pour l'appelant. Tout ce qui suit raisonne donc sur `user` — c'est-à-dire
+    // la personne qu'on regarde — et la page n'a rien à refiltrer.
+    const user = await sujetDeLaRequete(sr, appelant, body);
 
     // Un comptage PARTIEL est pire que pas de comptage : l'écran afficherait des
     // chiffres en baisse puis en hausse sans que rien n'ait bougé sur le terrain.

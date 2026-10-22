@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { equipeManagee, perimetreAtelier } from '../../shared/perimetre.ts';
+import { equipeManagee, perimetreAtelier, sujetDeLaRequete } from '../../shared/perimetre.ts';
 import { cleSite, cleNom, comptesDesChefs, basesCompletees } from '../../shared/atelier.ts';
 
 // Effectif des chefs d'atelier d'une liste de sites. TOUS y figurent, qu'ils
@@ -41,11 +41,16 @@ function effectifChefs(mesBases, comptes) {
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 });
+    const appelant = await base44.auth.me();
+    if (!appelant) return Response.json({ error: 'Non autorisé' }, { status: 401 });
 
     const sr = base44.asServiceRole;
     const body = await req.json().catch(() => ({}));
+
+    // « Voir en tant que » : la réponse est calculée pour le compte visé, pas
+    // pour l'appelant. Tout ce qui suit raisonne donc sur `user` — c'est-à-dire
+    // la personne qu'on regarde — et la page n'a rien à refiltrer.
+    const user = await sujetDeLaRequete(sr, appelant, body);
     const appRole = user.app_role || 'collaborateur';
     const isAdmin = user.role === 'admin' || appRole === 'direction';
 
@@ -197,6 +202,10 @@ export default async function(req) {
       // Nommer la seconde équipe plutôt que de l'appeler « commerce » : un
       // responsable SAV qui encadre le GPS n'encadre pas des vendeurs.
       second_role: secondRole,
+      // Rôle du compte regardé : la page s'en sert pour choisir son écran,
+      // et il n'est plus devinable côté navigateur depuis que la simulation
+      // se résout ici.
+      role_principal: user?.app_role || '',
       // `sites` n'existe que pour les chefs d'atelier ; la page s'en sert pour
       // afficher à quel atelier chacun est rattaché.
       members: teamMembers.map((m) => ({

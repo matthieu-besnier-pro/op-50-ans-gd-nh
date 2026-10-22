@@ -19,7 +19,7 @@ import { normNom } from '@/lib/nomCle';
  *  - matchCommercialId(id): fonction pour vérifier si un commercial_id correspond
  */
 export function useDemoPersona() {
-  const { viewAsCommercial, viewAsManager, viewAsReferent, viewAsRole } = useAuth();
+  const { viewAsCommercial, viewAsManager, viewAsReferent, viewAsRole, viewAsCompte } = useAuth();
   const [structure, setStructure] = useState([]);
   const [bases, setBases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +36,23 @@ export function useDemoPersona() {
   }, []);
 
   const persona = useMemo(() => {
+    // Un COMPTE précis est visé : le serveur répond déjà dans son périmètre,
+    // et refiltrer ici ne pourrait que retrancher. Deux filtrages successifs
+    // bâtis sur des référentiels différents finissent par ne rien laisser
+    // passer — c'est au serveur de trancher, il est seul à faire autorité.
+    if (viewAsCompte) {
+      return {
+        mode: null,
+        label: null,
+        sites: [],
+        ids: [],
+        secteurs: [],
+        clientFilter: null,
+        matchClient: () => true,
+        matchCommercialId: () => true,
+      };
+    }
+
     // Commercial spécifique — on filtre sur le compte lié (assignations et RDV portent le user_id)
     // ET sur l'ID de la fiche, car un portefeuille partagé (doublon de secteur) garde
     // le nom du secteur d'origine et peut encore porter l'ID de la fiche.
@@ -109,7 +126,7 @@ export function useDemoPersona() {
       matchClient: () => true,
       matchCommercialId: () => true,
     };
-  }, [viewAsRole, viewAsCommercial, viewAsManager, viewAsReferent, structure, bases]);
+  }, [viewAsRole, viewAsCommercial, viewAsManager, viewAsReferent, viewAsCompte, structure, bases]);
 
   return { ...persona, loading, structure };
 }
