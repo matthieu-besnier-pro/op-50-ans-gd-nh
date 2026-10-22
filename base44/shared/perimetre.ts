@@ -89,7 +89,19 @@ export async function perimetreAtelier(sr, user) {
 // insensible à l'ordre prénom/nom.
 export async function perimetreResponsable(sr, user) {
   if (user?.app_role !== 'responsable') return null;
+  return equipeManagee(sr, user);
+}
 
+// Les fiches dont l'utilisateur est le MANAGER, sans condition de rôle.
+//
+// Un responsable peut encadrer une équipe commerciale sans porter le rôle
+// « responsable » : c'est le cas de qui dirige le SAV et l'agriculture de
+// précision à la fois — un seul compte, deux équipes.
+//
+// Cette variante sans garde ne sert qu'à CONSTITUER une équipe sur demande
+// explicite. Le périmètre de données, lui, reste adossé au rôle : élargir
+// l'un ne doit pas élargir l'autre en silence.
+export async function equipeManagee(sr, user) {
   const fiches = await sr.entities.structure_commerciale.list('-nom_commercial', LOT).catch(() => []);
   const parNom = cleNom(user.full_name || '');
   const parEmail = cleNom(String(user.email || '').split('@')[0].replace(/[._-]+/g, ' '));

@@ -61,6 +61,10 @@ export default function Layout({ children }) {
   // Paramètres de l'adresse : deux entrées de menu partagent la route /equipe et
   // ne se distinguent que par eux.
   const recherche = useLocation().search || '';
+  // `?sav=0` est la vue commerce d'un responsable SAV : elle n'a pas d'entrée
+  // de menu propre — la bascule est dans la page — et se rattache donc à
+  // « Mon équipe », sans quoi aucune entrée ne serait surlignée.
+  const rechercheMenu = recherche.replace('?', '') === 'sav=0' ? '' : recherche.replace('?', '');
   const [mobileOpen, setMobileOpen] = useState(false);
   // Panneau replié : mémorisé sur le poste, pour retrouver sa mise en page.
   const [replie, setReplie] = useState(() => {
@@ -169,7 +173,7 @@ export default function Layout({ children }) {
                       `group flex items-center rounded-lg py-2.5 text-sm font-medium transition-all ${
                         replie ? 'justify-center px-2' : 'gap-3 px-3'
                       } ${
-                        isActive && (item.to.split('?')[1] || '') === recherche.replace('?', '')
+                        isActive && (item.to.split('?')[1] || '') === rechercheMenu
                           ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
                           : 'text-sidebar-foreground/80 hover:bg-white/5 hover:text-white'
                       }`

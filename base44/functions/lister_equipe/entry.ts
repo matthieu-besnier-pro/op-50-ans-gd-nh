@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { perimetreResponsable, perimetreAtelier } from '../../shared/perimetre.ts';
+import { equipeManagee, perimetreAtelier } from '../../shared/perimetre.ts';
 import { cleSite, cleNom, comptesDesChefs, basesCompletees } from '../../shared/atelier.ts';
 
 // Effectif des chefs d'atelier d'une liste de sites. TOUS y figurent, qu'ils
@@ -87,7 +87,11 @@ export default async function(req) {
       teamBaseIds = allBases.map((b) => b.id);
       const allUsers = await sr.entities.User.list('-created_date', 200);
       teamMembers = allUsers.filter((u) => u.app_role === 'commercial');
-    } else if (estResponsableSav) {
+      // Un responsable SAV qui encadre aussi une équipe commerciale —
+      // l'agriculture de précision, par exemple — demande explicitement l'une
+      // ou l'autre. Sans ce choix, son rôle le renverrait toujours au SAV et
+      // la seconde équipe resterait hors d'atteinte.
+    } else if (estResponsableSav && body?.sav !== false) {
       // Les chefs d'atelier ne figurent pas dans la structure commerciale : ils
       // sont nommés site par site dans le tableau de répartition. L'équipe d'un
       // responsable SAV, ce sont donc les chefs des sites dont il répond.
@@ -104,15 +108,23 @@ export default async function(req) {
     } else {
       // L'équipe d'un responsable vient de la structure commerciale (il en est le
       // manager), et non du rattachement à un site — jamais renseigné.
-      const equipe = await perimetreResponsable(sr, user);
+      const equipe = await equipeManagee(sr, user);
       fiches = equipe?.noms || [];
       const ids = new Set(equipe?.ids || []);
       const allUsers = await sr.entities.User.list('-created_date', 200);
       teamMembers = allUsers.filter((u) => ids.has(u.id));
     }
 
+    // Nombre de vendeurs encadrés par ailleurs : il décide de l'affichage de
+    // la bascule entre les deux équipes, qui ne doit apparaître que pour qui
+    // en a vraiment deux.
+    const commerce = estResponsableSav
+      ? ((await equipeManagee(sr, user))?.noms || []).length
+      : 0;
+
     return Response.json({
       fiches,
+      commerce,
       // `sites` n'existe que pour les chefs d'atelier ; la page s'en sert pour
       // afficher à quel atelier chacun est rattaché.
       members: teamMembers.map((m) => ({

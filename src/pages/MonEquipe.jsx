@@ -3,6 +3,7 @@ import Loader from '@/components/Loader';
 import { base44 } from '@/api/base44Client';
 import { listerPartage, invalider, fetchClients } from '@/lib/donneesPartagees';
 import { fetchAtelierStats } from '@/lib/atelierStats';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import Layout from '@/components/Layout';
 import StatCard from '@/components/StatCard';
@@ -21,9 +22,20 @@ export default function MonEquipe() {
   // qu'on soit connecté comme lui ou qu'on le visionne en « Voir en tant que ».
   // La Direction demande explicitement la vue SAV par l'adresse (?sav=1) : on
   // ne peut pas la déduire de son rôle, qui voit tout.
-  const savDemande = typeof window !== 'undefined'
-    && new URLSearchParams(window.location.search).get('sav') === '1';
-  const estSav = (user?.app_role || '') === 'responsable_sav' || persona.mode === 'atelier' || savDemande;
+  // Le paramètre d'adresse a TROIS états, et c'est ce qui permet à un même
+  // compte d'atteindre ses deux équipes : « 1 » force la vue SAV, « 0 » force
+  // la vue commerce, absent laisse le rôle décider. Sans le « 0 », un
+  // responsable SAV était renvoyé au SAV quoi qu'il demande.
+  const paramSav = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('sav') : null;
+  const savDemande = paramSav === '1';
+  const commerceDemande = paramSav === '0';
+  const estResponsableSav = (user?.app_role || '') === 'responsable_sav';
+  const estSav = commerceDemande
+    ? false
+    : estResponsableSav || persona.mode === 'atelier' || savDemande;
+  // Nombre de vendeurs encadrés par ailleurs : décide de la bascule.
+  const [autreEquipe, setAutreEquipe] = useState(0);
   const stats = useOperationStats();
   // Liste des statuts administrée par la Direction (Administration → Statuts).
   const statuts = useStatuts();
@@ -113,10 +125,15 @@ export default function MonEquipe() {
       // Non-demo : la liste des commerciaux est celle des profils issus des fichiers
       // d'import (structure_commerciale), enrichie des comptes utilisateurs existants.
       const [res, structRows] = await Promise.all([
-        base44.functions.invoke('lister_equipe', {}),
+        // `sav: false` dit au serveur de constituer l'équipe COMMERCIALE même
+        // pour un responsable SAV, qui sans cela recevrait ses chefs d'atelier.
+        base44.functions.invoke('lister_equipe', commerceDemande ? { sav: false } : {}),
         listerPartage('structure_commerciale', '-nom_commercial', 200)
       ]);
       const equipeMembers = res.data?.members || [];
+      // Le serveur dit combien de vendeurs ce compte encadre par ailleurs : la
+      // bascule n'a lieu d'être que pour qui a vraiment deux équipes.
+      setAutreEquipe(res.data?.commerce || 0);
       // Un responsable ne voit que ses vendeurs : le serveur renvoie leurs noms.
       // Pour la Direction, « fiches » vaut null et toute la structure est conservée.
       const noms = res.data?.fiches;
@@ -155,7 +172,7 @@ export default function MonEquipe() {
     }
   };
 
-  useEffect(() => { load(); }, [persona.mode, persona.ids.join(','), savDemande]);
+  useEffect(() => { load(); }, [persona.mode, persona.ids.join(','), savDemande, commerceDemande]);
 
   useEffect(() => {
     if (!estSav) return;
@@ -272,6 +289,27 @@ export default function MonEquipe() {
           <h1 className="text-2xl font-extrabold text-gd-navy-dark">
             {savDemande && !persona.mode ? 'Équipe SAV' : estSav ? 'Mon équipe SAV' : 'Mon équipe'}
           </h1>
+          {/* Encadrer deux équipes à la fois — le SAV et l'agriculture de
+              précision — tient dans un seul compte : la bascule n'apparaît
+              que pour qui a réellement les deux. */}
+          {estResponsableSav && (autreEquipe > 0 || commerceDemande) && (
+            <div className="mt-2 inline-flex rounded-lg border border-border p-0.5">
+              {[
+                { libelle: 'Équipe SAV', actif: estSav, vers: '/equipe' },
+                { libelle: 'Équipe commerce', actif: !estSav, vers: '/equipe?sav=0' }
+              ].map((o) => (
+                <Link
+                  key={o.vers}
+                  to={o.vers}
+                  className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                    o.actif ? 'bg-gd-navy text-white' : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {o.libelle}
+                </Link>
+              ))}
+            </div>
+          )}
           <p className="mt-1 text-sm text-muted-foreground">
             {/* Un responsable SAV encadre des chefs d'atelier, pas des commerciaux. */}
             {commerciaux.length} {estSav
