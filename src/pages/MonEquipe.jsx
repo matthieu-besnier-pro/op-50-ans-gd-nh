@@ -16,25 +16,14 @@ import { useOperationStats } from '@/lib/useOperationStats';
 import { useStatuts, tonaliteDe } from '@/lib/statuts';
 
 // La seconde équipe porte le nom de la fonction exercée en plus.
-// Nom d'une équipe d'après la fonction qui la dirige, pour les deux onglets.
-const LIBELLE_SECONDE = {
-  agri_precision: 'Équipe GPS',
-  commercial: 'Équipe commerce',
-  responsable: 'Équipe commerce',
-  commercial_chef_atelier: 'Équipe atelier',
-  chef_atelier: 'Équipe atelier',
-  responsable_sav: 'Équipe SAV',
-  direction: 'Toute l\'équipe'
-};
-
 export default function MonEquipe() {
   const { user } = useAuth();
   const persona = useDemoPersona();
   // Taille et nature de la seconde équipe, renseignées par le serveur. Elles
   // sont déclarées ici parce que les calculs de rôle ci-dessous s'en servent.
-  const [autreEquipe, setAutreEquipe] = useState(0);
-  const [secondRole, setSecondRole] = useState('');
   const [roleServeur, setRoleServeur] = useState('');
+  const [equipes, setEquipes] = useState([]);
+  const [equipeActive, setEquipeActive] = useState('');
   // Le responsable SAV encadre des chefs d'atelier : le vocabulaire doit suivre,
   // qu'on soit connecté comme lui ou qu'on le visionne en « Voir en tant que ».
   // La Direction demande explicitement la vue SAV par l'adresse (?sav=1) : on
@@ -47,6 +36,11 @@ export default function MonEquipe() {
     ? new URLSearchParams(window.location.search).get('sav') : null;
   const savDemande = paramSav === '1';
   const commerceDemande = paramSav === '0';
+  // Clé de l'équipe demandée. Une personne peut en diriger plus de deux —
+  // commerce, SAV et agriculture de précision — et deux onglets n'y
+  // suffisaient pas : le serveur en donne la liste, l'adresse en désigne une.
+  const equipeDemandee = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('equipe') || '') : '';
   // Rôle PRINCIPAL de la personne regardée. En « Voir en tant que », le rôle
   // du compte connecté est « direction » : c'est le persona qui renseigne
   // celui qu'on visionne.
@@ -58,7 +52,10 @@ export default function MonEquipe() {
   // Le second onglet montre l'équipe de la SECONDE casquette, quelle qu'elle
   // soit. L'affichage suit donc le rôle effectivement montré, et non le rôle
   // principal : encadrer le SAV en second doit donner l'écran du SAV.
-  const roleAffiche = commerceDemande ? secondRole : rolePrincipal;
+  // L'écran suit le rôle de l'équipe RÉELLEMENT servie, que le serveur nomme.
+  const roleEquipe = (equipes.find((e) => e.cle === equipeActive) || {}).role_affiche || '';
+  const roleAffiche = roleEquipe
+    || (equipeActive && equipeActive !== 'principale' ? (equipeActive === 'atelier' ? 'responsable_sav' : equipeActive) : rolePrincipal);
   const estSav = savDemande
     || roleAffiche === 'responsable_sav'
     || roleAffiche === 'chef_atelier';
@@ -93,10 +90,10 @@ export default function MonEquipe() {
       if (persona.mode === 'atelier' && !commerceDemande) {
         // `manager` sert au décompte de la seconde équipe : la bascule ne doit
         // apparaître que si la personne visionnée encadre vraiment des vendeurs.
-        const res = await base44.functions.invoke('lister_equipe', { sites: persona.sites || [], manager: persona.label || '' });
-        setAutreEquipe(res.data?.commerce || 0);
-        setSecondRole(res.data?.second_role || '');
+        const res = await base44.functions.invoke('lister_equipe', { sites: persona.sites || [], manager: persona.label || '', equipe: equipeDemandee });
         setRoleServeur(res.data?.role_principal || '');
+        setEquipes(res.data?.equipes || []);
+        setEquipeActive(res.data?.equipe_active || '');
         const membres = (res.data?.members || []).map((m) => ({
           id: m.id, user_id: m.user_id || m.id, nom: null,
           full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '',
@@ -158,17 +155,19 @@ export default function MonEquipe() {
       const [res, structRows] = await Promise.all([
         // `sav: false` dit au serveur de constituer l'équipe COMMERCIALE même
         // pour un responsable SAV, qui sans cela recevrait ses chefs d'atelier.
-        base44.functions.invoke('lister_equipe', commerceDemande
-          ? { sav: false, manager: persona.mode === 'atelier' ? (persona.label || '') : '' }
-          : {}),
+        base44.functions.invoke('lister_equipe', {
+          equipe: equipeDemandee,
+          ...(commerceDemande ? { sav: false } : {}),
+          ...(persona.mode === 'atelier' ? { manager: persona.label || '' } : {})
+        }),
         listerPartage('structure_commerciale', '-nom_commercial', 200)
       ]);
       const equipeMembers = res.data?.members || [];
       // Le serveur dit combien de vendeurs ce compte encadre par ailleurs : la
       // bascule n'a lieu d'être que pour qui a vraiment deux équipes.
-      setAutreEquipe(res.data?.commerce || 0);
-      setSecondRole(res.data?.second_role || '');
       setRoleServeur(res.data?.role_principal || '');
+      setEquipes(res.data?.equipes || []);
+      setEquipeActive(res.data?.equipe_active || '');
       // Un responsable ne voit que ses vendeurs : le serveur renvoie leurs noms.
       // Pour la Direction, « fiches » vaut null et toute la structure est conservée.
       const noms = res.data?.fiches;
@@ -207,7 +206,7 @@ export default function MonEquipe() {
     }
   };
 
-  useEffect(() => { load(); }, [persona.mode, persona.ids.join(','), savDemande, commerceDemande]);
+  useEffect(() => { load(); }, [persona.mode, persona.ids.join(','), savDemande, commerceDemande, equipeDemandee]);
 
   useEffect(() => {
     if (!estSav) return;
@@ -330,20 +329,18 @@ export default function MonEquipe() {
           {/* La bascule ne dépend plus du rôle porté : elle apparaît dès qu'une
               seconde équipe existe. La réserver au responsable SAV la rendait
               invisible à qui encadre deux équipes sous un autre titre. */}
-          {(autreEquipe > 0 || commerceDemande) && (
-            <div className="mt-2 inline-flex rounded-lg border border-border p-0.5">
-              {[
-                { libelle: LIBELLE_SECONDE[rolePrincipal] || 'Mon équipe', actif: !commerceDemande, vers: '/equipe' },
-                { libelle: LIBELLE_SECONDE[secondRole] || 'Seconde équipe', actif: commerceDemande, vers: '/equipe?sav=0' }
-              ].map((o) => (
+          {equipes.length > 1 && (
+            <div className="mt-2 inline-flex flex-wrap rounded-lg border border-border p-0.5">
+              {equipes.map((e) => (
                 <Link
-                  key={o.vers}
-                  to={o.vers}
+                  key={e.cle}
+                  to={e.cle === 'principale' ? '/equipe' : `/equipe?equipe=${encodeURIComponent(e.cle)}`}
                   className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
-                    o.actif ? 'bg-gd-navy text-white' : 'text-muted-foreground hover:bg-muted'
+                    e.cle === equipeActive ? 'bg-gd-navy text-white' : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  {o.libelle}
+                  {e.libelle}
+                  <span className="ml-1.5 opacity-60">{e.taille}</span>
                 </Link>
               ))}
             </div>

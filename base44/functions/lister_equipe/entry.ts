@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { equipeManagee, perimetreAtelier, sujetDeLaRequete } from '../../shared/perimetre.ts';
+import { equipeManagee, perimetreAtelier, sitesAtelierDe, sujetDeLaRequete } from '../../shared/perimetre.ts';
 import { cleSite, cleNom, comptesDesChefs, basesCompletees } from '../../shared/atelier.ts';
 
 // Effectif des chefs d'atelier d'une liste de sites. TOUS y figurent, qu'ils
@@ -95,18 +95,37 @@ export default async function(req) {
     //     reconnaissent à leur rôle, aucune fiche ne nomme qui les encadre ;
     //   — l'atelier se lit dans le tableau de répartition, site par site ;
     //   — une équipe de vendeurs se lit dans la structure commerciale.
-    const secondRole = sujet?.app_role_secondaire || '';
     const demandeSeconde = body?.sav === false;
+    const roleSujet = sujet?.app_role || '';
+    const estAtelier = (r) => r === 'responsable_sav' || r === 'chef_atelier' || r === 'commercial_chef_atelier';
+
+    // Nature de la seconde équipe.
+    //
+    // Elle est DÉDUITE avant d'être lue sur le compte : quelqu'un nommé dans le
+    // tableau de répartition répond d'un atelier, que son compte le dise ou
+    // non. C'est le cas de qui est enregistré « responsable commercial » tout
+    // en dirigeant le SAV — et il n'y a rien à ressaisir pour que ça marche.
+    //
+    // Le second rôle renseigné à la main reste prioritaire, et sert aux
+    // fonctions qu'aucun fichier ne désigne, l'agriculture de précision en tête.
+    const atelierDuSujet = estAtelier(roleSujet) ? { bases: [] } : await sitesAtelierDe(sr, sujet);
+    const secondRole = sujet?.app_role_secondaire
+      || ((atelierDuSujet.bases || []).length > 0 ? 'responsable_sav' : '');
 
     const equipeSeconde = async () => {
       if (!secondRole) return { membres: [], noms: [] };
       const tous = await sr.entities.User.list('-created_date', 500).catch(() => []);
 
-      if (secondRole === 'responsable_sav' || secondRole === 'chef_atelier') {
-        const perimetre = await perimetreAtelier(sr, sujet);
-        const toutesBases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
-        const mesSites = new Set((perimetre?.sites || []).map(cleSite));
-        return { membres: effectifChefs(toutesBases.filter((b) => mesSites.has(cleSite(b.nom))), tous), noms: [] };
+      if (estAtelier(secondRole)) {
+        // Les sites déjà trouvés, sinon ceux que son rôle lui donne.
+        let mesBases = atelierDuSujet.bases || [];
+        if (mesBases.length === 0) {
+          const perimetre = await perimetreAtelier(sr, sujet);
+          const toutesBases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
+          const vises = new Set((perimetre?.sites || []).map(cleSite));
+          mesBases = toutesBases.filter((b) => vises.has(cleSite(b.nom)));
+        }
+        return { membres: effectifChefs(mesBases, tous), noms: [] };
       }
 
       if (secondRole === 'responsable') {
@@ -118,9 +137,73 @@ export default async function(req) {
       return { membres: tous.filter((u) => u.app_role === secondRole && u.id !== sujet?.id), noms: [] };
     };
 
+    // Catalogue des équipes d'une personne. Il y en a parfois plus de deux —
+    // un responsable commercial qui dirige aussi le SAV et l'agriculture de
+    // précision en a trois — et une bascule à deux onglets en escamotait une.
+    const LIBELLES = {
+      commercial: 'Équipe commerce',
+      agri_precision: 'Équipe GPS',
+      responsable: 'Équipe commerce',
+      chef_atelier: 'Équipe atelier',
+      commercial_chef_atelier: 'Équipe atelier',
+      responsable_sav: 'Équipe SAV'
+    };
+    const catalogue = [];
+    if (!isAdmin) {
+      catalogue.push({ cle: 'principale', role: roleSujet, libelle: LIBELLES[roleSujet] || 'Mon équipe' });
+      // Nommé dans le tableau de répartition sans porter le rôle : son atelier
+      // existe quand même, et c'est la seule trace qu'on en ait.
+      if (!estAtelier(roleSujet) && (atelierDuSujet.bases || []).length > 0) {
+        catalogue.push({ cle: 'atelier', role: 'responsable_sav', libelle: 'Équipe SAV' });
+      }
+      const saisi = sujet?.app_role_secondaire || '';
+      if (saisi && saisi !== roleSujet && !catalogue.some((e) => e.role === saisi)) {
+        catalogue.push({ cle: saisi, role: saisi, libelle: LIBELLES[saisi] || 'Seconde équipe' });
+      }
+    }
+
+    const tousLesComptes = async () => sr.entities.User.list('-created_date', 500).catch(() => []);
+    const construire = async (entree) => {
+      if (entree.cle === 'atelier') {
+        return { membres: effectifChefs(atelierDuSujet.bases || [], await tousLesComptes()), noms: [] };
+      }
+      if (entree.cle !== 'principale') {
+        if (entree.role === 'responsable') {
+          const e = await equipeManagee(sr, sujet);
+          const ids = new Set(e?.ids || []);
+          return { membres: (await tousLesComptes()).filter((u) => ids.has(u.id)), noms: e?.noms || [] };
+        }
+        return {
+          membres: (await tousLesComptes()).filter((u) => u.app_role === entree.role && u.id !== sujet?.id),
+          noms: []
+        };
+      }
+      // Équipe du rôle principal.
+      if (estAtelier(roleSujet)) {
+        const perimetre = await perimetreAtelier(sr, sujet);
+        const toutes = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
+        const vises = new Set((perimetre?.sites || []).map(cleSite));
+        return { membres: effectifChefs(toutes.filter((b) => vises.has(cleSite(b.nom))), await tousLesComptes()), noms: [] };
+      }
+      const e = await equipeManagee(sr, sujet);
+      const ids = new Set(e?.ids || []);
+      return { membres: (await tousLesComptes()).filter((u) => ids.has(u.id)), noms: e?.noms || [] };
+    };
+
+    // Quelle équipe est demandée. `sav=0` désigne la seconde, par compatibilité
+    // avec le lien déjà en circulation.
+    const cleDemandee = typeof body?.equipe === 'string' && body.equipe
+      ? body.equipe
+      : (demandeSeconde ? (catalogue[1]?.cle || '') : '');
+
     // La Direction veut voir l'équipe SAV complète, sans se mettre à la place de
     // personne : tous les chefs d'atelier, de tous les ateliers.
-    if (demandeSeconde && (secondRole || (isAdmin && nomVise))) {
+    if (catalogue.length > 0) {
+      const choisie = catalogue.find((e) => e.cle === cleDemandee) || catalogue[0];
+      const r = await construire(choisie);
+      teamMembers = r.membres;
+      fiches = r.noms;
+    } else if (demandeSeconde && (secondRole || (isAdmin && nomVise))) {
       // La SECONDE équipe, demandée explicitement. Elle passe avant tout le
       // reste : le rôle principal ne doit pas la court-circuiter, c'est
       // précisément ce qui la rendait inatteignable.
@@ -191,17 +274,24 @@ export default async function(req) {
     // connecté sinon : la bascule doit parler de l'équipe qu'on regarde.
     // Taille de la seconde équipe : elle décide de l'affichage de la bascule,
     // qui n'a lieu d'être que pour qui en a vraiment deux.
-    const commerce = demandeSeconde
-      ? teamMembers.length
-      : (secondRole ? (await equipeSeconde()).membres.length : 0)
-        + (estResponsableSav ? ((await equipeManagee(sr, sujet))?.noms || []).length : 0);
+    // Les équipes offertes, avec leur effectif : la page n'affiche d'onglets
+    // que s'il y en a plusieurs, et n'en propose aucun de vide.
+    const equipes = [];
+    for (const e of catalogue) {
+      const taille = e.cle === (catalogue.find((c) => c.cle === cleDemandee) || catalogue[0])?.cle
+        ? teamMembers.length
+        : (await construire(e)).membres.length;
+      if (taille > 0 || e.cle === 'principale') equipes.push({ cle: e.cle, libelle: e.libelle, taille, role_affiche: e.role });
+    }
 
     return Response.json({
       fiches,
-      commerce,
+      commerce: equipes.length > 1 ? equipes[1].taille : 0,
       // Nommer la seconde équipe plutôt que de l'appeler « commerce » : un
       // responsable SAV qui encadre le GPS n'encadre pas des vendeurs.
       second_role: secondRole,
+      equipes,
+      equipe_active: (catalogue.find((e) => e.cle === cleDemandee) || catalogue[0])?.cle || '',
       // Rôle du compte regardé : la page s'en sert pour choisir son écran,
       // et il n'est plus devinable côté navigateur depuis que la simulation
       // se résout ici.

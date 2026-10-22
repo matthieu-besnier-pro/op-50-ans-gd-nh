@@ -24,6 +24,26 @@ const cleNom = (v) => normNom(v).split(' ').filter(Boolean).sort().join(' ');
 const variantes = (nom) => [nom, nom.replace(/-/g, ' '), nom.replace(/\s+/g, '-')];
 
 // Renvoie le périmètre du référent connecté, ou null pour les autres rôles.
+// Les sites dont une personne répond côté ATELIER, quel que soit le rôle
+// porté par son compte.
+//
+// Le tableau de répartition nomme déjà, site par site, les responsables SAV et
+// les chefs d'atelier. S'y trouver suffit : inutile de le redire sur le compte.
+// C'est ce qui permet à quelqu'un enregistré « responsable commercial » de
+// retrouver l'atelier dont il répond, sans qu'on ait rien à ressaisir.
+export async function sitesAtelierDe(sr, user) {
+  const bases = basesCompletees(await sr.entities.base.list('nom', LOT).catch(() => []));
+  const parNom = cleNom(user?.full_name || '');
+  const parEmail = cleNom(String(user?.email || '').split('@')[0].replace(/[._-]+/g, ' '));
+  const estMoi = (n) => {
+    const k = cleNom(n);
+    return !!k && (k === parNom || (!!parEmail && k === parEmail));
+  };
+  const mesBases = bases.filter((b) =>
+    (b.responsables_sav || []).some(estMoi) || (b.chefs_atelier || []).some(estMoi));
+  return { bases: mesBases, sites: mesBases.map((b) => b.nom).filter(Boolean) };
+}
+
 export async function perimetreAtelier(sr, user) {
   const role = user?.app_role;
   // « commercial_chef_atelier » cumule les deux casquettes : il relève du périmètre
