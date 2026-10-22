@@ -13,10 +13,15 @@ export default async function(req) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { utilisateur_id, app_role, base_id } = body;
+    const { utilisateur_id, app_role, base_id, app_role_secondaire } = body;
     if (!utilisateur_id || !app_role) return Response.json({ error: 'utilisateur_id et app_role requis' }, { status: 400 });
 
     const patch = { app_role, role: app_role === 'direction' ? 'admin' : 'user' };
+    // Seconde casquette : elle n'ouvre qu'une équipe de plus, jamais un droit
+    // de plus — les permissions restent adossées au rôle principal.
+    if (app_role_secondaire !== undefined) {
+      patch.app_role_secondaire = app_role_secondaire || null;
+    }
     if (base_id !== undefined) patch.base_id = base_id || null;
 
     await base44.asServiceRole.entities.User.update(utilisateur_id, patch);

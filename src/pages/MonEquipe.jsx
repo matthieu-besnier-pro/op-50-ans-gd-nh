@@ -15,6 +15,15 @@ import { useDemoPersona } from '@/lib/useDemoPersona';
 import { useOperationStats } from '@/lib/useOperationStats';
 import { useStatuts, tonaliteDe } from '@/lib/statuts';
 
+// La seconde équipe porte le nom de la fonction exercée en plus.
+const LIBELLE_SECONDE = {
+  agri_precision: 'Équipe GPS',
+  commercial: 'Équipe commerce',
+  responsable: 'Équipe commerce',
+  chef_atelier: 'Équipe atelier',
+  responsable_sav: 'Équipe SAV'
+};
+
 export default function MonEquipe() {
   const { user } = useAuth();
   const persona = useDemoPersona();
@@ -40,6 +49,9 @@ export default function MonEquipe() {
     : estResponsableSav || persona.mode === 'atelier' || savDemande;
   // Nombre de vendeurs encadrés par ailleurs : décide de la bascule.
   const [autreEquipe, setAutreEquipe] = useState(0);
+  // Nom de la seconde équipe, donné par le serveur : « commerce » ne
+  // conviendrait pas à qui encadre l'agriculture de précision.
+  const [secondRole, setSecondRole] = useState('');
   const stats = useOperationStats();
   // Liste des statuts administrée par la Direction (Administration → Statuts).
   const statuts = useStatuts();
@@ -73,6 +85,7 @@ export default function MonEquipe() {
         // apparaître que si la personne visionnée encadre vraiment des vendeurs.
         const res = await base44.functions.invoke('lister_equipe', { sites: persona.sites || [], manager: persona.label || '' });
         setAutreEquipe(res.data?.commerce || 0);
+        setSecondRole(res.data?.second_role || '');
         const membres = (res.data?.members || []).map((m) => ({
           id: m.id, user_id: m.user_id || m.id, nom: null,
           full_name: m.full_name || m.email, email: m.email || '', base_id: m.base_id || '',
@@ -143,6 +156,7 @@ export default function MonEquipe() {
       // Le serveur dit combien de vendeurs ce compte encadre par ailleurs : la
       // bascule n'a lieu d'être que pour qui a vraiment deux équipes.
       setAutreEquipe(res.data?.commerce || 0);
+      setSecondRole(res.data?.second_role || '');
       // Un responsable ne voit que ses vendeurs : le serveur renvoie leurs noms.
       // Pour la Direction, « fiches » vaut null et toute la structure est conservée.
       const noms = res.data?.fiches;
@@ -305,7 +319,7 @@ export default function MonEquipe() {
             <div className="mt-2 inline-flex rounded-lg border border-border p-0.5">
               {[
                 { libelle: 'Équipe SAV', actif: estSav, vers: '/equipe' },
-                { libelle: 'Équipe commerce', actif: !estSav, vers: '/equipe?sav=0' }
+                { libelle: LIBELLE_SECONDE[secondRole] || 'Équipe commerce', actif: !estSav, vers: '/equipe?sav=0' }
               ].map((o) => (
                 <Link
                   key={o.vers}

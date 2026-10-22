@@ -9,13 +9,14 @@
         "user"
       ],
       "default": "user",
-      "description": "R\u00f4le plateforme (admin = Direction/Marketing)"
+      "description": "Rôle plateforme (admin = Direction/Marketing)"
     },
     "app_role": {
       "type": "string",
       "enum": [
         "commercial",
         "agri_precision",
+        "commercial_chef_atelier",
         "responsable",
         "chef_atelier",
         "responsable_sav",
@@ -26,17 +27,38 @@
       "enumNames": [
         "Commercial",
         "Agriculture de précision",
+        "Chef d'atelier + Commercial",
         "Responsable commercial",
         "Chef d'atelier",
         "Responsable SAV",
         "Direction / Marketing",
         "Collaborateur"
       ],
-      "description": "Fonction dans l'op\u00e9ration"
+      "description": "Fonction dans l'opération"
     },
     "base_id": {
       "type": "string",
-      "description": "Base de rattachement (r\u00f4le Commercial)"
+      "description": "Base de rattachement (rôle Commercial)"
+    },
+    "app_role_secondaire": {
+      "type": "string",
+      "enum": [
+        "",
+        "agri_precision",
+        "responsable_sav",
+        "chef_atelier",
+        "responsable",
+        "commercial"
+      ],
+      "enumNames": [
+        "—",
+        "Agriculture de précision",
+        "Responsable SAV",
+        "Chef d'atelier",
+        "Responsable commercial",
+        "Commercial"
+      ],
+      "description": "Seconde casquette : la fonction qu'on exerce EN PLUS de son rôle principal. Elle ouvre une seconde équipe, sans changer les droits."
     }
   }
 }

@@ -70,18 +70,40 @@ export default async function(req) {
     // nommée, pas la sienne. Sans ce sujet explicite, la page retomberait sur
     // le compte réellement connecté — celui de la Direction, qui voit tout.
     const nomVise = typeof body?.manager === 'string' ? body.manager.trim() : '';
-    const sujet = (isAdmin && nomVise) ? { full_name: nomVise, email: '' } : user;
+    // Le sujet doit être le COMPTE visé, pas seulement son nom : sa seconde
+    // casquette ne se lit que sur son enregistrement.
+    let sujet = user;
+    if (isAdmin && nomVise) {
+      const tous = await sr.entities.User.list('-created_date', 500).catch(() => []);
+      const vise = cleNom(nomVise);
+      sujet = (tous || []).find((u) => cleNom(u.full_name || '') === vise
+        || cleNom(String(u.email || '').split('@')[0].replace(/[._-]+/g, ' ')) === vise)
+        || { full_name: nomVise, email: '' };
+    }
+
+    // La seconde équipe d'un double rôle. « Agriculture de précision » n'est
+    // pas une liste de fiches mais une FONCTION : ses spécialistes se
+    // reconnaissent à leur rôle, pas à un nom de manager recopié sur chaque
+    // fiche — qui n'y figure jamais.
+    const secondRole = sujet?.app_role_secondaire || '';
+    const equipeDuSecondRole = async () => {
+      if (!secondRole) return [];
+      const tous = await sr.entities.User.list('-created_date', 500).catch(() => []);
+      return (tous || []).filter((u) => u.app_role === secondRole && u.id !== sujet?.id);
+    };
 
     // La Direction veut voir l'équipe SAV complète, sans se mettre à la place de
     // personne : tous les chefs d'atelier, de tous les ateliers.
     if (isAdmin && nomVise && body?.sav === false) {
-      // L'équipe COMMERCIALE de la personne visionnée : ses vendeurs, ceux
-      // dont elle est le manager dans la structure.
+      // La seconde équipe de la personne visionnée.
       const equipe = await equipeManagee(sr, sujet);
       fiches = equipe?.noms || [];
       const ids = new Set(equipe?.ids || []);
       const allUsers = await sr.entities.User.list('-created_date', 200);
       teamMembers = allUsers.filter((u) => ids.has(u.id));
+      for (const u of await equipeDuSecondRole()) {
+        if (!teamMembers.some((m) => m.id === u.id)) teamMembers.push(u);
+      }
     } else if (isAdmin && body?.sav === true && sitesDemandes.length === 0) {
       const bases = basesCompletees(await sr.entities.base.list('nom', 500).catch(() => []));
       const allUsers = await sr.entities.User.list('-created_date', 500);
@@ -127,6 +149,10 @@ export default async function(req) {
       const ids = new Set(equipe?.ids || []);
       const allUsers = await sr.entities.User.list('-created_date', 200);
       teamMembers = allUsers.filter((u) => ids.has(u.id));
+      // Et sa seconde casquette, le cas échéant.
+      for (const u of await equipeDuSecondRole()) {
+        if (!teamMembers.some((m) => m.id === u.id)) teamMembers.push(u);
+      }
     }
 
     // Nombre de vendeurs encadrés par ailleurs : il décide de l'affichage de
@@ -135,12 +161,15 @@ export default async function(req) {
     // Le sujet vaut la personne visionnée quand il y en a une, le compte
     // connecté sinon : la bascule doit parler de l'équipe qu'on regarde.
     const commerce = (estResponsableSav || (isAdmin && nomVise))
-      ? ((await equipeManagee(sr, sujet))?.noms || []).length
+      ? ((await equipeManagee(sr, sujet))?.noms || []).length + (await equipeDuSecondRole()).length
       : 0;
 
     return Response.json({
       fiches,
       commerce,
+      // Nommer la seconde équipe plutôt que de l'appeler « commerce » : un
+      // responsable SAV qui encadre le GPS n'encadre pas des vendeurs.
+      second_role: secondRole,
       // `sites` n'existe que pour les chefs d'atelier ; la page s'en sert pour
       // afficher à quel atelier chacun est rattaché.
       members: teamMembers.map((m) => ({

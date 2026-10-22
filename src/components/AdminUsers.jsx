@@ -19,6 +19,18 @@ const APP_ROLES = [
   { value: 'collaborateur', label: 'Collaborateur' }
 ];
 
+// Seconde casquette : la fonction exercée EN PLUS du rôle principal. Elle
+// ouvre une seconde équipe — « Mon équipe » propose alors les deux — sans
+// rien changer aux droits, qui restent ceux du rôle principal.
+const SECONDS_ROLES = [
+  { value: 'aucun', label: '—' },
+  { value: 'agri_precision', label: 'Agriculture de précision' },
+  { value: 'responsable_sav', label: 'Responsable SAV' },
+  { value: 'chef_atelier', label: "Chef d'atelier" },
+  { value: 'responsable', label: 'Responsable commercial' },
+  { value: 'commercial', label: 'Commercial' }
+];
+
 export default function AdminUsers({ bases, onReload }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +84,17 @@ export default function AdminUsers({ bases, onReload }) {
   const changeRole = async (userId, newRole) => {
     try {
       await base44.functions.invoke('definir_role', { utilisateur_id: userId, app_role: newRole });
+      load();
+    } catch (e) { console.error(e); }
+  };
+
+  const changeSecondRole = async (u, valeur) => {
+    try {
+      await base44.functions.invoke('definir_role', {
+        utilisateur_id: u.id,
+        app_role: u.app_role || 'collaborateur',
+        app_role_secondaire: valeur === 'aucun' ? '' : valeur
+      });
       load();
     } catch (e) { console.error(e); }
   };
@@ -132,12 +155,13 @@ export default function AdminUsers({ bases, onReload }) {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nom</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rôle</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Second rôle</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Base</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4}><Loader compact /></td></tr>
+              <tr><td colSpan={5}><Loader compact /></td></tr>
             ) : users.map((u) => (
               <tr key={u.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 text-sm font-semibold text-foreground">{u.full_name || '—'}</td>
@@ -147,6 +171,14 @@ export default function AdminUsers({ bases, onReload }) {
                     <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {APP_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="px-4 py-3">
+                  <Select value={u.app_role_secondaire || 'aucun'} onValueChange={(v) => changeSecondRole(u, v)}>
+                    <SelectTrigger className="h-8 w-44"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      {SECONDS_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </td>

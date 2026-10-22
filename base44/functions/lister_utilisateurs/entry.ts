@@ -19,6 +19,7 @@ export default async function(req) {
         email: u.email || null,
         role: u.role || null,
         app_role: u.app_role || null,
+        app_role_secondaire: u.app_role_secondaire || null,
         base_id: u.base_id || null,
         codes_communes: u.codes_communes || []
       }))
