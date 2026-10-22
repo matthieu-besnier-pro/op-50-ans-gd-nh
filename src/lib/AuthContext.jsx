@@ -16,6 +16,9 @@ export const AuthProvider = ({ children }) => {
   const [viewAsCommercial, setViewAsCommercial] = useState(null); // Demo: simulate a specific commercial (structure_commerciale ID)
   const [viewAsManager, setViewAsManager] = useState(null); // Demo: simulate a specific manager (manager name from structure_commerciale)
   const [viewAsReferent, setViewAsReferent] = useState(null); // Demo: simulate a workshop lead / after-sales manager (referent name)
+  // Compte réel choisi dans « Voir en tant que » : il pilote les quatre états
+  // ci-dessus et sert à afficher qui l'on regarde.
+  const [viewAsCompte, setViewAsCompte] = useState(null);
 
   useEffect(() => {
     checkAppState();
@@ -140,6 +143,8 @@ export const AuthProvider = ({ children }) => {
       viewAsManager,
       setViewAsManager,
       viewAsReferent,
+      viewAsCompte,
+      setViewAsCompte,
       setViewAsReferent,
       logout,
       navigateToLogin,

@@ -6,8 +6,9 @@ import {
   Store, Settings, LogOut, Menu, X, Eye, Monitor, Bot, UserCircle, Rocket, Megaphone, Presentation,
   ChevronLeft, ChevronRight, ClipboardCheck, TrendingUp
 } from 'lucide-react';
-import { getAppRole, isDirection, accueilRole } from '@/lib/permissions';
+import { getAppRole, isDirection, accueilRole, ROLE_COMMERCIAL_ATELIER } from '@/lib/permissions';
 import { listerPartage, invalider } from '@/lib/donneesPartagees';
+import { base44 } from '@/api/base44Client';
 import OpLogo from '@/components/OpLogo';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -56,7 +57,7 @@ const navItems = [
 ];
 
 export default function Layout({ children }) {
-  const { user, logout, viewAsRole, setViewAsRole, viewAsCommercial, setViewAsCommercial, viewAsManager, setViewAsManager, viewAsReferent, setViewAsReferent } = useAuth();
+  const { user, logout, viewAsRole, setViewAsRole, viewAsCommercial, setViewAsCommercial, viewAsManager, setViewAsManager, viewAsReferent, setViewAsReferent, viewAsCompte, setViewAsCompte } = useAuth();
   const navigate = useNavigate();
   // Paramètres de l'adresse : deux entrées de menu partagent la route /equipe et
   // ne se distinguent que par eux.
@@ -79,6 +80,9 @@ export default function Layout({ children }) {
   };
   const [structure, setStructure] = useState([]);
   const [bases, setBases] = useState([]);
+  // Les comptes réels de l'outil : se mettre à la place de quelqu'un suppose de
+  // savoir qui existe, pas seulement quels rôles existent.
+  const [comptes, setComptes] = useState([]);
   const role = getAppRole(user, viewAsRole);
   const canViewAs = isDirection(user);
 
@@ -90,13 +94,15 @@ export default function Layout({ children }) {
     let annule = false;
     const charger = async () => {
       for (let essai = 0; essai < 3 && !annule; essai += 1) {
-        const [rows, sites] = await Promise.all([
+        const [rows, sites, utilisateurs] = await Promise.all([
           listerPartage('structure_commerciale', '-nom_commercial', 200),
-          listerPartage('base', '-nom', 100)
+          listerPartage('base', '-nom', 100),
+          base44.functions.invoke('lister_utilisateurs', {}).catch(() => ({ data: { users: [] } }))
         ]);
         if (annule) return;
         setStructure(rows || []);
         setBases(sites || []);
+        setComptes(utilisateurs?.data?.users || []);
         if ((sites || []).length > 0) return;
         invalider();
         await new Promise((r) => setTimeout(r, 700));
@@ -114,14 +120,82 @@ export default function Layout({ children }) {
   // Dès que le tableau de répartition est connu, la simulation prend le premier
   // référent : le périmètre s'applique sans avoir à rouvrir la liste.
   useEffect(() => {
+    // Pas de repli sur le premier référent quand un COMPTE précis est visé :
+    // afficher les données de quelqu'un d'autre sous son nom serait pire que
+    // de n'afficher personne.
+    if (viewAsCompte) return;
     if (viewAsRole === 'chef_atelier' && !viewAsReferent && chefs.length > 0) setViewAsReferent(chefs[0]);
     else if (viewAsRole === 'responsable_sav' && !viewAsReferent && responsablesSav.length > 0) setViewAsReferent(responsablesSav[0]);
-  }, [viewAsRole, viewAsReferent, chefs, responsablesSav]);
+  }, [viewAsRole, viewAsReferent, chefs, responsablesSav, viewAsCompte]);
+  const cleNomMenu = (v) => String(v || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim()
+    .split(' ').filter(Boolean).sort()
+    .join(' ');
+  const clesDuCompte = (u) => [
+    cleNomMenu(u?.full_name),
+    cleNomMenu(String(u?.email || '').split('@')[0].replace(/[._-]+/g, ' '))
+  ].filter(Boolean);
+
+  // Comptes proposés : ceux qui portent un rôle, du plus parlant au moins —
+  // un compte sans rôle n'a pas de périmètre à simuler.
+  const comptesActifs = useMemo(() => (comptes || [])
+    .filter((u) => u.app_role || u.role === 'admin')
+    .map((u) => ({ ...u, nom: u.full_name || (u.email || '').split('@')[0] }))
+    .sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr')), [comptes]);
+
   const managers = useMemo(() => {
     const set = new Set();
     structure.forEach((s) => { if (s.manager) set.add(s.manager); });
     return [...set].sort();
   }, [structure]);
+
+  // Se mettre à la place d'un compte : son rôle, et le périmètre qui va avec.
+  //
+  // Les quatre sélecteurs existants restent la mécanique — on les renseigne
+  // depuis le compte choisi au lieu de les régler un par un. Ce qui n'est pas
+  // retrouvé reste vide, et se voit : mieux vaut une vue incomplète qu'une vue
+  // qui montre les données d'un autre sous le bon nom.
+  const choisirCompte = (id) => {
+    setViewAsCommercial(null);
+    setViewAsManager(null);
+    setViewAsReferent(null);
+    if (id === 'aucun') {
+      setViewAsCompte(null);
+      setViewAsRole(null);
+      navigate(accueilRole('direction'));
+      return;
+    }
+    const u = comptesActifs.find((c) => c.id === id);
+    if (!u) return;
+    const r = u.role === 'admin' ? 'direction' : (u.app_role || 'collaborateur');
+    const cles = clesDuCompte(u);
+    const correspond = (nom) => cles.includes(cleNomMenu(nom));
+
+    if (r === 'commercial' || r === 'agri_precision' || r === ROLE_COMMERCIAL_ATELIER) {
+      const fiche = structure.find((f) => f.user_id === u.id)
+        || structure.find((f) => correspond(f.nom_commercial));
+      if (fiche) setViewAsCommercial(fiche.id);
+    } else if (r === 'responsable') {
+      const m = managers.find(correspond);
+      if (m) setViewAsManager(m);
+    } else if (r === 'chef_atelier' || r === 'responsable_sav') {
+      const n = (r === 'chef_atelier' ? chefs : responsablesSav).find(correspond);
+      if (n) setViewAsReferent(n);
+    }
+    setViewAsCompte(id);
+    setViewAsRole(r === 'direction' ? null : r);
+    navigate(accueilRole(r));
+  };
+
+  // Le compte choisi a-t-il bien été raccroché à un périmètre ?
+  const compteChoisi = comptesActifs.find((c) => c.id === viewAsCompte) || null;
+  const roleChoisi = compteChoisi
+    ? (compteChoisi.role === 'admin' ? 'direction' : (compteChoisi.app_role || 'collaborateur'))
+    : null;
+  const perimetreIntrouvable = !!compteChoisi
+    && ['commercial', 'agri_precision', ROLE_COMMERCIAL_ATELIER, 'responsable', 'chef_atelier', 'responsable_sav'].includes(roleChoisi)
+    && !viewAsCommercial && !viewAsManager && !viewAsReferent;
 
   const visibleItems = navItems.filter((item) => item.roles.includes(role));
   const sections = [...new Set(visibleItems.map((i) => i.section))];
@@ -190,11 +264,40 @@ export default function Layout({ children }) {
       </nav>
       {canViewAs && !replie && (
         <div className="px-3 pb-2 space-y-2">
+          {/* Choisir un COMPTE : le rôle et le périmètre se règlent ensemble,
+              ce qui donne exactement l'écran que cette personne voit. Le
+              sélecteur de rôle en dessous reste pour explorer un profil type,
+              sans viser personne. */}
           <div>
             <label className="px-1 mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
-              <Eye className="mr-1 inline h-3 w-3" /> Voir en tant que
+              <UserCircle className="mr-1 inline h-3 w-3" /> Compte
+            </label>
+            <Select value={viewAsCompte || 'aucun'} onValueChange={choisirCompte}>
+              <SelectTrigger className="h-8 border-white/10 bg-white/5 text-xs text-sidebar-foreground">
+                <SelectValue placeholder="Choisir un compte" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="aucun">Mon compte (Direction)</SelectItem>
+                {comptesActifs.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nom} — {ROLE_LABELS[c.role === 'admin' ? 'direction' : (c.app_role || 'collaborateur')] || c.app_role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {perimetreIntrouvable && (
+              <p className="mt-1 px-1 text-[11px] leading-snug text-gd-orange">
+                Aucun secteur ni atelier ne porte ce nom : la vue sera vide.
+                Le compte n'est rattaché à rien dans les fichiers de référence.
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="px-1 mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-sidebar-foreground/50">
+              <Eye className="mr-1 inline h-3 w-3" /> Profil type
             </label>
             <Select value={viewAsRole || 'admin'} onValueChange={(v) => {
+              setViewAsCompte(null);
               setViewAsRole(v === 'admin' ? null : v);
               if (v !== 'commercial') setViewAsCommercial(null);
               if (v !== 'responsable') setViewAsManager(null);
@@ -352,28 +455,33 @@ export default function Layout({ children }) {
 
       {/* Main */}
       <div className={`${replie ? 'lg:ml-20' : 'lg:ml-64'} flex flex-col min-w-0 transition-[margin] duration-200`}>
-        {viewAsRole && (
+        {(viewAsRole || viewAsCompte) && (
           <div className="flex items-center justify-between border-b border-gd-orange/30 bg-gd-orange/10 px-4 py-2">
             <p className="flex items-center text-sm text-gd-navy">
               <Eye className="mr-1.5 h-4 w-4" />
-              Vous visionnez en tant que : <span className="ml-1 font-semibold">{ROLE_LABELS[viewAsRole]}</span>
-              {viewAsRole === 'commercial' && viewAsCommercial && (
+              Vous visionnez en tant que : <span className="ml-1 font-semibold">{ROLE_LABELS[viewAsRole || roleChoisi]}</span>
+              {/* Un compte visé se nomme : c'est la personne qu'on regarde, et
+                  les pastilles de secteur ci-dessous deviennent redondantes. */}
+              {compteChoisi && (
+                <span className="ml-1.5 rounded-full bg-gd-navy px-2 py-0.5 text-xs font-bold text-white">{compteChoisi.nom}</span>
+              )}
+              {!compteChoisi && viewAsRole === 'commercial' && viewAsCommercial && (
                 <span className="ml-1.5 rounded-full bg-gd-navy px-2 py-0.5 text-xs font-bold text-white">
                   {commercials.find((c) => c.id === viewAsCommercial)?.nom_commercial || ''}
                 </span>
               )}
-              {viewAsRole === 'responsable' && viewAsManager && (
+              {!compteChoisi && viewAsRole === 'responsable' && viewAsManager && (
                 <span className="ml-1.5 rounded-full bg-gd-navy px-2 py-0.5 text-xs font-bold text-white">
                   {viewAsManager}
                 </span>
               )}
-              {viewAsReferent && (viewAsRole === 'chef_atelier' || viewAsRole === 'responsable_sav') && (
+              {!compteChoisi && viewAsReferent && (viewAsRole === 'chef_atelier' || viewAsRole === 'responsable_sav') && (
                 <span className="ml-1.5 rounded-full bg-gd-navy px-2 py-0.5 text-xs font-bold text-white">
                   {viewAsReferent}
                 </span>
               )}
             </p>
-            <button onClick={() => { setViewAsRole(null); setViewAsCommercial(null); setViewAsManager(null); setViewAsReferent(null); }} className="text-sm text-gd-navy/70 underline hover:text-gd-navy">
+            <button onClick={() => { setViewAsCompte(null); setViewAsRole(null); setViewAsCommercial(null); setViewAsManager(null); setViewAsReferent(null); }} className="text-sm text-gd-navy/70 underline hover:text-gd-navy">
               Revenir en vue admin
             </button>
           </div>
