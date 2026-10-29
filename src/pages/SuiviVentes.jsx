@@ -101,7 +101,13 @@ export default function SuiviVentes() {
 
   React.useEffect(() => {
     listerPartage('structure_commerciale', '-nom_commercial', 500).then(setStructure).catch(() => {});
-    listerPartage('User', '-created_date', 500).then(setUsers).catch(() => {});
+    // L'entité User n'est pas listable depuis le navigateur : il faut passer
+    // par la fonction de service. L'appel direct ne renvoyait rien, en silence,
+    // et les vendeurs qui n'ont qu'un compte — sans fiche de secteur — étaient
+    // absents de la liste d'attribution.
+    base44.functions.invoke('lister_utilisateurs', {})
+      .then((r) => setUsers(r?.data?.users || []))
+      .catch(() => {});
     // Le tableau de répartition nomme TOUS les commerciaux de la société, y
     // compris ceux qui n'ont jamais ouvert l'outil.
     listerPartage('base', 'nom', 500).then(setSites).catch(() => {});

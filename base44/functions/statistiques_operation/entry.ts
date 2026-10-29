@@ -498,6 +498,27 @@ export default async function (req) {
       .sort((a, b) => b.n - a.n)
       .reduce((acc, e) => { acc[e.libelle] = e.n; return acc; }, {});
 
+    // Nom affichable d'un vendeur, résolu ICI.
+    //
+    // La page ne peut pas le faire : l'entité User n'est pas listable depuis le
+    // navigateur, si bien qu'un vendeur à compte retombait sur un fragment de
+    // son identifiant — « Vendeur 19ed » au lieu de Clément Berthelot. Le nom de
+    // secteur prime, le nom de compte prend le relais.
+    const joliNom = (v) => {
+      const t = String(v || '').trim();
+      if (!t || t.includes(' ')) return t;
+      const mots = t.split(/[._-]+/).filter(Boolean);
+      if (mots.length < 2) return t;
+      const nom = mots.pop().toUpperCase();
+      return `${mots.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join('-')} ${nom}`;
+    };
+    const nomVendeur = {};
+    (users || []).forEach((u) => {
+      const n = joliNom(u.full_name || '') || joliNom(String(u.email || '').split('@')[0]);
+      if (n) nomVendeur[u.id] = n;
+    });
+    (structure || []).forEach((f) => { if (f.user_id && f.nom_commercial) nomVendeur[f.user_id] = f.nom_commercial; });
+
     const nomClient = {};
     allClients.forEach((c) => { nomClient[c.id] = c.raison_sociale || ''; });
     const suiviParType = {};
@@ -524,7 +545,7 @@ export default async function (req) {
       const cleVendeur = v.commercial_id || (v.commercial_nom ? `nom:${v.commercial_nom}` : '');
       if (cleVendeur) {
         const e = (suiviParCommercial[cleVendeur] = suiviParCommercial[cleVendeur]
-          || { machines: {}, total: 0, validees: 0, nom: v.commercial_nom || '' });
+          || { machines: {}, total: 0, validees: 0, nom: (v.commercial_id && nomVendeur[v.commercial_id]) || v.commercial_nom || '' });
         e.machines[machine] = (e.machines[machine] || 0) + 1;
         e.total += 1;
         if (validee) e.validees += 1;
@@ -544,7 +565,7 @@ export default async function (req) {
         // relais pour les déclarations antérieures, qui ne l'ont pas conservé.
         client: String(v.client_nom || '').trim() || nomClient[v.client_id] || '',
         commercial_id: cleVendeur,
-        vendeur: v.commercial_nom || '',
+        vendeur: (v.commercial_id && nomVendeur[v.commercial_id]) || v.commercial_nom || '',
         machine: v.type_machine || '',
         modele: v.modele || '',
         type_vente: v.type_vente || '',
@@ -612,7 +633,7 @@ export default async function (req) {
       quand: derniere.date_vente || '',
       // Le nom d'un vendeur à compte se résout côté page, qui a déjà l'annuaire.
       commercial_id: derniere.commercial_id || '',
-      vendeur: derniere.commercial_nom || '',
+      vendeur: (derniere.commercial_id && nomVendeur[derniere.commercial_id]) || derniere.commercial_nom || '',
       machine: derniere.type_machine || '',
       modele: derniere.modele || ''
     } : null;
