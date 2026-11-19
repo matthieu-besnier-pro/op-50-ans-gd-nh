@@ -266,6 +266,7 @@ export default function SuiviVentesPublic() {
                     <th className="px-4 py-2 text-left font-semibold">Client</th>
                     <th className="px-4 py-2 text-left font-semibold">Machine</th>
                     <th className="px-4 py-2 text-left font-semibold">Modèle</th>
+                    <th className="px-4 py-2 text-left font-semibold">Matricule</th>
                     <th className="px-4 py-2 text-left font-semibold">Type</th>
                     <th className="px-4 py-2 text-left font-semibold">Reprise</th>
                   </tr>
@@ -273,7 +274,7 @@ export default function SuiviVentesPublic() {
                 <tbody>
                   {declarations.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                         Aucune déclaration pour l'instant.
                       </td>
                     </tr>
@@ -287,6 +288,7 @@ export default function SuiviVentesPublic() {
                         <td className="px-4 py-2 text-foreground">{d.client || '—'}</td>
                         <td className="px-4 py-2 text-foreground">{d.machine || '—'}</td>
                         <td className="px-4 py-2 font-semibold text-gd-navy">{d.modele || '—'}</td>
+                        <td className="px-4 py-2 tabular-nums text-muted-foreground">{d.matricule || '—'}</td>
                         <td className="px-4 py-2 text-muted-foreground">{d.type_vente || '—'}</td>
                         <td className="px-4 py-2 text-muted-foreground">
                           {d.reprise || '—'}{d.marque_reprise ? ` · ${d.marque_reprise}` : ''}

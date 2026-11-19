@@ -568,6 +568,7 @@ export default async function (req) {
         vendeur: (v.commercial_id && nomVendeur[v.commercial_id]) || v.commercial_nom || '',
         machine: v.type_machine || '',
         modele: v.modele || '',
+        matricule: v.matricule || '',
         type_vente: v.type_vente || '',
         reprise: v.reprise || '',
         marque_reprise: v.marque_reprise || '',

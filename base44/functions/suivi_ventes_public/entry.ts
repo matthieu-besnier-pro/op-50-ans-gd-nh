@@ -125,6 +125,7 @@ export default async function (req) {
         client_id: v.client_id || '',
         machine: v.type_machine || '',
         modele: v.modele || '',
+        matricule: v.matricule || '',
         type_vente: v.type_vente || '',
         reprise: v.reprise || '',
         marque_reprise: v.marque_reprise || '',

@@ -473,6 +473,7 @@ export default function SuiviVentes() {
                   <th className="px-4 py-2 text-left font-semibold">Client</th>
                   <th className="px-4 py-2 text-left font-semibold">Machine</th>
                   <th className="px-4 py-2 text-left font-semibold">Modèle</th>
+                  <th className="px-4 py-2 text-left font-semibold">Matricule</th>
                   <th className="px-4 py-2 text-left font-semibold">Type</th>
                   <th className="px-4 py-2 text-left font-semibold">Reprise</th>
                   {peutSupprimer && <th className="px-4 py-2" />}
@@ -481,7 +482,7 @@ export default function SuiviVentes() {
               <tbody>
                 {visibles.length === 0 ? (
                   <tr>
-                    <td colSpan={peutSupprimer ? 8 : 7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td colSpan={peutSupprimer ? 9 : 8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                       Aucune déclaration à afficher.
                     </td>
                   </tr>
@@ -525,6 +526,9 @@ export default function SuiviVentes() {
                             <span className="font-semibold text-gd-navy">{d.modele || '—'}</span>
                           )}
                         </td>
+                        {/* Le matricule est repris des ventes déjà enregistrées :
+                            il se consulte, il ne se saisit pas ici. */}
+                        <td className="px-4 py-2 tabular-nums text-muted-foreground">{d.matricule || '—'}</td>
                         <td className="px-4 py-2">
                           {peutGerer ? (
                             <select className={sel} value={d.type_vente || ''} disabled={fige}

@@ -8,7 +8,7 @@
     },
     "client_nom": {
       "type": "string",
-      "description": "Nom du client tel qu'il figure dans la déclaration WhatsApp, quand aucune fiche ne lui correspond"
+      "description": "Nom du client tel qu'il figure dans la d\u00e9claration WhatsApp, quand aucune fiche ne lui correspond"
     },
     "commercial_nom": {
       "type": "string",
@@ -29,11 +29,15 @@
     },
     "declare_le": {
       "type": "string",
-      "description": "Date et heure de la déclaration sur le groupe WhatsApp, telles qu'horodatées par le message (heure locale, sans fuseau)"
+      "description": "Date et heure de la d\u00e9claration sur le groupe WhatsApp, telles qu'horodat\u00e9es par le message (heure locale, sans fuseau)"
     },
     "modele": {
       "type": "string",
       "description": "Mod\u00e8le vendu tel qu'annonc\u00e9 (T6.160, TH6.26, Roll-Belt 180\u2026)"
+    },
+    "matricule": {
+      "type": "string",
+      "description": "Matricule de la machine vendue (renseign\u00e9 sur les ventes d\u00e9j\u00e0 enregistr\u00e9es)"
     },
     "type_machine": {
       "type": "string",
