@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import Layout from '@/components/Layout';
-import AdminUsers from '@/components/AdminUsers';
+import AdminUtilisateurs from '@/components/AdminUtilisateurs';
 import StatCard from '@/components/StatCard';
 import { Users, UserCheck, Briefcase, Mail } from 'lucide-react';
 
@@ -46,7 +46,7 @@ export default function GestionUtilisateurs() {
           <StatCard label="Collaborateurs" value={stats.collaborateurs} icon={Mail} accent />
         </div>
 
-        <AdminUsers bases={bases} />
+        <AdminUtilisateurs bases={bases} />
       </div>
     </Layout>
   );

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Upload, CheckCircle2, MapPin, X, Plus, Zap, Users, Award, Tractor, Briefcase, Calendar, ShoppingBag, ClipboardCheck } from 'lucide-react';
-import AdminUsers from '@/components/AdminUsers';
+import AdminUtilisateurs from '@/components/AdminUtilisateurs';
 import AdminBadges from '@/components/AdminBadges';
 import AdminStatuts from '@/components/AdminStatuts';
 import AdminBases from '@/components/AdminBases';
@@ -291,7 +291,7 @@ export default function Administration() {
 
         {/* Utilisateurs */}
         <TabsContent value="users">
-          <AdminUsers bases={bases} onReload={load} />
+          <AdminUtilisateurs bases={bases} onReload={load} />
         </TabsContent>
 
         {/* Affectation par codes communes */}
