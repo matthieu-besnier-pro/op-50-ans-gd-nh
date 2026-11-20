@@ -88,6 +88,13 @@ export default function MonEquipe() {
     .filter((t) => t && !['LA', 'LE', 'LES', 'SUR', 'SOUS', 'DE', 'DU', 'DES', 'L', 'D', 'SAINT', 'ST'].includes(t))
     .join(' ');
 
+  // Nom de vendeur comparable : « Jean-François DRAGON » et « jean francois
+  // dragon » désignent la même personne.
+  const cleVendeur = (v) => String(v || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]+/g, ' ')
+    .split(' ').filter(Boolean).sort().join(' ');
+
   const load = async () => {
     try {
       // Persona « atelier » : l'équipe d'un responsable SAV, ce sont les CHEFS
@@ -116,7 +123,9 @@ export default function MonEquipe() {
         ]);
         setClients(allClients.filter(persona.matchClient));
         setRdvs(allRdvs.filter((r) => ids.includes(r.commercial_id)));
-        setVentes(allVentes.filter((v) => ids.includes(v.commercial_id)));
+        // Toutes les ventes : celles déclarées sous un simple NOM n'ont pas de
+        // commercial_id et seraient perdues par un filtre sur l'identifiant.
+        setVentes(allVentes);
         return;
       }
 
@@ -137,7 +146,9 @@ export default function MonEquipe() {
         ]);
         setClients(allClients);
         setRdvs(allRdvs.filter((r) => ids.includes(r.commercial_id)));
-        setVentes(allVentes.filter((v) => ids.includes(v.commercial_id)));
+        // Toutes les ventes : celles déclarées sous un simple NOM n'ont pas de
+        // commercial_id et seraient perdues par un filtre sur l'identifiant.
+        setVentes(allVentes);
         return;
       }
 
@@ -154,7 +165,9 @@ export default function MonEquipe() {
         ]);
         setClients(allClients.filter((c) => (c.commerciaux_assignes || []).some((id) => memberIds.includes(id))));
         setRdvs(allRdvs.filter((r) => memberIds.includes(r.commercial_id)));
-        setVentes(allVentes.filter((v) => memberIds.includes(v.commercial_id)));
+        // Toutes les ventes : celles déclarées sous un simple NOM n'ont pas de
+        // commercial_id et seraient perdues par un filtre sur l'identifiant.
+        setVentes(allVentes);
         return;
       }
 
@@ -225,10 +238,52 @@ export default function MonEquipe() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
+  // Ventes déclarées SANS compte vendeur.
+  //
+  // Sur le groupe WhatsApp, un vendeur qui n'a pas encore d'identifiant dans
+  // l'outil est enregistré avec son seul NOM : la vente n'a donc aucun
+  // commercial_id, et les chiffres du serveur — indexés par identifiant — ne
+  // peuvent pas la compter. Le suivi des ventes l'affiche pourtant, à son nom.
+  // On la rend ici à la fiche qui porte ce nom, pour que les deux pages se
+  // recoupent ; les vendeurs dont le nom ne correspond à aucune fiche sont
+  // remontés à part plutôt que d'être perdus.
+  const ventesSansCompte = useMemo(() => {
+    const parNom = {};
+    commerciaux.forEach((c) => {
+      [
+        c.full_name,
+        c.nom,
+        String(c.email || '').split('@')[0].replace(/[._-]+/g, ' ')
+      ].map(cleVendeur).filter(Boolean).forEach((k) => { if (!parNom[k]) parNom[k] = c.id; });
+    });
+    const opDebut = stats?.rdv?.operation?.debut || null;
+    const opFin = stats?.rdv?.operation?.fin || null;
+    const parMembre = {};
+    const hors = {};
+    ventes.forEach((v) => {
+      // Celles qui portent un identifiant sont déjà comptées par le serveur.
+      if (v.commercial_id) return;
+      const nom = String(v.commercial_nom || '').trim();
+      if (!nom) return;
+      const validee = v.statut_validation === 'Validé';
+      const dansOp = !!(opDebut && opFin && v.date_vente && v.date_vente >= opDebut && v.date_vente <= opFin);
+      const id = parNom[cleVendeur(nom)];
+      if (id) {
+        const e = (parMembre[id] = parMembre[id] || { validees: 0, valideesOp: 0 });
+        if (validee) { e.validees += 1; if (dansOp) e.valideesOp += 1; }
+      } else {
+        const cle = cleVendeur(nom);
+        const e = (hors[cle] = hors[cle] || { id: `nom:${cle}`, nom, validees: 0 });
+        if (validee) e.validees += 1;
+      }
+    });
+    return { parMembre, hors };
+  }, [commerciaux, ventes, stats]);
+
   const rows = useMemo(() => {
     const parSecteur = stats?.clients?.par_secteur || null;
     const parCommercial = stats?.clients?.par_commercial || null;
-    return commerciaux.map((c) => {
+    const base = commerciaux.map((c) => {
       // Comptages serveur exacts quand le commercial est reconnu, sinon listes chargées
       const exact = (c.user_id && parCommercial?.[c.user_id]) || (c.nom && parSecteur?.[c.nom]) || null;
       const rdvExact = stats?.rdv?.par_commercial?.[c.id];
@@ -236,16 +291,21 @@ export default function MonEquipe() {
       const myClients = clients.filter((cl) => (cl.commerciaux_assignes || []).includes(c.id));
       const myRdvs = rdvs.filter((r) => r.commercial_id === c.id);
       const myVentes = ventes.filter((v) => v.commercial_id === c.id);
-      const ventesValidees = ventesExactes !== undefined ? ventesExactes : myVentes.filter((v) => v.statut_validation === 'Validé').length;
+      // Chiffres du serveur (ventes rattachées à un identifiant) + celles
+      // déclarées sous le seul nom du vendeur.
+      const ventesValidees = (ventesExactes !== undefined
+        ? ventesExactes
+        : myVentes.filter((v) => v.statut_validation === 'Validé').length)
+        + (ventesSansCompte.parMembre[c.id]?.validees || 0);
       const rdvPrisToday = rdvExact?.pris_jour ?? myRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure?.slice(0, 10) === todayStr).length;
       // Période de l'opération si elle est définie, sinon le mois — des deux côtés,
       // sinon le taux compare des ventes de toujours à des RDV du mois.
       const rdvPrisMonth = rdvExact
         ? (rdvExact.pris_operation ?? rdvExact.pris_mois ?? 0)
         : myRdvs.filter((r) => r.statut !== 'Annulé' && r.date_heure >= monthStart).length;
-      const ventesPeriode = stats?.ventes?.operation_par_commercial
+      const ventesPeriode = (stats?.ventes?.operation_par_commercial
         ? (stats.ventes.operation_par_commercial[c.id] || 0)
-        : ventesValidees;
+        : ventesValidees) + (ventesSansCompte.parMembre[c.id]?.valideesOp || 0);
       const tauxTransfo = rdvPrisMonth > 0 ? Math.round((ventesPeriode / rdvPrisMonth) * 100) : 0;
       const repartition = exact
         ? statuts.map((s) => exact.par_statut[s.nom] || 0)
@@ -276,7 +336,20 @@ export default function MonEquipe() {
         ventes: ventesValidees, tauxTransfo
       };
     });
-  }, [commerciaux, clients, rdvs, ventes, stats, statuts, todayStr, monthStart, atelier]);
+
+    // Vendeurs cités par une vente mais absents de la structure : leur vente
+    // doit apparaître, sinon le total de l'équipe ne rejoint pas celui du suivi
+    // des ventes.
+    Object.values(ventesSansCompte.hors).forEach((o) => base.push({
+      id: o.id, nom: o.nom,
+      rdvAtelier: 0, okSite: 0, contactsSite: 0, ciblesSite: 0,
+      site: '', sansCompte: true, horsStructure: true,
+      repartition: statuts.map(() => 0), totalClients: 0,
+      rdvToday: 0, rdvMonth: 0, ventes: o.validees, tauxTransfo: 0
+    }));
+
+    return base;
+  }, [commerciaux, clients, rdvs, ventes, stats, statuts, todayStr, monthStart, atelier, ventesSansCompte]);
 
   const sorted = useMemo(() => {
     // Côté atelier, le classement se fait sur les rendez-vous posés, puis sur les
@@ -480,7 +553,11 @@ export default function MonEquipe() {
                       {r.sansCompte && (r.site ? ' · ' : '')}
                       {/* Un compte jamais connecté n'a aucune activité à afficher :
                           autant le dire, plutôt que de laisser croire à zéro RDV. */}
-                      {r.sansCompte && <span className="text-gd-orange">compte non créé</span>}
+                      {r.sansCompte && (
+                        <span className="text-gd-orange">
+                          {r.horsStructure ? 'vendeur hors structure' : 'compte non créé'}
+                        </span>
+                      )}
                     </span>
                   )}
                 </td>
