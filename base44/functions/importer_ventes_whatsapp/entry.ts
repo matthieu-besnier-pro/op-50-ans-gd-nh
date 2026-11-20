@@ -190,13 +190,20 @@ Messages à analyser :
         sr.entities.structure_commerciale.list('-nom_commercial', 300).catch(() => []),
         sr.entities.base.list('nom', 200).catch(() => [])
       ]);
+      // Les FICHES d'abord : elles désignent le compte qui fait foi pour un nom
+      // donné. Un même vendeur peut avoir deux comptes (« clement.berthelot » et
+      // « clement-berthelot ») ; en partant des comptes, le dernier arrivé
+      // captait la déclaration et la vente disparaissait du classement de
+      // l'équipe, qui suit le compte de la fiche.
       const commByName = new Map();
-      for (const u of users) {
-        if (u.full_name) commByName.set(norm(u.full_name), { commercial_id: u.id, nom: u.full_name });
-      }
       for (const s of structure) {
-        if (s.user_id && s.nom_commercial && !commByName.has(norm(s.nom_commercial))) {
+        if (s.user_id && s.nom_commercial) {
           commByName.set(norm(s.nom_commercial), { commercial_id: s.user_id, nom: s.nom_commercial });
+        }
+      }
+      for (const u of users) {
+        if (u.full_name && !commByName.has(norm(u.full_name))) {
+          commByName.set(norm(u.full_name), { commercial_id: u.id, nom: u.full_name });
         }
       }
       for (const b of (bases || [])) {
