@@ -517,7 +517,9 @@ export default async function (req) {
       const n = joliNom(u.full_name || '') || joliNom(String(u.email || '').split('@')[0]);
       if (n) nomVendeur[u.id] = n;
     });
-    (structure || []).forEach((f) => { if (f.user_id && f.nom_commercial) nomVendeur[f.user_id] = f.nom_commercial; });
+    // Le vendeur peut être une fiche sans compte : la vente est alors rattachée
+    // à l'identifiant de la fiche, qui doit porter le même nom.
+    (structure || []).forEach((f) => { if (f.nom_commercial) nomVendeur[f.user_id || f.id] = f.nom_commercial; });
 
     const nomClient = {};
     allClients.forEach((c) => { nomClient[c.id] = c.raison_sociale || ''; });

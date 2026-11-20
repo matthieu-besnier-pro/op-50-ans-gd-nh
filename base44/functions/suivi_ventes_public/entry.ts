@@ -63,7 +63,9 @@ export default async function (req) {
     // Nom affichable d'un vendeur : sa fiche de secteur d'abord, son compte sinon.
     const nomPar = {};
     (users || []).forEach((u) => { if (u.full_name) nomPar[u.id] = joliNom(u.full_name); });
-    (structure || []).forEach((f) => { if (f.user_id && f.nom_commercial) nomPar[f.user_id] = f.nom_commercial; });
+    // Une fiche sans compte porte quand même des ventes : son identifiant vaut
+    // celui d'un vendeur à compte pour la lecture du tableau.
+    (structure || []).forEach((f) => { if (f.nom_commercial) nomPar[f.user_id || f.id] = f.nom_commercial; });
 
     // Répartition par MARQUE reprise : « Sans reprise » d'un côté, New Holland
     // de l'autre, et chaque marque concurrente pour elle-même. On regroupe sans
