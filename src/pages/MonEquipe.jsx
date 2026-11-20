@@ -202,7 +202,10 @@ export default function MonEquipe() {
         id: s.user_id || s.id,
         user_id: s.user_id || null,
         nom: s.nom_commercial,
-        full_name: userById[s.user_id]?.full_name || s.nom_commercial,
+        // Le nom de la FICHE fait foi : le compte, lui, porte souvent
+        // l'identifiant de l'adresse (« clement-berthelot »), illisible dans un
+        // classement — et introuvable quand on cherche quelqu'un par son nom.
+        full_name: s.nom_commercial || userById[s.user_id]?.full_name,
         email: s.email || userById[s.user_id]?.email || '',
         base_id: ''
       }));
